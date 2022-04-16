@@ -62,7 +62,6 @@ final class ProxyGenerator extends ClassWriter {
     private static final String JL_OBJECT = "java/lang/Object";
     private static final String JL_THROWABLE = "java/lang/Throwable";
     private static final String JL_ILLEGAL_ACCESS_EX = "java/lang/IllegalAccessException";
-    private static final String JLI_CONSTANT_BOOTSTRAPS = "java/lang/invoke/ConstantBootstraps";
     private static final String JLI_LOOKUP = "java/lang/invoke/MethodHandles$Lookup";
     private static final String JLI_METHODHANDLES = "java/lang/invoke/MethodHandles";
 
@@ -77,18 +76,16 @@ final class ProxyGenerator extends ClassWriter {
 
     private static final String NAME_CTOR = "<init>";
     private static final String NAME_LOOKUP_ACCESSOR = "proxyClassLookup";
+    private static final String NAME_METHOD_BOOTSTRAP = "proxyMethodBootstrap";
 
     private static final Class<?>[] EMPTY_CLASS_ARRAY = new Class<?>[0];
 
-    private static final Handle CONSTANT_BOOTSTRAPS_INVOKE =
-            new Handle(H_INVOKESTATIC, JLI_CONSTANT_BOOTSTRAPS, "invoke",
+    private static final Handle PROXY_METHOD_BOOTSTRAP =
+            new Handle(H_INVOKESTATIC, "jdk/internal/reflect/proxy/ProxySupport",
+                       NAME_METHOD_BOOTSTRAP,
                        "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;"
-                               + "Ljava/lang/Class;Ljava/lang/invoke/MethodHandle;"
-                               + "[Ljava/lang/Object;)Ljava/lang/Object;", false);
-    private static final Handle METHOD_HANDLES_REFLECT_AS =
-            new Handle(H_INVOKESTATIC, JLI_METHODHANDLES, "reflectAs",
-                       "(Ljava/lang/Class;Ljava/lang/invoke/MethodHandle;)"
-                               + "Ljava/lang/reflect/Member;", false);
+                               + "Ljava/lang/Class;Ljava/lang/invoke/MethodHandle;)"
+                               + "Ljava/lang/reflect/Method;", false);
 
     /**
      * name of field for storing a proxy instance's invocation handler
@@ -837,8 +834,7 @@ final class ProxyGenerator extends ClassWriter {
                                          isInterface);
 
             return new ConstantDynamic(ConstantDescs.DEFAULT_NAME, LJLR_METHOD,
-                                       CONSTANT_BOOTSTRAPS_INVOKE, METHOD_HANDLES_REFLECT_AS,
-                                       Type.getType(Method.class), directMh);
+                    PROXY_METHOD_BOOTSTRAP, directMh);
         }
 
         @Override

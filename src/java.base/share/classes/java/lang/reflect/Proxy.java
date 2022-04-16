@@ -485,6 +485,9 @@ public class Proxy implements java.io.Serializable {
     private static final class ProxyBuilder {
         private static final JavaLangAccess JLA = SharedSecrets.getJavaLangAccess();
 
+        // The proxy support package, exported to proxy implementations
+        private static final String proxySupportPackage = "jdk.internal.reflect.proxy";
+
         // prefix for all proxy class names
         private static final String proxyClassNamePrefix = "$Proxy";
 
@@ -837,6 +840,8 @@ public class Proxy implements java.io.Serializable {
                 if (targetModule.isNamed()) {
                     Modules.addOpens(targetModule, targetPackageName, Proxy.class.getModule());
                 }
+                // export the method bootstrap to proxy implementations
+                Modules.addExports(Proxy.class.getModule(), proxySupportPackage, targetModule);
                 // return the module of the package-private interface
                 return targetModule;
             }
@@ -920,6 +925,8 @@ public class Proxy implements java.io.Serializable {
                 // java.base to create proxy instance and access its Lookup instance
                 Modules.addOpens(m, pn, Proxy.class.getModule());
                 Modules.addOpens(m, mn, Proxy.class.getModule());
+                // export the method bootstrap to proxy implementations
+                Modules.addExports(Proxy.class.getModule(), proxySupportPackage, m);
                 return m;
             });
         }
