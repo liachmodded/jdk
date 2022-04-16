@@ -37,7 +37,6 @@ import sun.security.action.GetBooleanAction;
 
 import java.io.IOException;
 import java.lang.constant.ConstantDescs;
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -63,9 +62,9 @@ final class ProxyGenerator extends ClassWriter {
     private static final String JL_OBJECT = "java/lang/Object";
     private static final String JL_THROWABLE = "java/lang/Throwable";
     private static final String JL_ILLEGAL_ACCESS_EX = "java/lang/IllegalAccessException";
+    private static final String JLI_CONSTANT_BOOTSTRAPS = "java/lang/invoke/ConstantBootstraps";
     private static final String JLI_LOOKUP = "java/lang/invoke/MethodHandles$Lookup";
     private static final String JLI_METHODHANDLES = "java/lang/invoke/MethodHandles";
-    private static final String JLI_METHOD_HANDLE_INFO = "java/lang/invoke/MethodHandleInfo";
 
     private static final String JLR_INVOCATION_HANDLER = "java/lang/reflect/InvocationHandler";
     private static final String JLR_PROXY = "java/lang/reflect/Proxy";
@@ -78,9 +77,18 @@ final class ProxyGenerator extends ClassWriter {
 
     private static final String NAME_CTOR = "<init>";
     private static final String NAME_LOOKUP_ACCESSOR = "proxyClassLookup";
-    private static final String NAME_METHOD_BOOTSTRAP = "methodBootstrap";
 
     private static final Class<?>[] EMPTY_CLASS_ARRAY = new Class<?>[0];
+
+    private static final Handle CONSTANT_BOOTSTRAPS_INVOKE =
+            new Handle(H_INVOKESTATIC, JLI_CONSTANT_BOOTSTRAPS, "invoke",
+                       "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;"
+                               + "Ljava/lang/Class;Ljava/lang/invoke/MethodHandle;"
+                               + "[Ljava/lang/Object;)Ljava/lang/Object;", false);
+    private static final Handle METHOD_HANDLES_REFLECT_AS =
+            new Handle(H_INVOKESTATIC, JLI_METHODHANDLES, "reflectAs",
+                       "(Ljava/lang/Class;Ljava/lang/invoke/MethodHandle;)"
+                               + "Ljava/lang/reflect/Member;", false);
 
     /**
      * name of field for storing a proxy instance's invocation handler
@@ -139,13 +147,6 @@ final class ProxyGenerator extends ClassWriter {
     private final Map<String, List<ProxyMethod>> proxyMethods = new LinkedHashMap<>();
 
     /**
-     * The bootstrap method for obtaining method instances on demand.
-     *
-     * @see #generateMethodBootstrap()
-     */
-    private final Handle methodBootstrap;
-
-    /**
      * Construct a ProxyGenerator to generate a proxy class with the
      * specified name and for the given interfaces.
      * <p>
@@ -159,10 +160,6 @@ final class ProxyGenerator extends ClassWriter {
         this.className = className;
         this.interfaces = interfaces;
         this.accessFlags = accessFlags;
-
-        this.methodBootstrap = new Handle(INVOKESTATIC, dotToSlash(className), NAME_METHOD_BOOTSTRAP,
-                "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;"
-                        + "Ljava/lang/invoke/MethodHandle;)Ljava/lang/Object;", false);
     }
 
     /**
@@ -496,11 +493,10 @@ final class ProxyGenerator extends ClassWriter {
         for (List<ProxyMethod> sigmethods : proxyMethods.values()) {
             for (ProxyMethod pm : sigmethods) {
                 // Generate code for proxy method
-                pm.generateMethod(this, methodBootstrap);
+                pm.generateMethod(this);
             }
         }
 
-        generateMethodBootstrap();
         generateLookupAccessor();
         return toByteArray();
     }
@@ -618,40 +614,6 @@ final class ProxyGenerator extends ClassWriter {
     }
 
     /**
-     * Generates a bootstrap method equivalent to:
-     * {@snippet :
-     * private static Object methodBootstrap(MethodHandles.Lookup lookup, String name,
-     *                                       Class<Method> type, MethodHandle handle) {
-     *     return lookup.revealDirect(handle).reflectAs(Method.class, lookup);
-     * }
-     * }
-     * This is required as {@link java.lang.invoke.MethodHandles#reflectAs(Class, MethodHandle)}
-     * has a security check.
-     */
-    private void generateMethodBootstrap() {
-        MethodVisitor mv = visitMethod(ACC_PRIVATE | ACC_STATIC, NAME_METHOD_BOOTSTRAP,
-                methodBootstrap.getDesc(), null, null);
-        mv.visitCode();
-
-        mv.visitVarInsn(ALOAD, 0); // lookup
-        mv.visitVarInsn(ALOAD, 3); // handle
-        mv.visitMethodInsn(INVOKEVIRTUAL, JLI_LOOKUP, "revealDirect",
-                "(Ljava/lang/invoke/MethodHandle;)Ljava/lang/invoke/MethodHandleInfo;", false);
-
-        mv.visitLdcInsn(Type.getType(Method.class)); // Method.class
-        mv.visitVarInsn(ALOAD, 0); // lookup
-        mv.visitMethodInsn(INVOKEINTERFACE, JLI_METHOD_HANDLE_INFO, "reflectAs",
-                "(Ljava/lang/Class;Ljava/lang/invoke/MethodHandle$Lookup;)"
-                        + "Ljava/lang/reflect/Member;", true);
-
-        mv.visitInsn(ARETURN);
-
-        // Maxs computed by ClassWriter.COMPUTE_FRAMES, these arguments ignored
-        mv.visitMaxs(-1, -1);
-        mv.visitEnd();
-    }
-
-    /**
      * A ProxyMethod object represents a proxy method in the proxy class
      * being generated: a method whose implementation will encode and
      * dispatch invocations to the proxy instance's invocation handler.
@@ -689,7 +651,7 @@ final class ProxyGenerator extends ClassWriter {
         /**
          * Generate this method, including the code and exception table entry.
          */
-        private void generateMethod(ClassWriter cw, Handle methodBootstrap) {
+        private void generateMethod(ClassWriter cw) {
             String desc = descriptor.descriptorString();
             int accessFlags = ACC_PUBLIC | ACC_FINAL;
             if (method.isVarArgs()) accessFlags |= ACC_VARARGS;
@@ -727,7 +689,7 @@ final class ProxyGenerator extends ClassWriter {
             mv.visitFieldInsn(GETFIELD, JLR_PROXY, handlerFieldName,
                     LJLR_INVOCATION_HANDLER);
             mv.visitVarInsn(ALOAD, 0);
-            mv.visitLdcInsn(generateMethodCondy(methodBootstrap));
+            mv.visitLdcInsn(generateMethodCondy());
 
             if (descriptor.parameterCount() > 0) {
                 // Create an array and fill with the parameters converting primitives to wrappers
@@ -866,7 +828,7 @@ final class ProxyGenerator extends ClassWriter {
         /**
          * Generates a CONSTANT_Dynamic that yields the desired method object.
          */
-        private ConstantDynamic generateMethodCondy(Handle methodBootstrap) {
+        private ConstantDynamic generateMethodCondy() {
             boolean isInterface = fromClass.isInterface();
             Handle directMh = new Handle(isInterface ? H_INVOKEINTERFACE : H_INVOKEVIRTUAL,
                                          dotToSlash(fromClass.getName()), // owner
@@ -875,7 +837,8 @@ final class ProxyGenerator extends ClassWriter {
                                          isInterface);
 
             return new ConstantDynamic(ConstantDescs.DEFAULT_NAME, LJLR_METHOD,
-                                       methodBootstrap, directMh);
+                                       CONSTANT_BOOTSTRAPS_INVOKE, METHOD_HANDLES_REFLECT_AS,
+                                       Type.getType(Method.class), directMh);
         }
 
         @Override
