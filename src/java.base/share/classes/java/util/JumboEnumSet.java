@@ -25,6 +25,9 @@
 
 package java.util;
 
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
 /**
  * Private implementation class for EnumSet, for "jumbo" enum types
  * (i.e., those with more than 64 elements).
@@ -42,12 +45,12 @@ final class JumboEnumSet<E extends Enum<E>> extends EnumSet<E> {
      * element of this array represents the  presence of universe[64*j +i]
      * in this set.
      */
-    private long elements[];
+    private long[] elements;
 
     // Redundant - maintained for performance
     private int size = 0;
 
-    JumboEnumSet(Class<E>elementType, Enum<?>[] universe) {
+    JumboEnumSet(Class<E> elementType, E[] universe) {
         super(elementType, universe);
         elements = new long[(universe.length + 63) >>> 6];
     }
@@ -69,8 +72,7 @@ final class JumboEnumSet<E extends Enum<E>> extends EnumSet<E> {
     }
 
     void addAll() {
-        for (int i = 0; i < elements.length; i++)
-            elements[i] = -1;
+        Arrays.fill(elements, -1);
         elements[elements.length - 1] >>>= -universe.length;
         size = universe.length;
     }
@@ -92,10 +94,39 @@ final class JumboEnumSet<E extends Enum<E>> extends EnumSet<E> {
      * @return an iterator over the elements contained in this set
      */
     public Iterator<E> iterator() {
-        return new EnumSetIterator<>();
+        return new EnumSetIterator();
     }
 
-    private class EnumSetIterator<E extends Enum<E>> implements Iterator<E> {
+    @Override
+    public void forEach(Consumer<? super E> action) {
+        for (int i = 0; i < elements.length; i++) {
+            long l = elements[i];
+            while (l != 0) {
+                long r = Long.lowestOneBit(l);
+                action.accept(universe[(i << 6) + Long.numberOfTrailingZeros(r)]);
+                l &= ~r;
+            }
+        }
+    }
+
+    @Override
+    public boolean removeIf(Predicate<? super E> filter) {
+        boolean ret = false;
+        for (int i = 0; i < elements.length; i++) {
+            long l = elements[i];
+            while (l != 0) {
+                long r = Long.lowestOneBit(l);
+                if (filter.test(universe[(i << 6) + Long.numberOfTrailingZeros(r)])) {
+                    elements[i] &= ~r;
+                    ret = true;
+                }
+                l &= ~r;
+            }
+        }
+        return ret;
+    }
+
+    private class EnumSetIterator implements Iterator<E> {
         /**
          * A bit vector representing the elements in the current "word"
          * of the set not yet returned by this iterator.
@@ -130,14 +161,13 @@ final class JumboEnumSet<E extends Enum<E>> extends EnumSet<E> {
         }
 
         @Override
-        @SuppressWarnings("unchecked")
         public E next() {
             if (!hasNext())
                 throw new NoSuchElementException();
             lastReturned = unseen & -unseen;
             lastReturnedIndex = unseenIndex;
             unseen -= lastReturned;
-            return (E) universe[(lastReturnedIndex << 6)
+            return universe[(lastReturnedIndex << 6)
                                 + Long.numberOfTrailingZeros(lastReturned)];
         }
 

@@ -91,9 +91,9 @@ public abstract sealed class EnumSet<E extends Enum<E>> extends AbstractSet<E>
     /**
      * All of the values comprising E.  (Cached for performance.)
      */
-    final transient Enum<?>[] universe;
+    final transient E[] universe;
 
-    EnumSet(Class<E>elementType, Enum<?>[] universe) {
+    EnumSet(Class<E> elementType, E[] universe) {
         this.elementType = elementType;
         this.universe    = universe;
     }
@@ -108,7 +108,7 @@ public abstract sealed class EnumSet<E extends Enum<E>> extends AbstractSet<E>
      * @throws NullPointerException if {@code elementType} is null
      */
     public static <E extends Enum<E>> EnumSet<E> noneOf(Class<E> elementType) {
-        Enum<?>[] universe = getUniverse(elementType);
+        E[] universe = getUniverse(elementType);
         if (universe == null)
             throw new ClassCastException(elementType + " not an enum");
 

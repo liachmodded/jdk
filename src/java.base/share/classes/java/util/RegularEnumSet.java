@@ -25,6 +25,9 @@
 
 package java.util;
 
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
 /**
  * Private implementation class for EnumSet, for "regular sized" enum types
  * (i.e., those with 64 or fewer enum constants).
@@ -42,7 +45,7 @@ final class RegularEnumSet<E extends Enum<E>> extends EnumSet<E> {
      */
     private long elements = 0L;
 
-    RegularEnumSet(Class<E>elementType, Enum<?>[] universe) {
+    RegularEnumSet(Class<E> elementType, E[] universe) {
         super(elementType, universe);
     }
 
@@ -73,10 +76,35 @@ final class RegularEnumSet<E extends Enum<E>> extends EnumSet<E> {
      * @return an iterator over the elements contained in this set
      */
     public Iterator<E> iterator() {
-        return new EnumSetIterator<>();
+        return new EnumSetIterator();
     }
 
-    private class EnumSetIterator<E extends Enum<E>> implements Iterator<E> {
+    @Override
+    public void forEach(Consumer<? super E> action) {
+        long t = elements;
+        while (t != 0) {
+            long r = Long.lowestOneBit(t);
+            action.accept(universe[Long.numberOfTrailingZeros(r)]);
+            t &= ~r;
+        }
+    }
+
+    @Override
+    public boolean removeIf(Predicate<? super E> filter) {
+        boolean ret = false;
+        long t = elements;
+        while (t != 0) {
+            long r = Long.lowestOneBit(t);
+            if (filter.test(universe[Long.numberOfTrailingZeros(r)])) {
+                elements &= ~r;
+                ret = true;
+            }
+            t &= ~r;
+        }
+        return ret;
+    }
+
+    private class EnumSetIterator implements Iterator<E> {
         /**
          * A bit vector representing the elements in the set not yet
          * returned by this iterator.
@@ -162,7 +190,7 @@ final class RegularEnumSet<E extends Enum<E>> extends EnumSet<E> {
         typeCheck(e);
 
         long oldElements = elements;
-        elements |= (1L << ((Enum<?>)e).ordinal());
+        elements |= (1L << e.ordinal());
         return elements != oldElements;
     }
 

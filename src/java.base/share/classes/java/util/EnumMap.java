@@ -27,6 +27,11 @@ package java.util;
 
 import jdk.internal.access.SharedSecrets;
 
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
 /**
  * A specialized {@link Map} implementation for use with enum type keys.  All
  * of the keys in an enum map must come from a single enum type that is
@@ -291,18 +296,6 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
         return unmaskNull(oldValue);
     }
 
-    private boolean removeMapping(Object key, Object value) {
-        if (!isValidKey(key))
-            return false;
-        int index = ((Enum<?>)key).ordinal();
-        if (maskNull(value).equals(vals[index])) {
-            vals[index] = null;
-            size--;
-            return true;
-        }
-        return false;
-    }
-
     /**
      * Returns true if key is of the proper type to be a key in this
      * enum map.
@@ -401,6 +394,18 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
         public void clear() {
             EnumMap.this.clear();
         }
+
+        @Override
+        public void forEach(Consumer<? super K> action) {
+            final K[] keys = keyUniverse;
+            final Object[] values = vals;
+            final int len = keys.length;
+            for (int i = 0; i < len; i++) {
+                if (values[i] != null) {
+                    action.accept(keys[i]);
+                }
+            }
+        }
     }
 
     /**
@@ -477,7 +482,7 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
         }
         public boolean remove(Object o) {
             return o instanceof Map.Entry<?, ?> entry
-                    && removeMapping(entry.getKey(), entry.getValue());
+                    && EnumMap.this.remove(entry.getKey(), entry.getValue());
         }
         public int size() {
             return size;
@@ -633,6 +638,199 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
         }
     }
 
+    // Default methods
+
+    @Override
+    public V getOrDefault(Object key, V defaultValue) {
+        if (!isValidKey(key)) {
+            return defaultValue;
+        }
+        Object value = vals[((Enum<?>) key).ordinal()];
+        return value != null ? unmaskNull(value) : defaultValue;
+    }
+
+    @Override
+    public void forEach(BiConsumer<? super K, ? super V> action) {
+        Objects.requireNonNull(action);
+        final K[] keys = this.keyUniverse;
+        final Object[] vals = this.vals;
+        final int len = vals.length;
+        for (int i = 0; i < len; i++) {
+            if (vals[i] != null) {
+                action.accept(keys[i], unmaskNull(vals[i]));
+            }
+        }
+    }
+
+    @Override
+    public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
+        Objects.requireNonNull(function);
+        final K[] keys = this.keyUniverse;
+        final Object[] vals = this.vals;
+        final int len = vals.length;
+        for (int i = 0; i < len; i++) {
+            if (vals[i] != null) {
+                vals[i] = maskNull(function.apply(keys[i], unmaskNull(vals[i])));
+            }
+        }
+    }
+
+    @Override
+    public V putIfAbsent(K key, V value) {
+        typeCheck(key);
+        final int i = key.ordinal();
+
+        if (vals[i] == null) {
+            vals[i] = maskNull(value);
+            size++;
+            return null;
+        }
+        V val = unmaskNull(vals[i]);
+        if (val != null) {
+            return val;
+        }
+        vals[i] = maskNull(value);
+        return null;
+    }
+
+    @Override
+    public boolean remove(Object key, Object value) {
+        if (!isValidKey(key)) {
+            return false;
+        }
+
+        final int index = ((Enum<?>) key).ordinal();
+        if (Objects.equals(vals[index], maskNull(value))) {
+            vals[index] = null;
+            size--;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean replace(K key, V oldValue, V newValue) {
+        if (!isValidKey(key)) {
+            return false;
+        }
+
+        final Object[] vals = this.vals;
+        final int index = key.ordinal();
+        if (Objects.equals(vals[index], maskNull(oldValue))) {
+            vals[index] = maskNull(newValue);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public V replace(K key, V value) {
+        if (!isValidKey(key)) {
+            return null;
+        }
+
+        final Object[] vals = this.vals;
+        final int index = key.ordinal();
+        final Object oldVal = vals[index];
+        if (oldVal != null) {
+            vals[index] = maskNull(value);
+            return unmaskNull(oldVal);
+        }
+        return null;
+    }
+
+    // spec differ, type check eagerly
+    @Override
+    public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
+        Objects.requireNonNull(mappingFunction);
+        typeCheck(key);
+        final int index = key.ordinal();
+        final Object rawVal = vals[index];
+        final V val = unmaskNull(vals[index]);
+        if (val != null) {
+            return val;
+        }
+
+        final V updated = mappingFunction.apply(key);
+        if (updated == null) {
+            return null;
+        }
+        vals[index] = updated; // can skip null masking
+        if (rawVal == null) {
+            size++;
+        }
+        return updated;
+    }
+
+    @Override
+    public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+        Objects.requireNonNull(remappingFunction);
+        if (!isValidKey(key)) {
+            return null;
+        }
+        final Object[] vals = this.vals;
+        final int index = key.ordinal();
+        final V val = unmaskNull(vals[index]);
+        if (val == null) {
+            return null;
+        }
+
+        final V updated = remappingFunction.apply(key, val);
+        vals[index] = updated; // intentionally avoid masking null for mapping removal
+        if (updated == null) {
+            size--;
+        }
+        return updated;
+    }
+
+    // spec differ, type check eagerly
+    @Override
+    public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+        Objects.requireNonNull(remappingFunction);
+        typeCheck(key);
+        final Object[] vals = this.vals;
+        final int index = key.ordinal();
+        final Object old = vals[index];
+        final V updated = remappingFunction.apply(key, unmaskNull(old));
+        vals[index] = updated; // intentionally avoid masking null for mapping removal
+        if ((old == null) != (updated == null)) {
+            if (old == null) {
+                size++;
+            } else {
+                size--;
+            }
+        }
+        return updated;
+    }
+
+    // spec differ, type check eagerly
+    @Override
+    public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
+        Objects.requireNonNull(value);
+        Objects.requireNonNull(remappingFunction);
+        typeCheck(key);
+        final Object[] vals = this.vals;
+        final int index = key.ordinal();
+        final Object rawVal = vals[index];
+        if (rawVal == null) {
+            vals[index] = value;
+            size++;
+            return value;
+        }
+        final V val = unmaskNull(rawVal);
+        if (val == null) {
+            vals[index] = value;
+            return value;
+        }
+
+        final V updated = remappingFunction.apply(val, value);
+        vals[index] = updated; // intentionally avoid masking null for mapping removal
+        if (updated == null)
+            size--;
+        return updated;
+    }
+
+
     // Comparison and hashing
 
     /**
@@ -730,7 +928,7 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
     }
 
     /**
-     * Throws an exception if e is not of the correct type for this enum set.
+     * Throws an NPE for null keys or a CCE for incorrectly typed keys.
      */
     private void typeCheck(K key) {
         Class<?> keyClass = key.getClass();
