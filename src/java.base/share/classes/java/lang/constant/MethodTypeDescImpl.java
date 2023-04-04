@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,9 +39,7 @@ import static java.util.Objects.requireNonNull;
  * {@link MethodType}.  A {@linkplain MethodTypeDescImpl} corresponds to a
  * {@code Constant_MethodType_info} entry in the constant pool of a classfile.
  */
-final class MethodTypeDescImpl implements MethodTypeDesc {
-    private final ClassDesc returnType;
-    private final ClassDesc[] argTypes;
+record MethodTypeDescImpl(ClassDesc returnType, ClassDesc[] argTypes) implements MethodTypeDesc {
 
     /**
      * Constructs a {@linkplain MethodTypeDesc} with the specified return type
@@ -50,9 +48,9 @@ final class MethodTypeDescImpl implements MethodTypeDesc {
      * @param returnType a {@link ClassDesc} describing the return type
      * @param argTypes {@link ClassDesc}s describing the parameter types
      */
-    MethodTypeDescImpl(ClassDesc returnType, ClassDesc[] argTypes) {
-        this.returnType = requireNonNull(returnType);
-        this.argTypes = requireNonNull(argTypes);
+    MethodTypeDescImpl {
+        requireNonNull(returnType);
+        requireNonNull(argTypes);
 
         for (ClassDesc cr : argTypes)
             if (cr.isPrimitive() && cr.descriptorString().equals("V"))
@@ -73,11 +71,6 @@ final class MethodTypeDescImpl implements MethodTypeDesc {
         List<String> types = ConstantUtils.parseMethodDescriptor(descriptor);
         ClassDesc[] paramTypes = types.stream().skip(1).map(ClassDesc::ofDescriptor).toArray(ClassDesc[]::new);
         return new MethodTypeDescImpl(ClassDesc.ofDescriptor(types.get(0)), paramTypes);
-    }
-
-    @Override
-    public ClassDesc returnType() {
-        return returnType;
     }
 
     @Override
@@ -164,6 +157,7 @@ final class MethodTypeDescImpl implements MethodTypeDesc {
      * @return {@code true} if the specified {@code MethodTypeDescImpl}
      *      is equal to this {@code MethodTypeDescImpl}.
      */
+    // can be removed when the argTypes is a list instead of an array
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
