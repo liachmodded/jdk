@@ -156,14 +156,6 @@ public class Util {
         return s.substring(s.indexOf(')') + 1);
     }
 
-    public static String toInternalName(ClassDesc cd) {
-        var desc = cd.descriptorString();
-        return switch (desc.charAt(0)) {
-            case 'L' -> desc.substring(1, desc.length() - 1);
-            default -> throw new IllegalArgumentException(desc);
-        };
-    }
-
     public static ClassDesc toClassDesc(String classInternalNameOrArrayDesc) {
         return classInternalNameOrArrayDesc.charAt(0) == '['
                 ? ClassDesc.ofDescriptor(classInternalNameOrArrayDesc)
@@ -187,9 +179,9 @@ public class Util {
     public static List<ClassEntry> entryList(List<? extends ClassDesc> list) {
         var result = new Object[list.size()]; // null check
         for (int i = 0; i < result.length; i++) {
-            result[i] = TemporaryConstantPool.INSTANCE.classEntry(TemporaryConstantPool.INSTANCE.utf8Entry(toInternalName(list.get(i))));
+            result[i] = TemporaryConstantPool.INSTANCE.classEntry(list.get(i));
         }
-        return SharedSecrets.getJavaUtilCollectionAccess().listFromTrustedArrayNullsAllowed(result);
+        return SharedSecrets.getJavaUtilCollectionAccess().listFromTrustedArray(result);
     }
 
     public static List<ModuleEntry> moduleEntryList(List<? extends ModuleDesc> list) {
@@ -197,7 +189,7 @@ public class Util {
         for (int i = 0; i < result.length; i++) {
             result[i] = TemporaryConstantPool.INSTANCE.moduleEntry(TemporaryConstantPool.INSTANCE.utf8Entry(list.get(i).moduleName()));
         }
-        return SharedSecrets.getJavaUtilCollectionAccess().listFromTrustedArrayNullsAllowed(result);
+        return SharedSecrets.getJavaUtilCollectionAccess().listFromTrustedArray(result);
     }
 
     public static void checkKind(Opcode op, Opcode.Kind k) {

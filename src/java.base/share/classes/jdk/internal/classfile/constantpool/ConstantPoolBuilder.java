@@ -38,6 +38,7 @@ import jdk.internal.classfile.BufWriter;
 import jdk.internal.classfile.ClassBuilder;
 import jdk.internal.classfile.ClassModel;
 import jdk.internal.classfile.Classfile;
+import jdk.internal.classfile.impl.AbstractPoolEntry.ClassEntryImpl;
 import jdk.internal.classfile.impl.ClassReaderImpl;
 import jdk.internal.classfile.impl.Options;
 import jdk.internal.classfile.java.lang.constant.ModuleDesc;
@@ -157,7 +158,9 @@ public sealed interface ConstantPoolBuilder
      * @param classDesc the symbolic descriptor for the class
      */
     default ClassEntry classEntry(ClassDesc classDesc) {
-        return classEntry(utf8Entry(classDesc.isArray() ? classDesc.descriptorString() : Util.toInternalName(classDesc)));
+        var ret = (ClassEntryImpl) classEntry(utf8Entry(classDesc.internalName()));
+        ret.sym = classDesc;
+        return ret;
     }
 
     /**

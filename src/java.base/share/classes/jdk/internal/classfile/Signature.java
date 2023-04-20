@@ -141,7 +141,7 @@ public sealed interface Signature {
          */
         public static ClassTypeSig of(ClassTypeSig outerType, ClassDesc className, TypeArg... typeArgs) {
             requireNonNull(className);
-            return of(outerType, Util.toInternalName(className), typeArgs);
+            return of(outerType, className.internalName(), typeArgs);
         }
 
         /**

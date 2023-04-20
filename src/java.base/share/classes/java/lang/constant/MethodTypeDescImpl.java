@@ -24,6 +24,8 @@
  */
 package java.lang.constant;
 
+import jdk.internal.vm.annotation.Stable;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.security.AccessController;
@@ -42,6 +44,7 @@ import static java.util.Objects.requireNonNull;
 final class MethodTypeDescImpl implements MethodTypeDesc {
     private final ClassDesc returnType;
     private final ClassDesc[] argTypes;
+    private @Stable String descriptor;
 
     /**
      * Constructs a {@linkplain MethodTypeDesc} with the specified return type
@@ -72,7 +75,9 @@ final class MethodTypeDescImpl implements MethodTypeDesc {
         requireNonNull(descriptor);
         List<String> types = ConstantUtils.parseMethodDescriptor(descriptor);
         ClassDesc[] paramTypes = types.stream().skip(1).map(ClassDesc::ofDescriptor).toArray(ClassDesc[]::new);
-        return new MethodTypeDescImpl(ClassDesc.ofDescriptor(types.get(0)), paramTypes);
+        var ret = new MethodTypeDescImpl(ClassDesc.ofDescriptor(types.get(0)), paramTypes);
+        ret.descriptor = descriptor;
+        return ret;
     }
 
     @Override
@@ -151,6 +156,16 @@ final class MethodTypeDescImpl implements MethodTypeDesc {
             lookup.accessClass(paramType);
         }
         return mtype;
+    }
+
+    @Override
+    public String descriptorString() {
+        var descriptor = this.descriptor;
+        if (descriptor != null) {
+            return descriptor;
+        }
+
+        return this.descriptor = MethodTypeDesc.super.descriptorString();
     }
 
     /**

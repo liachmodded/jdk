@@ -68,6 +68,11 @@ final class PrimitiveClassDescImpl
     }
 
     @Override
+    public String internalName() {
+        throw new IllegalStateException("Primitive types do not have internal binary names");
+    }
+
+    @Override
     public String toString() {
         return String.format("PrimitiveClassDesc[%s]", displayName());
     }

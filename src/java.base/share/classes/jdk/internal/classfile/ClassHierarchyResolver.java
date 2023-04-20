@@ -50,7 +50,7 @@ public interface ClassHierarchyResolver {
             new Function<ClassDesc, InputStream>() {
                 @Override
                 public InputStream apply(ClassDesc classDesc) {
-                    return ClassLoader.getSystemResourceAsStream(Util.toInternalName(classDesc) + ".class");
+                    return ClassLoader.getSystemResourceAsStream(classDesc.internalName() + ".class");
                 }
             });
 

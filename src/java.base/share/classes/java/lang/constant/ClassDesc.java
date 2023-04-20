@@ -78,7 +78,10 @@ public sealed interface ClassDesc
      */
     static ClassDesc of(String name) {
         ConstantUtils.validateBinaryClassName(requireNonNull(name));
-        return ClassDesc.ofDescriptor("L" + binaryToInternal(name) + ";");
+        var internal = binaryToInternal(name);
+        var ret = (ReferenceClassDescImpl) ClassDesc.ofDescriptor("L" + internal + ";");
+        ret.internalName = internal;
+        return ret;
     }
 
     /**
@@ -104,7 +107,9 @@ public sealed interface ClassDesc
      */
     static ClassDesc ofInternalName(String name) {
         ConstantUtils.validateInternalClassName(requireNonNull(name));
-        return ClassDesc.ofDescriptor("L" + name + ";");
+        var ret = (ReferenceClassDescImpl) ClassDesc.ofDescriptor("L" + name + ";");
+        ret.internalName = name;
+        return ret;
     }
 
     /**
@@ -310,6 +315,17 @@ public sealed interface ClassDesc
     default ClassDesc componentType() {
         return isArray() ? ClassDesc.ofDescriptor(descriptorString().substring(1)) : null;
     }
+
+    /**
+     * {@return the internal name of this class} The internal name, or the internal
+     * form of binary name, is the string referenced in a {@code CONSTANT_Class_info}
+     * for classes, interfaces, or arrays. Primitive types cannot be encoded in
+     * {@code CONSTANT_Class_info} and thus do not have internal names.
+     *
+     * @throws IllegalStateException if this class cannot be encoded in a {@code
+     * CONSTANT_Class_info}
+     */
+    String internalName();
 
     /**
      * Returns the package name of this {@linkplain ClassDesc}, if it describes

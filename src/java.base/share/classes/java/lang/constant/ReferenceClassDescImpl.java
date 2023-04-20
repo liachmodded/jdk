@@ -24,6 +24,8 @@
  */
 package java.lang.constant;
 
+import jdk.internal.vm.annotation.Stable;
+
 import java.lang.invoke.MethodHandles;
 
 import static java.lang.constant.ConstantUtils.*;
@@ -36,6 +38,7 @@ import static java.util.Objects.requireNonNull;
  */
 final class ReferenceClassDescImpl implements ClassDesc {
     private final String descriptor;
+    @Stable String internalName;
 
     /**
      * Creates a {@linkplain ClassDesc} from a descriptor string for a class or
@@ -74,7 +77,7 @@ final class ReferenceClassDescImpl implements ClassDesc {
                 clazz = clazz.arrayType();
             return clazz;
         }
-        return lookup.findClass(internalToBinary(dropFirstAndLastChar(descriptor)));
+        return lookup.findClass(internalToBinary(internalName()));
     }
 
     /**
@@ -105,6 +108,15 @@ final class ReferenceClassDescImpl implements ClassDesc {
 
         ClassDesc constant = (ClassDesc) o;
         return descriptor.equals(constant.descriptorString());
+    }
+
+    @Override
+    public String internalName() {
+        var internalName = this.internalName;
+        if (internalName != null)
+            return internalName;
+
+        return this.internalName = isArray() ? descriptorString() : dropFirstAndLastChar(descriptor);
     }
 
     @Override

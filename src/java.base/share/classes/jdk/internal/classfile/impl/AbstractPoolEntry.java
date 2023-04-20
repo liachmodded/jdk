@@ -53,6 +53,7 @@ import jdk.internal.classfile.constantpool.StringEntry;
 import jdk.internal.classfile.constantpool.Utf8Entry;
 import jdk.internal.classfile.java.lang.constant.ModuleDesc;
 import jdk.internal.classfile.java.lang.constant.PackageDesc;
+import jdk.internal.vm.annotation.Stable;
 
 public abstract sealed class AbstractPoolEntry {
     /*
@@ -555,6 +556,7 @@ public abstract sealed class AbstractPoolEntry {
     }
 
     public static final class ClassEntryImpl extends AbstractNamedEntry implements ClassEntry {
+        public @Stable ClassDesc sym;
 
         ClassEntryImpl(ConstantPool cpm, int index, Utf8EntryImpl name) {
             super(cpm, Classfile.TAG_CLASS, index, name);
@@ -567,7 +569,11 @@ public abstract sealed class AbstractPoolEntry {
 
         @Override
         public ClassDesc asSymbol() {
-            return Util.toClassDesc(asInternalName());
+            var sym = this.sym;
+            if (sym != null) {
+                return sym;
+            }
+            return this.sym = Util.toClassDesc(asInternalName());
         }
 
         @Override
