@@ -26,12 +26,17 @@ package jdk.internal.classfile.impl;
 
 import jdk.internal.classfile.constantpool.Utf8Entry;
 
+import java.lang.constant.MethodTypeDesc;
+
 import static jdk.internal.classfile.Classfile.ACC_STATIC;
 
 public interface MethodInfo {
     Utf8Entry methodName();
     Utf8Entry methodType();
     int methodFlags();
+
+    MethodTypeDesc methodTypeSymbolCache();
+    MethodTypeDesc methodTypeSymbol();
 
     default int receiverSlot() {
         if ((methodFlags() & ACC_STATIC) != 0)

@@ -27,6 +27,7 @@ package jdk.internal.classfile.impl;
 import jdk.internal.classfile.*;
 import jdk.internal.classfile.constantpool.Utf8Entry;
 
+import java.lang.constant.MethodTypeDesc;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -39,6 +40,7 @@ public final class MethodImpl
     private final int startPos, endPos, attributesPos;
     private List<Attribute<?>> attributes;
     private int[] parameterSlots;
+    private MethodTypeDesc typeSymbol;
 
     public MethodImpl(ClassReader reader, int startPos, int endPos, int attrStart) {
         this.reader = reader;
@@ -68,6 +70,20 @@ public final class MethodImpl
     @Override
     public Utf8Entry methodType() {
         return reader.readUtf8Entry(startPos + 4);
+    }
+
+    @Override
+    public MethodTypeDesc methodTypeSymbolCache() {
+        return typeSymbol;
+    }
+
+    @Override
+    public MethodTypeDesc methodTypeSymbol() {
+        var s = typeSymbol;
+        if (s != null)
+            return s;
+
+        return typeSymbol = MethodModel.super.methodTypeSymbol();
     }
 
     @Override

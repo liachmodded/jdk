@@ -328,7 +328,7 @@ public final class DirectCodeBuilder
                     StackMapGenerator gen = new StackMapGenerator(DirectCodeBuilder.this,
                                                   buf.thisClass().asSymbol(),
                                                   methodInfo.methodName().stringValue(),
-                                                  MethodTypeDesc.ofDescriptor(methodInfo.methodType().stringValue()),
+                                                  methodInfo.methodTypeSymbol(),
                                                   (methodInfo.methodFlags() & Classfile.ACC_STATIC) != 0,
                                                   bytecodesBufWriter.asByteBuffer().slice(0, codeLength),
                                                   constantPool,

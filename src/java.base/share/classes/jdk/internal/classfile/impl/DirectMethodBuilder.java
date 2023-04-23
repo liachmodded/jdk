@@ -25,6 +25,7 @@
 
 package jdk.internal.classfile.impl;
 
+import java.lang.constant.MethodTypeDesc;
 import java.util.function.Consumer;
 
 import jdk.internal.classfile.BufWriter;
@@ -46,17 +47,20 @@ public final class DirectMethodBuilder
     final Utf8Entry desc;
     int flags;
     int[] parameterSlots;
+    MethodTypeDesc descSymbol; // lazy
 
     public DirectMethodBuilder(SplitConstantPool constantPool,
                                Utf8Entry nameInfo,
                                Utf8Entry typeInfo,
                                int flags,
-                               MethodModel original) {
+                               MethodModel original,
+                               MethodTypeDesc descSymbol) {
         super(constantPool);
         setOriginal(original);
         this.name = nameInfo;
         this.desc = typeInfo;
         this.flags = flags;
+        this.descSymbol = descSymbol;
     }
 
     void setFlags(int flags) {
@@ -75,6 +79,20 @@ public final class DirectMethodBuilder
     @Override
     public Utf8Entry methodType() {
         return desc;
+    }
+
+    @Override
+    public MethodTypeDesc methodTypeSymbolCache() {
+        return descSymbol;
+    }
+
+    @Override
+    public MethodTypeDesc methodTypeSymbol() {
+        var s = descSymbol;
+        if (s != null)
+            return s;
+
+        return descSymbol = MethodTypeDesc.ofDescriptor(desc.stringValue());
     }
 
     @Override

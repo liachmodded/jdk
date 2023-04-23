@@ -24,6 +24,7 @@
  */
 package jdk.internal.classfile.impl;
 
+import java.lang.constant.MethodTypeDesc;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +49,7 @@ public final class BufferedMethodBuilder
     private final SplitConstantPool constantPool;
     private final Utf8Entry name;
     private final Utf8Entry desc;
+    private MethodTypeDesc descSymbol;
     private AccessFlags flags;
     private final MethodModel original;
     private int[] parameterSlots;
@@ -89,6 +91,21 @@ public final class BufferedMethodBuilder
     @Override
     public Utf8Entry methodType() {
         return desc;
+    }
+
+    @Override
+    public MethodTypeDesc methodTypeSymbolCache() {
+        return descSymbol;
+    }
+
+    @Override
+    public MethodTypeDesc methodTypeSymbol() {
+        var s = descSymbol;
+        if (s != null) {
+            return s;
+        }
+
+        return descSymbol = MethodTypeDesc.ofDescriptor(methodType().stringValue());
     }
 
     @Override
@@ -159,6 +176,16 @@ public final class BufferedMethodBuilder
         }
 
         @Override
+        public MethodTypeDesc methodTypeSymbolCache() {
+            return descSymbol;
+        }
+
+        @Override
+        public MethodTypeDesc methodTypeSymbol() {
+            return BufferedMethodBuilder.this.methodTypeSymbol();
+        }
+
+        @Override
         public int methodFlags() {
             return flags.flagsMask();
         }
@@ -185,7 +212,7 @@ public final class BufferedMethodBuilder
 
         @Override
         public void writeTo(BufWriter buf) {
-            DirectMethodBuilder mb = new DirectMethodBuilder(constantPool, name, desc, methodFlags(), null);
+            DirectMethodBuilder mb = new DirectMethodBuilder(constantPool, name, desc, methodFlags(), null, descSymbol);
             elements.forEach(mb);
             mb.writeTo(buf);
         }

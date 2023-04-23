@@ -26,6 +26,7 @@
 package jdk.internal.classfile.impl;
 
 import java.lang.constant.ConstantDescs;
+import java.lang.constant.MethodTypeDesc;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -98,8 +99,14 @@ public final class DirectClassBuilder
                                    Utf8Entry descriptor,
                                    int flags,
                                    Consumer<? super MethodBuilder> handler) {
-        return withMethod(new DirectMethodBuilder(constantPool, name, descriptor, flags, null)
+        return withMethod(new DirectMethodBuilder(constantPool, name, descriptor, flags, null, null)
                                   .run(handler));
+    }
+
+    @Override
+    public ClassBuilder withMethod(String name, MethodTypeDesc descriptor, int methodFlags, Consumer<? super MethodBuilder> handler) {
+        return withMethod(new DirectMethodBuilder(constantPool, constantPool().utf8Entry(name),
+                constantPool().utf8Entry(descriptor), flags, null, descriptor).run(handler));
     }
 
     @Override
@@ -107,7 +114,7 @@ public final class DirectClassBuilder
         DirectMethodBuilder builder = new DirectMethodBuilder(constantPool, method.methodName(),
                                                               method.methodType(),
                                                               method.flags().flagsMask(),
-                                                              method);
+                                                              method, ((MethodInfo) method).methodTypeSymbolCache());
         builder.transform(method, transform);
         return withMethod(builder);
     }
