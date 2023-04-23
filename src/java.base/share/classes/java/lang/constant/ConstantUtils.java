@@ -37,6 +37,7 @@ class ConstantUtils {
     /** an empty constant descriptor */
     public static final ConstantDesc[] EMPTY_CONSTANTDESC = new ConstantDesc[0];
     static final Constable[] EMPTY_CONSTABLE = new Constable[0];
+    static final ClassDesc[] EMPTY_CLASSDESC = new ClassDesc[0];
     static final int MAX_ARRAY_TYPE_DESC_DIMENSIONS = 255;
 
     private static final Set<String> pointyNames = Set.of(ConstantDescs.INIT_NAME, ConstantDescs.CLASS_INIT_NAME);

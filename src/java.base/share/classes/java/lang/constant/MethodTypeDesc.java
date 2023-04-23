@@ -55,6 +55,10 @@ public sealed interface MethodTypeDesc
         return MethodTypeDescImpl.ofDescriptor(descriptor);
     }
 
+    static MethodTypeDesc of(ClassDesc returnDesc) {
+        return new MethodTypeDescImpl(returnDesc, List.of());
+    }
+
     /**
      * Returns a {@linkplain MethodTypeDesc} given the return type and parameter
      * types.
@@ -67,7 +71,11 @@ public sealed interface MethodTypeDesc
      * {@link ClassDesc} for {@code void}
      */
     static MethodTypeDesc of(ClassDesc returnDesc, ClassDesc... paramDescs) {
-        return new MethodTypeDescImpl(returnDesc, paramDescs.clone());
+        return new MethodTypeDescImpl(returnDesc, List.of(paramDescs));
+    }
+
+    static MethodTypeDesc of(ClassDesc returnDesc, List<ClassDesc> paramDescs) {
+        return new MethodTypeDescImpl(returnDesc, paramDescs);
     }
 
     /**
