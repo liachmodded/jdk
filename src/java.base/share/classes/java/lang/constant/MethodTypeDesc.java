@@ -55,6 +55,14 @@ public sealed interface MethodTypeDesc
         return MethodTypeDescImpl.ofDescriptor(descriptor);
     }
 
+    /**
+     * Returns a {@linkplain MethodTypeDesc} given the return type and no parameter
+     * types.
+     *
+     * @param returnDesc a {@linkplain ClassDesc} describing the return type
+     * @return a {@linkplain MethodTypeDesc} describing the desired method type
+     * @throws NullPointerException if any argument or its contents are {@code null}
+     */
     static MethodTypeDesc of(ClassDesc returnDesc) {
         return new MethodTypeDescImpl(returnDesc, List.of());
     }
@@ -74,6 +82,17 @@ public sealed interface MethodTypeDesc
         return new MethodTypeDescImpl(returnDesc, List.of(paramDescs));
     }
 
+    /**
+     * Returns a {@linkplain MethodTypeDesc} given the return type and parameter
+     * types.
+     *
+     * @param returnDesc a {@linkplain ClassDesc} describing the return type
+     * @param paramDescs {@linkplain ClassDesc}s describing the argument types
+     * @return a {@linkplain MethodTypeDesc} describing the desired method type
+     * @throws NullPointerException if any argument or its contents are {@code null}
+     * @throws IllegalArgumentException if any element of {@code paramDescs} is a
+     * {@link ClassDesc} for {@code void}
+     */
     static MethodTypeDesc of(ClassDesc returnDesc, List<ClassDesc> paramDescs) {
         return new MethodTypeDescImpl(returnDesc, paramDescs);
     }
