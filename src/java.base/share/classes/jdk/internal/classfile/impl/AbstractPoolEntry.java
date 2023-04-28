@@ -489,6 +489,11 @@ public abstract sealed class AbstractPoolEntry {
             this.ref1 = ref1;
         }
 
+        public AbstractRefEntry(ConstantPool constantPool, int tag, int index, T ref1, int hash) {
+            super(constantPool, tag, index, hash1(tag, hash));
+            this.ref1 = ref1;
+        }
+
         public T ref1() {
             return ref1;
         }
@@ -541,6 +546,10 @@ public abstract sealed class AbstractPoolEntry {
             super(constantPool, tag, index, ref1);
         }
 
+        public AbstractNamedEntry(ConstantPool constantPool, int tag, int index, Utf8EntryImpl ref1, int hash) {
+            super(constantPool, tag, index, ref1, hash);
+        }
+
         public Utf8Entry name() {
             return ref1;
         }
@@ -561,10 +570,16 @@ public abstract sealed class AbstractPoolEntry {
 
     public static final class ClassEntryImpl extends AbstractNamedEntry implements ClassEntry {
 
-        public ClassDesc sym = null;
+        public ClassDesc sym;
 
         ClassEntryImpl(ConstantPool cpm, int index, Utf8EntryImpl name) {
-            super(cpm, Classfile.TAG_CLASS, index, name);
+            super(cpm, Classfile.TAG_CLASS, index, name, Util.hashClassContent(name.stringValue));
+            this.sym = null;
+        }
+
+        ClassEntryImpl(ConstantPool cpm, int index, Utf8EntryImpl name, ClassDesc sym) {
+            super(cpm, Classfile.TAG_CLASS, index, name, sym.descriptorString().hashCode());
+            this.sym = sym;
         }
 
         @Override

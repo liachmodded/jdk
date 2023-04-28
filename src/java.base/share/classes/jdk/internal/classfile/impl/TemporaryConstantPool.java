@@ -47,7 +47,10 @@ import jdk.internal.classfile.constantpool.PackageEntry;
 import jdk.internal.classfile.constantpool.PoolEntry;
 import jdk.internal.classfile.constantpool.StringEntry;
 import jdk.internal.classfile.constantpool.Utf8Entry;
+import jdk.internal.classfile.impl.AbstractPoolEntry.ClassEntryImpl;
+import jdk.internal.classfile.impl.AbstractPoolEntry.Utf8EntryImpl;
 
+import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.util.List;
 
@@ -85,6 +88,12 @@ public final class TemporaryConstantPool implements ConstantPoolBuilder {
     @Override
     public ClassEntry classEntry(Utf8Entry name) {
         return new AbstractPoolEntry.ClassEntryImpl(this, -2, (AbstractPoolEntry.Utf8EntryImpl) name);
+    }
+
+    @Override
+    public ClassEntry classEntry(ClassDesc cd) {
+        // todo avoid internal name conversion
+        return new ClassEntryImpl(this, -2, (Utf8EntryImpl) utf8Entry(Util.toClassContent(cd)), cd);
     }
 
     @Override

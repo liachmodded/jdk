@@ -24,6 +24,7 @@
  */
 package jdk.internal.classfile.impl;
 
+import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.util.Arrays;
@@ -59,6 +60,7 @@ import jdk.internal.classfile.constantpool.PackageEntry;
 import jdk.internal.classfile.constantpool.PoolEntry;
 import jdk.internal.classfile.constantpool.StringEntry;
 import jdk.internal.classfile.constantpool.Utf8Entry;
+import jdk.internal.classfile.impl.AbstractPoolEntry.ClassEntryImpl;
 
 import static jdk.internal.classfile.Classfile.TAG_CLASS;
 import static jdk.internal.classfile.Classfile.TAG_CONSTANTDYNAMIC;
@@ -294,6 +296,27 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         return null;
     }
 
+    private AbstractPoolEntry.ClassEntryImpl findClassEntry(String str, boolean needsConversion, int descHash) {
+        int hash = AbstractPoolEntry.hash1(TAG_CLASS, descHash);
+        EntryMap<PoolEntry> map = map();
+        for (int token = map.firstToken(hash); token != -1; token = map.nextToken(hash, token)) {
+            PoolEntry e = map.getElementByToken(token);
+            if (e.tag() == TAG_CLASS
+                && e instanceof AbstractPoolEntry.ClassEntryImpl ce) {
+                var internal = ce.asInternalName();
+                if ((needsConversion && str.length() == internal.length() + 2
+                        && internal.regionMatches(0, str, 1, internal.length()))
+                        || (!needsConversion && str.equals(internal)))
+                    return ce;
+            }
+        }
+        if (!doneFullScan) {
+            fullScan();
+            return findClassEntry(str, needsConversion, descHash);
+        }
+        return null;
+    }
+
     private<T extends AbstractPoolEntry> AbstractPoolEntry findEntry(int tag, T ref1) {
         // invariant: canWriteDirect(ref1.constantPool())
         int hash = AbstractPoolEntry.hash1(tag, ref1.index());
@@ -383,10 +406,25 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
     }
 
     @Override
-    public AbstractPoolEntry.ClassEntryImpl classEntry(Utf8Entry nameEntry) {
+    public ClassEntryImpl classEntry(Utf8Entry nameEntry) {
         AbstractPoolEntry.Utf8EntryImpl ne = maybeCloneUtf8Entry(nameEntry);
-        var e = (AbstractPoolEntry.ClassEntryImpl) findEntry(TAG_CLASS, ne);
+        var st = ne.stringValue();
+        var e = findClassEntry(st, false, Util.hashClassContent(st));
         return e == null ? internalAdd(new AbstractPoolEntry.ClassEntryImpl(this, size, ne)) : e;
+    }
+
+    @Override
+    public ClassEntryImpl classEntry(ClassDesc cd) {
+        var cds = cd.descriptorString();
+        ClassEntryImpl found = findClassEntry(cds, cds.charAt(0) == 'L', cds.hashCode());
+        if (found != null) {
+            if (found.sym == null)
+                found.sym = cd;
+            return found;
+        }
+
+        var ne = utf8Entry(Util.toClassContent(cd));
+        return internalAdd(new ClassEntryImpl(this, size, ne, cd));
     }
 
     @Override

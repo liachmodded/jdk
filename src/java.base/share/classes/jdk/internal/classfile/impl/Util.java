@@ -27,7 +27,6 @@ package jdk.internal.classfile.impl;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.util.AbstractList;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -133,10 +132,33 @@ public class Util {
         };
     }
 
+    public static String toClassContent(ClassDesc cd) {
+        return cd.isArray() ? cd.descriptorString() : toInternalName(cd);
+    }
+
     public static ClassDesc toClassDesc(String classInternalNameOrArrayDesc) {
         return classInternalNameOrArrayDesc.charAt(0) == '['
                 ? ClassDesc.ofDescriptor(classInternalNameOrArrayDesc)
                 : ClassDesc.ofInternalName(classInternalNameOrArrayDesc);
+    }
+
+    private static int pow31(int pow) {
+        int cur = 31;
+        int res = 1;
+        for (; pow > 0; pow /= 2) {
+            if (pow % 2 == 1)
+                res *= cur;
+            cur *= cur;
+        }
+        return res;
+    }
+
+    private static int internalToDescHash(String internal) {
+        return 'L' * pow31(internal.length() + 1) + internal.hashCode() * 31 + ';';
+    }
+
+    public static int hashClassContent(String classInfo) {
+        return classInfo.charAt(0) == '[' ? classInfo.hashCode() : internalToDescHash(classInfo);
     }
 
     public static<T, U> List<U> mappedList(List<? extends T> list, Function<T, U> mapper) {
