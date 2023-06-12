@@ -4635,6 +4635,7 @@ public final class Class<T> implements java.io.Serializable,
      * @return {@code true} if and only if this class is a hidden class.
      *
      * @since 15
+     * @see <a href="#hiddenClasses">Hidden Classes</a>
      * @see MethodHandles.Lookup#defineHiddenClass
      */
     @IntrinsicCandidate
