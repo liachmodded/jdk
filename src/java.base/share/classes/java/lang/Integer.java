@@ -97,7 +97,7 @@ public final class Integer extends Number
     /**
      * All possible chars for representing a number as a String
      */
-    static final char[] digits = {
+    static final @Stable char[] digits = {
         '0' , '1' , '2' , '3' , '4' , '5' ,
         '6' , '7' , '8' , '9' , 'a' , 'b' ,
         'c' , 'd' , 'e' , 'f' , 'g' , 'h' ,
