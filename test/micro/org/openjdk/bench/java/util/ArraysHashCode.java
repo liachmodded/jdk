@@ -38,6 +38,7 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.io.UnsupportedEncodingException;
 import java.lang.invoke.MethodHandle;
@@ -63,6 +64,7 @@ public class ArraysHashCode {
     private short[] shorts;
     private int[] ints;
     private Object[] objects;
+    private Object[] polymorphicObjects;
     private byte[][] multibytes;
     private char[][] multichars;
     private short[][] multishorts;
@@ -77,6 +79,7 @@ public class ArraysHashCode {
         shorts = new short[size];
         ints = new int[size];
         objects = new Object[size];
+        polymorphicObjects = new Object[size];
         for (int i = 0; i < size; i++) {
             int next = rnd.nextInt();
             bytes[i] = (byte)next;
@@ -84,6 +87,16 @@ public class ArraysHashCode {
             shorts[i] = (short)next;
             ints[i] = next;
             objects[i] = next;
+            polymorphicObjects[i] = switch (ThreadLocalRandom.current().nextInt(4)) {
+                case 1 -> (double) next;
+                case 2 -> (long) next;
+                case 3 -> {
+                    var s = Integer.toString(next);
+                    s.hashCode(); // pre-compute hash code
+                    yield s;
+                }
+                default -> next;
+            };
         }
 
         multibytes = new byte[100][];
@@ -129,6 +142,11 @@ public class ArraysHashCode {
     @Benchmark
     public int objects() throws Throwable {
         return Arrays.hashCode(objects);
+    }
+
+    @Benchmark
+    public int polymorphicObjects() throws Throwable {
+        return Arrays.hashCode(polymorphicObjects);
     }
 
     @Benchmark
