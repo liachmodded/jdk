@@ -2018,7 +2018,7 @@ public abstract sealed class VarHandle implements Constable
         final int type;
         final int mode;
 
-        public AccessDescriptor(MethodType symbolicMethodType, int type, int mode) {
+        AccessDescriptor(MethodType symbolicMethodType, int type, int mode) {
             this.symbolicMethodTypeExact = symbolicMethodType;
             this.symbolicMethodTypeErased = symbolicMethodType.erase();
             this.symbolicMethodTypeInvoker = symbolicMethodType.insertParameterTypes(0, VarHandle.class);

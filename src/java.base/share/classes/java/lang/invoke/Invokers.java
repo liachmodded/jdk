@@ -389,12 +389,12 @@ class Invokers {
         final int CHECK_CUSTOM = (CUSTOMIZE_THRESHOLD >= 0) ? nameCursor++ : -1;
         final int LINKER_CALL  = nameCursor++;
 
-        Name[] names = new Name[LINKER_CALL + 1];
-        names[THIS_VH] = argument(THIS_VH, BasicType.basicType(Object.class));
+        Name[] names = new Name[nameCursor];
+        names[THIS_VH] = argument(THIS_VH, BasicType.L_TYPE);
         for (int i = 0; i < mtype.parameterCount(); i++) {
             names[ARG_BASE + i] = argument(ARG_BASE + i, BasicType.basicType(mtype.parameterType(i)));
         }
-        names[VAD_ARG] = new Name(ARG_LIMIT, BasicType.basicType(Object.class));
+        names[VAD_ARG] = new Name(ARG_LIMIT, BasicType.L_TYPE);
 
         names[UNBOUND_VH] = new Name(getFunction(NF_directVarHandleTarget), names[THIS_VH]);
 
@@ -445,9 +445,9 @@ class Invokers {
         final int CHECK_TYPE   = nameCursor++;
         final int LINKER_CALL  = nameCursor++;
 
-        Name[] names = new Name[LINKER_CALL + 1];
-        names[THIS_MH] = argument(THIS_MH, BasicType.basicType(Object.class));
-        names[CALL_VH] = argument(CALL_VH, BasicType.basicType(Object.class));
+        Name[] names = new Name[nameCursor];
+        names[THIS_MH] = argument(THIS_MH, BasicType.L_TYPE);
+        names[CALL_VH] = argument(CALL_VH, BasicType.L_TYPE);
         for (int i = 0; i < mtype.parameterCount(); i++) {
             names[ARG_BASE + i] = argument(ARG_BASE + i, BasicType.basicType(mtype.parameterType(i)));
         }

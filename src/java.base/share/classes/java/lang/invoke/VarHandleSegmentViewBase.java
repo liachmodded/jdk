@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,10 @@
 
 package java.lang.invoke;
 
+import jdk.internal.misc.ScopedMemoryAccess;
+
+import static java.lang.invoke.MethodHandleStatics.UNSAFE;
+
 /**
  * Base class for memory segment var handle view implementations.
  */
@@ -36,6 +40,10 @@ abstract sealed class VarHandleSegmentViewBase extends VarHandle permits
         VarHandleSegmentAsInts,
         VarHandleSegmentAsLongs,
         VarHandleSegmentAsShorts {
+
+    static final boolean BE = UNSAFE.isBigEndian();
+
+    static final ScopedMemoryAccess SCOPED_MEMORY_ACCESS = ScopedMemoryAccess.getScopedMemoryAccess();
 
     /** endianness **/
     final boolean be;

@@ -1466,7 +1466,7 @@ abstract class MethodHandleImpl {
         if (elemType == Object.class)
             return varargsArray(nargs);
         // other cases:  primitive arrays, subtypes of Object[]
-        MethodHandle cache[] = Makers.TYPED_COLLECTORS.get(elemType);
+        MethodHandle[] cache = Makers.TYPED_COLLECTORS.get(elemType);
         MethodHandle mh = nargs < cache.length ? cache[nargs] : null;
         if (mh != null)  return mh;
         mh = makeCollector(arrayType, nargs);

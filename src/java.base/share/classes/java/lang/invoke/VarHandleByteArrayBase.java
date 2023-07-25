@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,10 @@
  * questions.
  */
 package java.lang.invoke;
+
+import jdk.internal.access.JavaNioAccess;
+import jdk.internal.access.SharedSecrets;
+import jdk.internal.misc.ScopedMemoryAccess;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -51,6 +55,10 @@ abstract class VarHandleByteArrayBase {
             = UNSAFE.objectFieldOffset(ByteBuffer.class, "isReadOnly");
 
     static final boolean BE = UNSAFE.isBigEndian();
+
+    static final JavaNioAccess NIO_ACCESS = SharedSecrets.getJavaNioAccess();
+
+    static final ScopedMemoryAccess SCOPED_MEMORY_ACCESS = ScopedMemoryAccess.getScopedMemoryAccess();
 
     static IllegalStateException newIllegalStateExceptionForMisalignedAccess(int index) {
         return new IllegalStateException("Misaligned access at index: " + index);

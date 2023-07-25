@@ -36,8 +36,6 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 
 import static java.lang.invoke.MethodHandleStatics.UNSAFE;
@@ -45,13 +43,6 @@ import static java.lang.invoke.MethodHandleStatics.VAR_HANDLE_IDENTITY_ADAPT;
 import static java.lang.invoke.MethodHandleStatics.newIllegalArgumentException;
 
 final class VarHandles {
-
-    static ClassValue<ConcurrentMap<Integer, MethodHandle>> ADDRESS_FACTORIES = new ClassValue<>() {
-        @Override
-        protected ConcurrentMap<Integer, MethodHandle> computeValue(Class<?> type) {
-            return new ConcurrentHashMap<>();
-        }
-    };
 
     static VarHandle makeFieldHandle(MemberName f, Class<?> refc, boolean isWriteAllowedOnFinalFields) {
         if (!f.isStatic()) {
@@ -357,9 +348,8 @@ final class VarHandles {
         MethodHandle filterToTarget = adaptForCheckedExceptions(pFilterToTarget);
         MethodHandle filterFromTarget = adaptForCheckedExceptions(pFilterFromTarget);
 
-        List<Class<?>> newCoordinates = new ArrayList<>();
+        List<Class<?>> newCoordinates = new ArrayList<>(target.coordinateTypes());
         List<Class<?>> additionalCoordinates = new ArrayList<>();
-        newCoordinates.addAll(target.coordinateTypes());
 
         //check that from/to filters have right signatures
         if (filterFromTarget.type().parameterCount() != filterToTarget.type().parameterCount()) {
@@ -492,13 +482,13 @@ final class VarHandles {
         if (values.length == 0) return target;
 
         List<Class<?>> newCoordinates = new ArrayList<>(targetCoordinates);
-        for (int i = 0 ; i < values.length ; i++) {
+        for (Object value : values) {
             Class<?> pt = newCoordinates.get(pos);
             if (pt.isPrimitive()) {
                 Wrapper w = Wrapper.forPrimitiveType(pt);
-                w.convert(values[i], pt);
+                w.convert(value, pt);
             } else {
-                pt.cast(values[i]);
+                pt.cast(value);
             }
             newCoordinates.remove(pos);
         }
