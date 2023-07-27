@@ -2211,11 +2211,63 @@ public abstract sealed class VarHandle implements Constable
         return mh;
     }
 
+    private static final int MH_CONVERSION_CACHE_SIZE = 10;
+
+    private @Stable MethodHandle[][] conversionMhTable;
+
+    @ForceInline
+    private MethodHandle[] conversionTable(int mode) {
+        var modeTable = conversionMhTable;
+        if (modeTable == null) {
+            modeTable = new MethodHandle[AccessMode.COUNT][];
+            conversionMhTable = modeTable;
+        }
+
+        var table = modeTable[mode];
+        if (table == null) {
+            table = new MethodHandle[MH_CONVERSION_CACHE_SIZE];
+            modeTable[mode] = table;
+        }
+
+        return table;
+    }
+
+    @DontInline
+    private MethodHandle computeConverted(int mode, MethodType type) {
+        var table = conversionTable(mode);
+        // type must not be erased. Object can be incorrectly
+        // converted to wrappers in asType
+        var ret = getMethodHandle(mode).asType(type);
+        for (int i = 0; i < MH_CONVERSION_CACHE_SIZE; i++) {
+            if (table[i] == null) {
+                table[i] = ret;
+            }
+        }
+        return ret;
+    }
+
+    @ForceInline
+    final MethodHandle getConvertedMethodHandle(int mode, MethodType type) {
+        var plainMh = getMethodHandle(mode);
+        if (type == plainMh.type())
+            return plainMh;
+        for (var mh : conversionTable(mode)) {
+            if (mh == null)
+                break;
+            if (mh.type() == type)
+                return mh;
+        }
+
+        return computeConverted(mode, type);
+    }
+
     /**
      * Computes a method handle that can be passed the {@linkplain #asDirect() direct}
      * var handle of this var handle with the given access mode. Pre/postprocessing
      * such as argument or return value filtering should be done by the returned
      * method handle.
+     * <p>
+     * Note: MH type conversion assumes returned method handle is not varargs.
      *
      * @throws UnsupportedOperationException if the access mode is not supported
      */

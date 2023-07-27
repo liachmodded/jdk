@@ -497,11 +497,7 @@ class Invokers {
         }
         // Test for exact match on invoker types
         // TODO match with erased types and add cast of return value to lambda form
-        MethodHandle mh = handle.getMethodHandle(ad.mode);
-        if (mh.type() != ad.symbolicMethodTypeInvoker) {
-            return mh.asType(ad.symbolicMethodTypeInvoker);
-        }
-        return mh;
+        return handle.getConvertedMethodHandle(ad.mode, ad.symbolicMethodTypeInvoker);
     }
 
     @ForceInline
