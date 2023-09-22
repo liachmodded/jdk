@@ -41,6 +41,7 @@ import java.lang.classfile.constantpool.NameAndTypeEntry;
 import java.lang.constant.ModuleDesc;
 import java.lang.reflect.AccessFlag;
 import jdk.internal.access.SharedSecrets;
+import jdk.internal.vm.annotation.Stable;
 
 import static java.lang.classfile.ClassFile.ACC_STATIC;
 
@@ -192,5 +193,61 @@ public class Util {
     public static boolean isDoubleSlot(ClassDesc desc) {
         char ch = desc.descriptorString().charAt(0);
         return ch == 'D' || ch == 'J';
+    }
+
+    public static int hashAsDescriptorString(AbstractPoolEntry.Utf8EntryImpl name) {
+        if (name.charAt(0) == '[') {
+            return name.stringHash();
+        }
+
+        // convert internal name hash to descriptor hash
+        return pow31(name.length() + 1) * 'L' + name.stringHash() * 31 + ';';
+    }
+
+    // k is at most 65536, length of Utf8 entry + 1
+    public static int pow31(int k) {
+        int r = 1;
+        // calculate the power contribution from index-th octal digit
+        // from least to most significant (right to left)
+        // e.g. decimal 26=octal 32, power(26)=powerOctal(2,0)*powerOctal(3,1)
+        for (int i = 0; i < SIGNIFICANT_OCTAL_DIGITS; i++) {
+            r *= powerOctal(k & 7, i);
+            k >>= 3;
+        }
+        return r;
+    }
+
+    // k is at most 65536 = octal 200000, only consider 6 octal digits
+    // Note: 31 powers repeat beyond 1 << 27, only 9 octal digits matter
+    private static final int SIGNIFICANT_OCTAL_DIGITS = 6;
+    // for base k, storage is k * log_k(N)=k/ln(k) * ln(N)
+    // k = 2 or 4 is better for space at the cost of more multiplications
+    private static final @Stable int[] powers = new int[7 * SIGNIFICANT_OCTAL_DIGITS];
+
+    static {
+        for (int i = 1, k = 31; i <= 7; i++, k *= 31) {
+            int t = powers[powersIndex(i, 0)] = k;
+
+            for (int j = 1; j < SIGNIFICANT_OCTAL_DIGITS; j++) {
+                t *= t;
+                t *= t;
+                t *= t;
+                powers[powersIndex(i, j)] = t;
+            }
+        }
+    }
+
+    private static int powersIndex(int digit, int index) {
+        return (digit - 1) + index * 7;
+    }
+
+    // (31 ^ digit) ^ (8 * index) = 31 ^ (digit * (8 ^ index))
+    // digit: 0 - 7
+    // index: 0 - SIGNIFICANT_OCTAL_DIGITS - 1
+    private static int powerOctal(int digit, int index) {
+        if (digit == 0) {
+            return 1;
+        }
+        return digit == 0 ? 1 : powers[powersIndex(digit, index)];
     }
 }

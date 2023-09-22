@@ -24,11 +24,11 @@
  */
 package jdk.internal.classfile.impl;
 
+import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 import java.lang.classfile.Attribute;
 import java.lang.classfile.Attributes;
@@ -275,6 +275,39 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         return null;
     }
 
+    private static boolean matches(AbstractPoolEntry.ClassEntryImpl re, String value, boolean needsTruncation) {
+        if (needsTruncation) {
+            var sym = re.sym;
+            if (sym != null) {
+                return value.equals(sym.descriptorString());
+            }
+
+            var utf8 = re.ref1;
+            return utf8.length() + 2 == value.length()
+                    // Promote to String state for potentially faster matching
+                    && utf8.stringValue().regionMatches(0, value, 1, utf8.length());
+        }
+        return re.ref1.equalsString(value);
+    }
+
+    private AbstractPoolEntry.ClassEntryImpl findClassEntry(int descriptorHash, String value, boolean needsTruncation) {
+        // invariant: canWriteDirect(ref.constantPool())
+        int hash = AbstractPoolEntry.hash1(TAG_CLASS, descriptorHash);
+        EntryMap<PoolEntry> map = map();
+        for (int token = map.firstToken(hash); token != -1; token = map.nextToken(hash, token)) {
+            PoolEntry e = map.getElementByToken(token);
+            if (e.tag() == TAG_CLASS
+                && e instanceof AbstractPoolEntry.ClassEntryImpl re
+                && matches(re, value, needsTruncation))
+                return re;
+        }
+        if (!doneFullScan) {
+            fullScan();
+            return findClassEntry(descriptorHash, value, needsTruncation);
+        }
+        return null;
+    }
+
     private<T extends AbstractPoolEntry> AbstractPoolEntry findEntry(int tag, T ref1) {
         // invariant: canWriteDirect(ref1.constantPool())
         int hash = AbstractPoolEntry.hash1(tag, ref1.index());
@@ -350,9 +383,8 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
 
     @Override
     public AbstractPoolEntry.Utf8EntryImpl utf8Entry(String s) {
-        int hash = AbstractPoolEntry.hashString(s.hashCode());
-        var ce = tryFindUtf8(hash, s);
-        return ce == null ? internalAdd(new AbstractPoolEntry.Utf8EntryImpl(this, size, s, hash)) : ce;
+        var ce = tryFindUtf8(AbstractPoolEntry.hashString(s.hashCode()), s);
+        return ce == null ? internalAdd(new AbstractPoolEntry.Utf8EntryImpl(this, size, s)) : ce;
     }
 
     AbstractPoolEntry.Utf8EntryImpl maybeCloneUtf8Entry(Utf8Entry entry) {
@@ -366,8 +398,27 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
     @Override
     public AbstractPoolEntry.ClassEntryImpl classEntry(Utf8Entry nameEntry) {
         AbstractPoolEntry.Utf8EntryImpl ne = maybeCloneUtf8Entry(nameEntry);
-        var e = (AbstractPoolEntry.ClassEntryImpl) findEntry(TAG_CLASS, ne);
+        var e = findClassEntry(Util.hashAsDescriptorString(ne), ne.stringValue(), false);
         return e == null ? internalAdd(new AbstractPoolEntry.ClassEntryImpl(this, size, ne)) : e;
+    }
+
+    @Override
+    public AbstractPoolEntry.ClassEntryImpl classEntry(ClassDesc cd) {
+        if (cd.isPrimitive()) {
+            throw new IllegalArgumentException("Cannot be encoded as ClassEntry: " + cd.displayName());
+        }
+
+        // only find, cannot create class entries
+        var e = findClassEntry(cd.descriptorString().hashCode(),
+                               cd.descriptorString(),
+                               cd.isClassOrInterface());
+
+        if (e == null)
+            e = classEntry(utf8Entry(cd.isArray() ? cd.descriptorString() : Util.toInternalName(cd)));
+
+        if (e.sym == null)
+            e.sym = cd;
+        return e;
     }
 
     @Override
