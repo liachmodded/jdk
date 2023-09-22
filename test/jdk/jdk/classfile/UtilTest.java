@@ -27,6 +27,11 @@
  * @run junit UtilTest
  */
 import java.lang.constant.MethodTypeDesc;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+
+import jdk.internal.classfile.impl.AbstractPoolEntry;
+import jdk.internal.classfile.impl.TemporaryConstantPool;
 import jdk.internal.classfile.impl.Util;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -75,5 +80,32 @@ class UtilTest {
 
     private void assertSlots(String methodDesc, int slots) {
         assertEquals(Util.parameterSlots(MethodTypeDesc.ofDescriptor(methodDesc)), slots);
+    }
+
+    @Test
+    void testPow31() {
+        int p = 1;
+        // Our calculation only prepares up to 65536,
+        // max length of CP Utf8 + 1
+        for (int i = 0; i <= 65536; i++) {
+            final int t = i;
+            assertEquals(p, Util.pow31(i), () -> "31's power to " + t);
+            p *= 31;
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(classes = {
+            Long.class,
+            Object.class,
+            Util.class,
+            Test.class,
+            CopyOnWriteArrayList.class,
+            AtomicReferenceFieldUpdater.class
+    })
+    void testHashAsDescriptorString(Class<?> type) {
+        var utf8 = (AbstractPoolEntry.Utf8EntryImpl)
+                TemporaryConstantPool.INSTANCE.utf8Entry(type.getName().replace('.', '/'));
+        assertEquals(type.descriptorString().hashCode(), Util.hashAsDescriptorString(utf8));
     }
 }
