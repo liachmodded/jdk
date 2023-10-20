@@ -291,6 +291,12 @@ public class TreeMap<K,V>
         return (p==null ? null : p.value);
     }
 
+    @Override
+    public V getOrDefault(Object key, V defaultValue) {
+        Entry<K,V> p = getEntry(key);
+        return (p==null ? defaultValue : p.value);
+    }
+
     public Comparator<? super K> comparator() {
         return comparator;
     }
@@ -920,6 +926,17 @@ public class TreeMap<K,V>
         V oldValue = p.value;
         deleteEntry(p);
         return oldValue;
+    }
+
+    @Override
+    public boolean remove(Object key, Object value) {
+        Entry<K,V> p = getEntry(key);
+        if (p != null && Objects.equals(value, p.value)) {
+            deleteEntry(p);
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -1873,8 +1890,24 @@ public class TreeMap<K,V>
             return !inRange(key) ? null :  m.get(key);
         }
 
-        public final V remove(Object key) {
+        public V getOrDefault(Object key, V defaultValue) {
+            return !inRange(key) ? defaultValue : m.getOrDefault(key, defaultValue);
+        }
+
+        public V remove(Object key) {
             return !inRange(key) ? null : m.remove(key);
+        }
+
+        public boolean remove(Object key, Object value) {
+            return inRange(key) && m.remove(key, value);
+        }
+
+        public boolean replace(K key, V oldValue, V newValue) {
+            return inRange(key) && m.replace(key, oldValue, newValue);
+        }
+
+        public V replace(K key, V value) {
+            return !inRange(key) ? null : m.replace(key, value);
         }
 
         public final Map.Entry<K,V> ceilingEntry(K key) {
