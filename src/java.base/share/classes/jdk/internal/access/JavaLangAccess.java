@@ -27,7 +27,6 @@ package jdk.internal.access;
 
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
-import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 import java.lang.module.ModuleDescriptor;
@@ -305,6 +304,33 @@ public interface JavaLangAccess {
     int countPositives(byte[] ba, int off, int len);
 
     /**
+     * Returns the trusted latin-1 byte array of a string if one is available,
+     * or {@code null} if there is none.
+     *
+     * <p>If {@code asciiOnly} is {@code true}, the returned byte array will
+     * not contain any negative value (code point larger than 127).
+     *
+     * <p>This API is allowed to return {@code null} in any scenario.
+     *
+     * @param string the string to obtain the bytes from
+     * @param asciiOnly if the byte array must be ascii-only
+     * @return the latin-1 byte array, if available
+     */
+    byte[] trustedBytesIfCompatible(String string, boolean asciiOnly);
+
+    /**
+     * Returns a String representation of the trusted byte array in ISO-8859-1
+     * encoding.
+     *
+     * <p>This API must return a String, even if the string may be
+     * backed by a distinct array than the trusted byte array.
+     *
+     * @param bytes the bytes to construct a String
+     * @return the constructed string
+     */
+    String stringFromTrustedLatin1Bytes(byte[] bytes);
+
+    /**
      * Constructs a new {@code String} by decoding the specified subarray of
      * bytes using the specified {@linkplain java.nio.charset.Charset charset}.
      *
@@ -575,14 +601,4 @@ public interface JavaLangAccess {
      * explicitly set otherwise <qualified-class-name> @<id>
      */
     String getLoaderNameID(ClassLoader loader);
-
-    /**
-     * Copy the string bytes to an existing segment, avoiding intermediate copies.
-     */
-    void copyToSegmentRaw(String string, MemorySegment segment, long offset);
-
-    /**
-     * Are the string bytes compatible with the given charset?
-     */
-    boolean bytesCompatible(String string, Charset charset);
 }

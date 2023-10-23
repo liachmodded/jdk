@@ -28,8 +28,6 @@ package java.lang;
 import java.io.ObjectStreamField;
 import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Native;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.lang.constant.Constable;
 import java.lang.constant.ConstantDesc;
@@ -698,6 +696,13 @@ public final class String
         }
     }
 
+    static String fromTrustedLatin1Bytes(byte[] bytes) {
+        if (COMPACT_STRINGS) {
+            return new String(bytes, LATIN1);
+        }
+        return new String(StringLatin1.inflate(bytes, 0, bytes.length), UTF16);
+    }
+
     /*
      * Throws iae, instead of replacing, if malformed or unmappable.
      *
@@ -792,15 +797,11 @@ public final class String
             return newStringUTF8NoRepl(src, 0, src.length, false);
         }
         if (cs == ISO_8859_1.INSTANCE) {
-            if (COMPACT_STRINGS)
-                return new String(src, LATIN1);
-            return new String(StringLatin1.inflate(src, 0, src.length), UTF16);
+            return fromTrustedLatin1Bytes(src);
         }
         if (cs == US_ASCII.INSTANCE) {
-            if (!StringCoding.hasNegatives(src, 0, src.length)) {
-                if (COMPACT_STRINGS)
-                    return new String(src, LATIN1);
-                return new String(StringLatin1.inflate(src, 0, src.length), UTF16);
+            if (isASCII(src)) {
+                return fromTrustedLatin1Bytes(src);
             } else {
                 throwMalformed(src);
             }
@@ -810,10 +811,8 @@ public final class String
         // ascii fastpath
         if (cd instanceof ArrayDecoder ad &&
                 ad.isASCIICompatible() &&
-                !StringCoding.hasNegatives(src, 0, src.length)) {
-            if (COMPACT_STRINGS)
-                return new String(src, LATIN1);
-            return new String(src, 0, src.length, ISO_8859_1.INSTANCE);
+                isASCII(src)) {
+            return fromTrustedLatin1Bytes(src);
         }
         int en = scale(len, cd.maxCharsPerByte());
         char[] ca = new char[en];
@@ -928,6 +927,13 @@ public final class String
             }
         }
         return safeTrim(ba, bb.position(), cs.getClass().getClassLoader0() == null);
+    }
+
+    byte[] trustedBytesIfCompatible(boolean asciiOnly) {
+        if (!isLatin1() || asciiOnly && !isASCII(value)) {
+            return null;
+        }
+        return value;
     }
 
     /*
@@ -1836,21 +1842,6 @@ public final class String
      */
     public byte[] getBytes() {
         return encode(Charset.defaultCharset(), coder(), value);
-    }
-
-    boolean bytesCompatible(Charset charset) {
-        if (isLatin1()) {
-            if (charset == ISO_8859_1.INSTANCE) {
-                return true; // ok, same encoding
-            } else if (charset == UTF_8.INSTANCE || charset == US_ASCII.INSTANCE) {
-                return !StringCoding.hasNegatives(value, 0, value.length); // ok, if ASCII-compatible
-            }
-        }
-        return false;
-    }
-
-    void copyToSegmentRaw(MemorySegment segment, long offset) {
-        MemorySegment.copy(value, 0, segment, ValueLayout.JAVA_BYTE, offset, value.length);
     }
 
     /**

@@ -32,8 +32,6 @@ import jdk.internal.util.HexDigits;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.CharBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.StandardCharsets;
 
 /**
  * {@code HexFormat} converts between bytes and chars and hex-encoded strings which may include
@@ -465,12 +463,7 @@ public final class HexFormat {
             // Delimiter formatting not to a single byte
             return null;
         }
-        try {
-            // Return a new string using the bytes without making a copy
-            return jla.newStringNoRepl(rep, StandardCharsets.ISO_8859_1);
-        } catch (CharacterCodingException cce) {
-            throw new AssertionError(cce);
-        }
+        return jla.stringFromTrustedLatin1Bytes(rep);
     }
 
     /**
@@ -700,11 +693,7 @@ public final class HexFormat {
         byte[] rep = new byte[2];
         rep[0] = (byte)toHighHexDigit(value);
         rep[1] = (byte)toLowHexDigit(value);
-        try {
-            return jla.newStringNoRepl(rep, StandardCharsets.ISO_8859_1);
-        } catch (CharacterCodingException cce) {
-            throw new AssertionError(cce);
-        }
+        return jla.stringFromTrustedLatin1Bytes(rep);
     }
 
     /**
@@ -736,11 +725,7 @@ public final class HexFormat {
         rep[2] = (byte)toHighHexDigit((byte)value);
         rep[3] = (byte)toLowHexDigit((byte)value);
 
-        try {
-            return jla.newStringNoRepl(rep, StandardCharsets.ISO_8859_1);
-        } catch (CharacterCodingException cce) {
-            throw new AssertionError(cce);
-        }
+        return jla.stringFromTrustedLatin1Bytes(rep);
     }
 
     /**
@@ -764,11 +749,7 @@ public final class HexFormat {
         rep[6] = (byte)toHighHexDigit((byte)value);
         rep[7] = (byte)toLowHexDigit((byte)value);
 
-        try {
-            return jla.newStringNoRepl(rep, StandardCharsets.ISO_8859_1);
-        } catch (CharacterCodingException cce) {
-            throw new AssertionError(cce);
-        }
+        return jla.stringFromTrustedLatin1Bytes(rep);
     }
 
     /**
@@ -800,11 +781,7 @@ public final class HexFormat {
         rep[14] = (byte)toHighHexDigit((byte)value);
         rep[15] = (byte)toLowHexDigit((byte)value);
 
-        try {
-            return jla.newStringNoRepl(rep, StandardCharsets.ISO_8859_1);
-        } catch (CharacterCodingException cce) {
-            throw new AssertionError(cce);
-        }
+        return jla.stringFromTrustedLatin1Bytes(rep);
     }
 
     /**
@@ -828,11 +805,7 @@ public final class HexFormat {
             rep[i] = (byte)toLowHexDigit((byte)(value));
             value = value >>> 4;
         }
-        try {
-            return jla.newStringNoRepl(rep, StandardCharsets.ISO_8859_1);
-        } catch (CharacterCodingException cce) {
-            throw new AssertionError(cce);
-        }
+        return jla.stringFromTrustedLatin1Bytes(rep);
     }
 
     /**

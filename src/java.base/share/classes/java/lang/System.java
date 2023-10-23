@@ -35,7 +35,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.annotation.Annotation;
-import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.StringConcatFactory;
@@ -2473,6 +2472,12 @@ public final class System {
             public int countPositives(byte[] bytes, int offset, int length) {
                 return StringCoding.countPositives(bytes, offset, length);
             }
+            public byte[] trustedBytesIfCompatible(String string, boolean asciiOnly) {
+                return string.trustedBytesIfCompatible(asciiOnly);
+            }
+            public String stringFromTrustedLatin1Bytes(byte[] bytes) {
+                return String.fromTrustedLatin1Bytes(bytes);
+            }
             public String newStringNoRepl(byte[] bytes, Charset cs) throws CharacterCodingException  {
                 return String.newStringNoRepl(bytes, cs);
             }
@@ -2668,16 +2673,6 @@ public final class System {
 
             public String getLoaderNameID(ClassLoader loader) {
                 return loader.nameAndId();
-            }
-
-            @Override
-            public void copyToSegmentRaw(String string, MemorySegment segment, long offset) {
-                string.copyToSegmentRaw(segment, offset);
-            }
-
-            @Override
-            public boolean bytesCompatible(String string, Charset charset) {
-                return string.bytesCompatible(charset);
             }
         });
     }

@@ -25,8 +25,6 @@
 
 package java.util;
 
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.StandardCharsets;
 import java.security.*;
 
 import jdk.internal.access.JavaLangAccess;
@@ -499,11 +497,7 @@ public final class UUID implements java.io.Serializable, Comparable<UUID> {
                 32,
                 HexDigits.packDigits(((int) lsb) >> 8, (int) lsb));
 
-        try {
-            return jla.newStringNoRepl(buf, StandardCharsets.ISO_8859_1);
-        } catch (CharacterCodingException cce) {
-            throw new AssertionError(cce);
-        }
+        return jla.stringFromTrustedLatin1Bytes(buf);
     }
 
     /**
