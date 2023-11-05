@@ -56,6 +56,7 @@ import jdk.internal.vm.StackableScope;
 import jdk.internal.vm.ThreadContainer;
 import sun.reflect.annotation.AnnotationType;
 import sun.nio.ch.Interruptible;
+import sun.reflect.generics.TypeParameterStorage;
 
 public interface JavaLangAccess {
 
@@ -65,6 +66,11 @@ public interface JavaLangAccess {
      * and parameter types.
      */
     List<Method> getDeclaredPublicMethods(Class<?> klass, String name, Class<?>... parameterTypes);
+
+    /**
+     * Returns the object that manages the type parameters of this class.
+     */
+    <T> TypeParameterStorage typeParameters(Class<T> clazz);
 
     /**
      * Return the constant pool for a class.

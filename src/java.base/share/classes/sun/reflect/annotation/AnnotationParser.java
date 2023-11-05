@@ -35,12 +35,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import jdk.internal.reflect.ConstantPool;
 
-import sun.reflect.generics.parser.SignatureParser;
-import sun.reflect.generics.tree.TypeSignature;
-import sun.reflect.generics.factory.GenericsFactory;
-import sun.reflect.generics.factory.CoreReflectionFactory;
-import sun.reflect.generics.visitor.Reifier;
-import sun.reflect.generics.scope.ClassScope;
+import sun.invoke.util.BytecodeDescriptor;
 
 /**
  * Parser for Java programming language annotations.  Translates
@@ -238,7 +233,7 @@ public class AnnotationParser {
         String sig = "[unknown]";
         try {
             sig = constPool.getUTF8At(typeIndex);
-            annotationClass = (Class<? extends Annotation>)parseSig(sig, container);
+            annotationClass = (Class<? extends Annotation>) BytecodeDescriptor.parseField(sig, container.getClassLoader());
         } catch (NoClassDefFoundError e) {
             if (exceptionOnMissingAnnotationClass)
                 // note: at this point sig is "[unknown]" or VM-style
@@ -425,28 +420,12 @@ public class AnnotationParser {
         int classIndex = buf.getShort() & 0xFFFF;
         try {
             String sig = constPool.getUTF8At(classIndex);
-            return parseSig(sig, container);
+            return BytecodeDescriptor.parseField(sig, container.getClassLoader());
         } catch (NoClassDefFoundError e) {
             return new TypeNotPresentExceptionProxy("[unknown]", e);
         } catch (TypeNotPresentException e) {
             return new TypeNotPresentExceptionProxy(e.typeName(), e.getCause());
         }
-    }
-
-    private static Class<?> parseSig(String sig, Class<?> container) {
-        if (sig.equals("V")) return void.class;
-        SignatureParser parser = SignatureParser.make();
-        TypeSignature typeSig = parser.parseTypeSig(sig);
-        GenericsFactory factory = CoreReflectionFactory.make(container, ClassScope.make(container));
-        Reifier reify = Reifier.make(factory);
-        typeSig.accept(reify);
-        Type result = reify.getResult();
-        return toClass(result);
-    }
-    static Class<?> toClass(Type o) {
-        if (o instanceof GenericArrayType gat)
-            return toClass(gat.getGenericComponentType()).arrayType();
-        return (Class<?>) o;
     }
 
     /**
@@ -469,7 +448,7 @@ public class AnnotationParser {
         String typeName  = constPool.getUTF8At(typeNameIndex);
         int constNameIndex = buf.getShort() & 0xFFFF;
         String constName = constPool.getUTF8At(constNameIndex);
-        if (!enumType.isEnum() || enumType != parseSig(typeName, container)) {
+        if (!enumType.isEnum() || enumType != BytecodeDescriptor.parseField(typeName, container.getClassLoader())) {
             return new AnnotationTypeMismatchExceptionProxy(
                     typeName.substring(1, typeName.length() - 1).replace('/', '.') + "." + constName);
         }

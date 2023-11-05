@@ -320,8 +320,6 @@ module java.base {
         jdk.net;
     exports sun.reflect.annotation to
         jdk.compiler;
-    exports sun.reflect.generics.reflectiveObjects to
-        java.desktop;
     exports sun.reflect.misc to
         java.desktop,
         java.datatransfer,

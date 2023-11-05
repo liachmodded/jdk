@@ -23,7 +23,7 @@
  * questions.
  */
 
-package sun.reflect.generics.reflectiveObjects;
+package com.sun.beans;
 
 import java.lang.reflect.MalformedParameterizedTypeException;
 import java.lang.reflect.ParameterizedType;

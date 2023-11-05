@@ -23,7 +23,7 @@
  * questions.
  */
 
-package sun.reflect.generics.reflectiveObjects;
+package com.sun.beans;
 
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Type;

@@ -42,8 +42,8 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
-import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.GenericDeclaration;
+import java.lang.reflect.GenericSignatureFormatError;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
@@ -68,8 +68,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import jdk.internal.classfile.ClassSignature;
 import jdk.internal.javac.PreviewFeature;
 import jdk.internal.loader.BootLoader;
 import jdk.internal.loader.BuiltinClassLoader;
@@ -85,13 +87,10 @@ import jdk.internal.vm.annotation.ForceInline;
 import jdk.internal.vm.annotation.IntrinsicCandidate;
 import jdk.internal.vm.annotation.Stable;
 
+import sun.invoke.util.BytecodeDescriptor;
 import sun.invoke.util.Wrapper;
-import sun.reflect.generics.factory.CoreReflectionFactory;
-import sun.reflect.generics.factory.GenericsFactory;
-import sun.reflect.generics.repository.ClassRepository;
-import sun.reflect.generics.repository.MethodRepository;
-import sun.reflect.generics.repository.ConstructorRepository;
-import sun.reflect.generics.scope.ClassScope;
+import sun.reflect.generics.TypeFactory;
+import sun.reflect.generics.TypeParameterStorage;
 import sun.security.util.SecurityConstants;
 import sun.reflect.annotation.*;
 import sun.reflect.misc.ReflectUtil;
@@ -1092,13 +1091,8 @@ public final class Class<T> implements java.io.Serializable,
      *     <cite>The Java Virtual Machine Specification</cite>
      * @since 1.5
      */
-    @SuppressWarnings("unchecked")
     public TypeVariable<Class<T>>[] getTypeParameters() {
-        ClassRepository info = getGenericInfo();
-        if (info != null)
-            return (TypeVariable<Class<T>>[])info.getTypeParameters();
-        else
-            return (TypeVariable<Class<T>>[])new TypeVariable<?>[0];
+        return genericInfo().typeParameters().toArray();
     }
 
 
@@ -1148,11 +1142,6 @@ public final class Class<T> implements java.io.Serializable,
      * @since 1.5
      */
     public Type getGenericSuperclass() {
-        ClassRepository info = getGenericInfo();
-        if (info == null) {
-            return getSuperclass();
-        }
-
         // Historical irregularity:
         // Generic signature marks interfaces with superclass = Object
         // but this API returns null for interfaces
@@ -1160,7 +1149,7 @@ public final class Class<T> implements java.io.Serializable,
             return null;
         }
 
-        return info.getSuperclass();
+        return genericInfo().superClass(this);
     }
 
     /**
@@ -1341,8 +1330,7 @@ public final class Class<T> implements java.io.Serializable,
      * @since 1.5
      */
     public Type[] getGenericInterfaces() {
-        ClassRepository info = getGenericInfo();
-        return (info == null) ?  getInterfaces() : info.getSuperInterfaces();
+        return genericInfo().superInterfaces(this);
     }
 
 
@@ -1524,17 +1512,9 @@ public final class Class<T> implements java.io.Serializable,
             if (!enclosingInfo.isMethod())
                 return null;
 
-            MethodRepository typeInfo = MethodRepository.make(enclosingInfo.getDescriptor(),
-                                                              getFactory());
-            Class<?>   returnType       = toClass(typeInfo.getReturnType());
-            Type []    parameterTypes   = typeInfo.getParameterTypes();
-            Class<?>[] parameterClasses = new Class<?>[parameterTypes.length];
-
-            // Convert Types to Classes; returned types *should*
-            // be class objects since the methodDescriptor's used
-            // don't have generics information
-            for(int i = 0; i < parameterClasses.length; i++)
-                parameterClasses[i] = toClass(parameterTypes[i]);
+            var desc = BytecodeDescriptor.parseMethod(enclosingInfo.getDescriptor(), getClassLoader());
+            Class<?> returnType = desc.removeLast();
+            Class<?>[] parameterClasses = desc.toArray(TypeFactory.EMPTY_CLASS_ARRAY);
 
             // Perform access check
             final Class<?> enclosingCandidate = enclosingInfo.getEnclosingClass();
@@ -1630,12 +1610,6 @@ public final class Class<T> implements java.io.Serializable,
 
     }
 
-    private static Class<?> toClass(Type o) {
-        if (o instanceof GenericArrayType gat)
-            return toClass(gat.getGenericComponentType()).arrayType();
-        return (Class<?>)o;
-     }
-
     /**
      * If this {@code Class} object represents a local or anonymous
      * class within a constructor, returns a {@link
@@ -1680,16 +1654,9 @@ public final class Class<T> implements java.io.Serializable,
             if (!enclosingInfo.isConstructor())
                 return null;
 
-            ConstructorRepository typeInfo = ConstructorRepository.make(enclosingInfo.getDescriptor(),
-                                                                        getFactory());
-            Type []    parameterTypes   = typeInfo.getParameterTypes();
-            Class<?>[] parameterClasses = new Class<?>[parameterTypes.length];
-
-            // Convert Types to Classes; returned types *should*
-            // be class objects since the methodDescriptor's used
-            // don't have generics information
-            for(int i = 0; i < parameterClasses.length; i++)
-                parameterClasses[i] = toClass(parameterTypes[i]);
+            var desc = BytecodeDescriptor.parseMethod(enclosingInfo.getDescriptor(), getClassLoader());
+            desc.removeLast();
+            Class<?>[] parameterClasses = desc.toArray(TypeFactory.EMPTY_CLASS_ARRAY);
 
             // Perform access check
             final Class<?> enclosingCandidate = enclosingInfo.getEnclosingClass();
@@ -3463,29 +3430,51 @@ public final class Class<T> implements java.io.Serializable,
     // Generic signature handling
     private native String getGenericSignature0();
 
-    // Generic info repository; lazily initialized
-    private transient volatile ClassRepository genericInfo;
+    private record GenericInfo(
+            TypeParameterStorage typeParameters,
+            Supplier<Type> superClass,
+            Supplier<List<Type>> superInterfaces
+    ) {
+        static final GenericInfo EMPTY = new GenericInfo(TypeParameterStorage.EMPTY, null, null);
 
-    // accessor for factory
-    private GenericsFactory getFactory() {
-        // create scope and factory
-        return CoreReflectionFactory.make(this, ClassScope.make(this));
+        Type superClass(Class<?> cls) {
+            return superClass == null ? cls.getSuperclass() : superClass.get();
+        }
+
+        Type[] superInterfaces(Class<?> cls) {
+            return superInterfaces == null ? cls.getInterfaces() : superInterfaces.get().toArray(TypeFactory.EMPTY_TYPE_ARRAY);
+        }
     }
+
+    TypeParameterStorage typeParameters() {
+        return genericInfo().typeParameters();
+    }
+
+    // Generic info repository; lazily initialized
+    private transient volatile GenericInfo computedGenericInfo;
 
     // accessor for generic info repository;
     // generic info is lazily initialized
-    private ClassRepository getGenericInfo() {
-        ClassRepository genericInfo = this.genericInfo;
+    private GenericInfo genericInfo() {
+        var genericInfo = this.computedGenericInfo;
         if (genericInfo == null) {
             String signature = getGenericSignature0();
             if (signature == null) {
-                genericInfo = ClassRepository.NONE;
+                genericInfo = GenericInfo.EMPTY;
             } else {
-                genericInfo = ClassRepository.make(signature, getFactory());
+                ClassSignature cs;
+                try {
+                    cs = ClassSignature.parseFrom(signature);
+                } catch (IllegalArgumentException ex) {
+                    throw new GenericSignatureFormatError(ex.getMessage());
+                }
+                genericInfo = new GenericInfo(new TypeParameterStorage(this, cs.typeParameters()),
+                        TypeFactory.lazyType(this, cs.superclassSignature()),
+                        TypeFactory.lazyTypeList(this, cs.superinterfaceSignatures()));
             }
-            this.genericInfo = genericInfo;
+            this.computedGenericInfo = genericInfo;
         }
-        return (genericInfo != ClassRepository.NONE) ? genericInfo : null;
+        return genericInfo;
     }
 
     // Annotations handling

@@ -95,6 +95,7 @@ import sun.nio.fs.DefaultFileSystemProvider;
 import sun.reflect.annotation.AnnotationType;
 import sun.nio.ch.Interruptible;
 import sun.nio.cs.UTF_8;
+import sun.reflect.generics.TypeParameterStorage;
 import sun.security.util.SecurityConstants;
 
 /**
@@ -2344,6 +2345,9 @@ public final class System {
         SharedSecrets.setJavaLangAccess(new JavaLangAccess() {
             public List<Method> getDeclaredPublicMethods(Class<?> klass, String name, Class<?>... parameterTypes) {
                 return klass.getDeclaredPublicMethods(name, parameterTypes);
+            }
+            public <T> TypeParameterStorage typeParameters(Class<T> clazz) {
+                return clazz.typeParameters();
             }
             public jdk.internal.reflect.ConstantPool getConstantPool(Class<?> klass) {
                 return klass.getConstantPool();

@@ -219,7 +219,7 @@ public final class TypeAnnotationParser {
      * @param genericDecl the declaration declaring the type variable
      * @param typeVarIndex the 0-based index of this type variable in the declaration
      */
-    public static <D extends GenericDeclaration> Annotation[] parseTypeVariableAnnotations(D genericDecl,
+    public static <D extends GenericDeclaration> Map<Class<? extends Annotation>, Annotation> parseTypeVariableAnnotations(D genericDecl,
             int typeVarIndex) {
         AnnotatedElement decl;
         TypeAnnotationTarget predicate;
@@ -234,11 +234,8 @@ public final class TypeAnnotationParser {
         }
         List<TypeAnnotation> typeVarAnnos = TypeAnnotation.filter(parseAllTypeAnnotations(decl),
                                                                   predicate);
-        List<Annotation> res = new ArrayList<>(typeVarAnnos.size());
-        for (TypeAnnotation t : typeVarAnnos)
-            if (t.getTargetInfo().getCount() == typeVarIndex)
-                res.add(t.getAnnotation());
-        return res.toArray(new Annotation[0]);
+        typeVarAnnos.removeIf(ta -> ta.getTargetInfo().getCount() != typeVarIndex);
+        return mapTypeAnnotations(typeVarAnnos);
     }
 
     /**
@@ -315,7 +312,7 @@ public final class TypeAnnotationParser {
             boundsDecl = classDecl;
         } else {
             target = TypeAnnotationTarget.METHOD_TYPE_PARAMETER_BOUND;
-            boundsDecl = (Executable)decl;
+            boundsDecl = decl;
         }
         return TypeAnnotation.filter(TypeAnnotationParser.parseAllTypeAnnotations(boundsDecl), target);
     }
@@ -369,7 +366,7 @@ public final class TypeAnnotationParser {
 
 
     // Helper
-    static Map<Class<? extends Annotation>, Annotation> mapTypeAnnotations(TypeAnnotation[] typeAnnos) {
+    static Map<Class<? extends Annotation>, Annotation> mapTypeAnnotations(List<TypeAnnotation> typeAnnos) {
         Map<Class<? extends Annotation>, Annotation> result =
             new LinkedHashMap<>();
         for (TypeAnnotation t : typeAnnos) {

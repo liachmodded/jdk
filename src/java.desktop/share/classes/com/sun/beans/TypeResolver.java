@@ -33,9 +33,6 @@ import java.lang.reflect.WildcardType;
 import java.util.HashMap;
 import java.util.Map;
 
-import sun.reflect.generics.reflectiveObjects.GenericArrayTypeImpl;
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
-
 /**
  * This is utility class to resolve types.
  *

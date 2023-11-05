@@ -27,20 +27,23 @@ package java.lang.reflect;
 
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Objects;
 import java.util.StringJoiner;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import jdk.internal.access.SharedSecrets;
+import jdk.internal.classfile.MethodSignature;
 import jdk.internal.vm.annotation.Stable;
 import sun.reflect.annotation.AnnotationParser;
 import sun.reflect.annotation.AnnotationSupport;
 import sun.reflect.annotation.TypeAnnotationParser;
 import sun.reflect.annotation.TypeAnnotation;
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
-import sun.reflect.generics.repository.ConstructorRepository;
+import sun.reflect.generics.TypeFactory;
+import sun.reflect.generics.TypeParameterStorage;
 
 /**
  * A shared superclass for the common functionality of {@link Method}
@@ -57,17 +60,78 @@ public abstract sealed class Executable extends AccessibleObject
     @SuppressWarnings("deprecation")
     Executable() {}
 
+    @Override
+    abstract Executable getRoot();
+
+    abstract String getSignature();
+
     /**
      * Accessor method to allow code sharing
      */
     abstract byte[] getAnnotationBytes();
 
-    /**
-     * Does the Executable have generic information.
-     */
-    abstract boolean hasGenericInformation();
+    final GenericInfo genericInfo() {
+        var info = cachedGenericInfo;
+        if (info != null)
+            return info;
 
-    abstract ConstructorRepository getGenericInfo();
+        synchronized (this) {
+            info = cachedGenericInfo;
+            if (info != null)
+                return info;
+
+            var sigString = getSignature();
+            if (sigString == null)
+                return cachedGenericInfo = GenericInfo.EMPTY; // non-generic
+
+            var root = getRoot();
+            if (root != null)
+                return cachedGenericInfo = root.genericInfo(); // share from root
+
+            MethodSignature sig;
+            try {
+                sig = MethodSignature.parseFrom(sigString);
+            } catch (IllegalArgumentException ex) {
+                throw new GenericSignatureFormatError(ex.getMessage());
+            }
+
+            info = new GenericInfo(new TypeParameterStorage(this, sig.typeParameters()),
+                    TypeFactory.lazyTypeList(this, sig.arguments()),
+                    TypeFactory.lazyTypeList(this, sig.throwableSignatures()),
+                    TypeFactory.lazyType(this, sig.result())
+            );
+            cachedGenericInfo = info;
+            return info;
+        }
+    }
+
+    private @Stable GenericInfo cachedGenericInfo;
+
+    record GenericInfo(
+            TypeParameterStorage typeParameters,
+            Supplier<List<Type>> parameterTypes,
+            Supplier<List<Type>> exceptionTypes,
+            Supplier<Type> returnType
+    ) {
+        static final GenericInfo EMPTY = new GenericInfo(TypeParameterStorage.EMPTY, null, null, null);
+
+        Type[] parameterTypes(Executable exec) {
+            return parameterTypes == null ? exec.getParameterTypes() : parameterTypes.get().toArray(TypeFactory.EMPTY_TYPE_ARRAY);
+        }
+
+        Type[] exceptionTypes(Executable exec) {
+            List<Type> computedExceptionList;
+            if (exceptionTypes == null || (computedExceptionList = exceptionTypes.get()).isEmpty())
+                return exec.getExceptionTypes();
+            return computedExceptionList.toArray(TypeFactory.EMPTY_TYPE_ARRAY);
+        }
+
+        Type returnType(Method mth) {
+            if (returnType == null)
+                return mth.getReturnType();
+            return returnType.get();
+        }
+    }
 
     boolean equalParamTypes(Class<?>[] params1, Class<?>[] params2) {
         /* Avoid unnecessary cloning */
@@ -310,10 +374,7 @@ public abstract sealed class Executable extends AccessibleObject
      *     type that cannot be instantiated for any reason
      */
     public Type[] getGenericParameterTypes() {
-        if (hasGenericInformation())
-            return getGenericInfo().getParameterTypes();
-        else
-            return getParameterTypes();
+        return genericInfo().parameterTypes(this);
     }
 
     /**
@@ -321,7 +382,7 @@ public abstract sealed class Executable extends AccessibleObject
      * information for all parameters, including synthetic parameters.
      */
     Type[] getAllGenericParameterTypes() {
-        final boolean genericInfo = hasGenericInformation();
+        final boolean genericInfo = genericInfo() != GenericInfo.EMPTY;
 
         // Easy case: we don't have generic parameter information.  In
         // this case, we just return the result of
@@ -499,12 +560,7 @@ public abstract sealed class Executable extends AccessibleObject
      *     parameterized type that cannot be instantiated for any reason
      */
     public Type[] getGenericExceptionTypes() {
-        Type[] result;
-        if (hasGenericInformation() &&
-            ((result = getGenericInfo().getExceptionTypes()).length > 0))
-            return result;
-        else
-            return getExceptionTypes();
+        return genericInfo().exceptionTypes(this);
     }
 
     /**
@@ -628,7 +684,7 @@ public abstract sealed class Executable extends AccessibleObject
         if ((declAnnos = declaredAnnotations) == null) {
             synchronized (this) {
                 if ((declAnnos = declaredAnnotations) == null) {
-                    Executable root = (Executable)getRoot();
+                    Executable root = getRoot();
                     if (root != null) {
                         declAnnos = root.declaredAnnotations();
                     } else {
@@ -713,29 +769,8 @@ public abstract sealed class Executable extends AccessibleObject
                         getConstantPool(getDeclaringClass()),
                 this,
                 getDeclaringClass(),
-                parameterize(getDeclaringClass()),
+                TypeFactory.parameterizeThis(getDeclaringClass()),
                 TypeAnnotation.TypeAnnotationTarget.METHOD_RECEIVER);
-    }
-
-    Type parameterize(Class<?> c) {
-        Class<?> ownerClass = c.getDeclaringClass();
-        TypeVariable<?>[] typeVars = c.getTypeParameters();
-
-        // base case, static nested classes, according to JLS 8.1.3, has no
-        // enclosing instance, therefore its owner is not generified.
-        if (ownerClass == null || Modifier.isStatic(c.getModifiers())) {
-            if (typeVars.length == 0)
-                return c;
-            else
-                return ParameterizedTypeImpl.make(c, typeVars, null);
-        }
-
-        // Resolve owner
-        Type ownerType = parameterize(ownerClass);
-        if (ownerType instanceof Class<?> && typeVars.length == 0) // We have yet to encounter type parameters
-            return c;
-        else
-            return ParameterizedTypeImpl.make(c, typeVars, ownerType);
     }
 
     /**

@@ -27,6 +27,7 @@ package java.lang.reflect;
 
 import jdk.internal.reflect.MethodAccessor;
 import jdk.internal.reflect.ConstructorAccessor;
+import sun.reflect.generics.TypeParameterStorage;
 
 /** Package-private class implementing the
     jdk.internal.access.JavaLangReflectAccess interface, allowing the java.lang
@@ -130,5 +131,9 @@ class ReflectAccess implements jdk.internal.access.JavaLangReflectAccess {
         throws IllegalAccessException, InstantiationException, InvocationTargetException
     {
         return ctor.newInstanceWithCaller(args, true, caller);
+    }
+
+    public TypeParameterStorage typeParameters(Executable executable) {
+        return executable.genericInfo().typeParameters();
     }
 }

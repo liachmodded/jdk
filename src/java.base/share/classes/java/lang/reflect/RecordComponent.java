@@ -26,13 +26,11 @@
 package java.lang.reflect;
 
 import jdk.internal.access.SharedSecrets;
+import jdk.internal.classfile.Signature;
 import sun.reflect.annotation.AnnotationParser;
 import sun.reflect.annotation.TypeAnnotation;
 import sun.reflect.annotation.TypeAnnotationParser;
-import sun.reflect.generics.factory.CoreReflectionFactory;
-import sun.reflect.generics.factory.GenericsFactory;
-import sun.reflect.generics.repository.FieldRepository;
-import sun.reflect.generics.scope.ClassScope;
+import sun.reflect.generics.TypeFactory;
 import java.lang.annotation.Annotation;
 import java.util.Map;
 import java.util.Objects;
@@ -53,8 +51,8 @@ public final class RecordComponent implements AnnotatedElement {
     private Class<?> type;
     private Method accessor;
     private String signature;
-    // generic info repository; lazily initialized
-    private transient volatile FieldRepository genericInfo;
+    // generic type; lazily initialized
+    private transient volatile Type computedGenericType;
     private byte[] annotations;
     private byte[] typeAnnotations;
     private RecordComponent root;
@@ -119,29 +117,26 @@ public final class RecordComponent implements AnnotatedElement {
      *         type that cannot be instantiated for any reason
      */
     public Type getGenericType() {
-        if (getGenericSignature() != null)
-            return getGenericInfo().getGenericType();
-        else
-            return getType();
-    }
+        var type = computedGenericType;
+        if (type != null)
+            return type;
 
-    // Accessor for generic info repository
-    private FieldRepository getGenericInfo() {
-        var genericInfo = this.genericInfo;
-        // lazily initialize repository if necessary
-        if (genericInfo == null) {
-            // create and cache generic info repository
-            genericInfo = FieldRepository.make(getGenericSignature(), getFactory());
-            this.genericInfo = genericInfo;
+        var sigString = getGenericSignature();
+        if (sigString == null)
+            return computedGenericType = getType();
+
+        var root = this.root;
+        if (root != null)
+            return computedGenericType = root.getGenericType();
+
+        Signature sig;
+        try {
+            sig = Signature.parseFrom(sigString);
+        } catch (IllegalArgumentException ex) {
+            throw new GenericSignatureFormatError(ex.getMessage());
         }
-        return genericInfo; //return cached repository
-    }
 
-    // Accessor for factory
-    private GenericsFactory getFactory() {
-        Class<?> c = getDeclaringRecord();
-        // create scope and factory
-        return CoreReflectionFactory.make(c, ClassScope.make(c));
+        return computedGenericType = TypeFactory.resolve(getDeclaringRecord(), sig);
     }
 
     /**

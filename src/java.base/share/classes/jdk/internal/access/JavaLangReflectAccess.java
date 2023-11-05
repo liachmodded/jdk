@@ -27,6 +27,7 @@ package jdk.internal.access;
 
 import java.lang.reflect.*;
 import jdk.internal.reflect.*;
+import sun.reflect.generics.TypeParameterStorage;
 
 /** An interface which gives privileged packages Java-level access to
     internals of java.lang.reflect. */
@@ -105,4 +106,9 @@ public interface JavaLangReflectAccess {
     /** Returns a new instance created by the given constructor with access check */
     public <T> T newInstance(Constructor<T> ctor, Object[] args, Class<?> caller)
         throws IllegalAccessException, InstantiationException, InvocationTargetException;
+
+    /**
+     * Returns the object that manages the type parameters of this executable.
+     */
+    public TypeParameterStorage typeParameters(Executable executable);
 }

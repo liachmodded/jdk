@@ -77,6 +77,10 @@ public class BytecodeDescriptor {
         throw new IllegalArgumentException("bad signature: "+str+": "+msg);
     }
 
+    public static Class<?> parseField(String bytecodeSignature, ClassLoader cl) {
+        return parseSig(bytecodeSignature, new int[] {0}, bytecodeSignature.length(), cl);
+    }
+
     /**
      * @param loader the class loader in which to look up the types (null means
      *               bootstrap class loader)

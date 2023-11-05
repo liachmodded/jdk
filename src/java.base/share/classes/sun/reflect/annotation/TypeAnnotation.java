@@ -204,13 +204,13 @@ public final class TypeAnnotation {
             return new LocationInfo(depth - 1, res);
         }
 
-        public TypeAnnotation[] filter(TypeAnnotation[] ta) {
+        public List<TypeAnnotation> filter(TypeAnnotation[] ta) {
             ArrayList<TypeAnnotation> l = new ArrayList<>(ta.length);
             for (TypeAnnotation t : ta) {
                 if (isSameLocationInfo(t.getLocationInfo()))
                     l.add(t);
             }
-            return l.toArray(AnnotatedTypeFactory.EMPTY_TYPE_ANNOTATION_ARRAY);
+            return l;
         }
 
         boolean isSameLocationInfo(LocationInfo other) {

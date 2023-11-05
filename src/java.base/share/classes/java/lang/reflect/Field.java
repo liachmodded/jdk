@@ -26,15 +26,13 @@
 package java.lang.reflect;
 
 import jdk.internal.access.SharedSecrets;
+import jdk.internal.classfile.Signature;
 import jdk.internal.reflect.CallerSensitive;
 import jdk.internal.reflect.FieldAccessor;
 import jdk.internal.reflect.Reflection;
 import jdk.internal.vm.annotation.ForceInline;
 import jdk.internal.vm.annotation.Stable;
-import sun.reflect.generics.repository.FieldRepository;
-import sun.reflect.generics.factory.CoreReflectionFactory;
-import sun.reflect.generics.factory.GenericsFactory;
-import sun.reflect.generics.scope.ClassScope;
+import sun.reflect.generics.TypeFactory;
 import java.lang.annotation.Annotation;
 import java.util.Map;
 import java.util.Set;
@@ -76,8 +74,8 @@ class Field extends AccessibleObject implements Member {
     private final boolean             trustedFinal;
     // Generics and annotations support
     private final transient String    signature;
-    // generic info repository; lazily initialized
-    private transient volatile FieldRepository genericInfo;
+    // generic type; immutable, safe without volatile
+    private transient @Stable Type computedGenericType;
     private final byte[]              annotations;
     // Cached field accessor created without override
     @Stable
@@ -92,31 +90,6 @@ class Field extends AccessibleObject implements Member {
     // If this branching structure would ever contain cycles, deadlocks can
     // occur in annotation code.
     private Field               root;
-
-    // Generics infrastructure
-
-    private String getGenericSignature() {return signature;}
-
-    // Accessor for factory
-    private GenericsFactory getFactory() {
-        Class<?> c = getDeclaringClass();
-        // create scope and factory
-        return CoreReflectionFactory.make(c, ClassScope.make(c));
-    }
-
-    // Accessor for generic info repository
-    private FieldRepository getGenericInfo() {
-        var genericInfo = this.genericInfo;
-        // lazily initialize repository if necessary
-        if (genericInfo == null) {
-            // create and cache generic info repository
-            genericInfo = FieldRepository.make(getGenericSignature(),
-                                               getFactory());
-            this.genericInfo = genericInfo;
-        }
-        return genericInfo; //return cached repository
-    }
-
 
     /**
      * Package-private constructor
@@ -290,10 +263,25 @@ class Field extends AccessibleObject implements Member {
      * @since 1.5
      */
     public Type getGenericType() {
-        if (getGenericSignature() != null)
-            return getGenericInfo().getGenericType();
-        else
-            return getType();
+        var type = this.computedGenericType;
+        if (type != null)
+            return type;
+
+        var sigString = this.signature;
+        if (sigString == null)
+            return this.computedGenericType = getType();
+
+        var root = getRoot();
+        if (root != null)
+            return this.computedGenericType = root.getGenericType();
+
+        Signature signature;
+        try {
+            signature = Signature.parseFrom(sigString);
+        } catch (IllegalArgumentException ex) {
+            throw new GenericSignatureFormatError(ex.getMessage());
+        }
+        return this.computedGenericType = TypeFactory.resolve(getDeclaringClass(), signature);
     }
 
 

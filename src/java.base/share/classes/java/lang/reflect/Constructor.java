@@ -34,11 +34,7 @@ import jdk.internal.vm.annotation.ForceInline;
 import jdk.internal.vm.annotation.Stable;
 import sun.reflect.annotation.TypeAnnotation;
 import sun.reflect.annotation.TypeAnnotationParser;
-import sun.reflect.generics.repository.ConstructorRepository;
-import sun.reflect.generics.repository.GenericDeclRepository;
-import sun.reflect.generics.factory.CoreReflectionFactory;
-import sun.reflect.generics.factory.GenericsFactory;
-import sun.reflect.generics.scope.ConstructorScope;
+import sun.reflect.generics.TypeFactory;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.AnnotationFormatError;
 import java.util.StringJoiner;
@@ -70,34 +66,9 @@ public final class Constructor<T> extends Executable {
     private final Class<?>[]          parameterTypes;
     private final Class<?>[]          exceptionTypes;
     private final int                 modifiers;
-    // Generics and annotations support
     private final transient String    signature;
-    // generic info repository; lazily initialized
-    private transient volatile ConstructorRepository genericInfo;
     private final byte[]              annotations;
     private final byte[]              parameterAnnotations;
-
-    // Generics infrastructure
-    // Accessor for factory
-    private GenericsFactory getFactory() {
-        // create scope and factory
-        return CoreReflectionFactory.make(this, ConstructorScope.make(this));
-    }
-
-    // Accessor for generic info repository
-    @Override
-    ConstructorRepository getGenericInfo() {
-        var genericInfo = this.genericInfo;
-        // lazily initialize repository if necessary
-        if (genericInfo == null) {
-            // create and cache generic info repository
-            genericInfo =
-                ConstructorRepository.make(getSignature(),
-                                           getFactory());
-            this.genericInfo = genericInfo;
-        }
-        return genericInfo; //return cached repository
-    }
 
     @Stable
     private ConstructorAccessor constructorAccessor;
@@ -200,11 +171,6 @@ public final class Constructor<T> extends Executable {
     }
 
     @Override
-    boolean hasGenericInformation() {
-        return (getSignature() != null);
-    }
-
-    @Override
     byte[] getAnnotationBytes() {
         return annotations;
     }
@@ -242,14 +208,9 @@ public final class Constructor<T> extends Executable {
      * @since 1.5
      */
     @Override
-    @SuppressWarnings({"rawtypes", "unchecked"})
     public TypeVariable<Constructor<T>>[] getTypeParameters() {
-      if (getSignature() != null) {
-        return (TypeVariable<Constructor<T>>[])getGenericInfo().getTypeParameters();
-      } else
-          return (TypeVariable<Constructor<T>>[])GenericDeclRepository.EMPTY_TYPE_VARS;
+        return genericInfo().typeParameters().toArray();
     }
-
 
     @Override
     Class<?>[] getSharedParameterTypes() {
@@ -683,7 +644,7 @@ public final class Constructor<T> extends Executable {
                     getConstantPool(thisDeclClass),
                 this,
                 thisDeclClass,
-                parameterize(enclosingClass),
+                TypeFactory.parameterizeThis(enclosingClass),
                 TypeAnnotation.TypeAnnotationTarget.METHOD_RECEIVER);
     }
 }
