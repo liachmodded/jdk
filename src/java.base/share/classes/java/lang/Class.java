@@ -1061,7 +1061,7 @@ public final class Class<T> implements java.io.Serializable,
     private final ClassLoader classLoader;
 
     // Set by VM
-    private transient Object classData;
+    private transient @Stable Object classData;
 
     // package-private
     Object getClassData() {
@@ -1214,7 +1214,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     // cached package name
-    private transient String packageName;
+    private transient @Stable String packageName;
 
     /**
      * Returns the interfaces directly implemented by the class or interface
@@ -3167,7 +3167,7 @@ public final class Class<T> implements java.io.Serializable,
 
 
     /** protection domain returned when the internal domain is null */
-    private static java.security.ProtectionDomain allPermDomain;
+    private static @Stable java.security.ProtectionDomain allPermDomain;
 
     /**
      * Returns the {@code ProtectionDomain} of this class.  If there is a
@@ -3995,7 +3995,7 @@ public final class Class<T> implements java.io.Serializable,
                 java.security.AccessController.doPrivileged
                         (new ReflectionFactory.GetReflectionFactoryAction());
     }
-    private static ReflectionFactory reflectionFactory;
+    private static @Stable ReflectionFactory reflectionFactory;
 
     /**
      * Returns the elements of this enum class or null if this
@@ -4316,7 +4316,7 @@ public final class Class<T> implements java.io.Serializable,
     /* Backing store of user-defined values pertaining to this class.
      * Maintained by the ClassValue class.
      */
-    transient ClassValue.ClassValueMap classValueMap;
+    transient @Stable ClassValue.ClassValueMap classValueMap;
 
     /**
      * Returns an {@code AnnotatedType} object that represents the use of a
