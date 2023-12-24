@@ -990,7 +990,7 @@ public final class Class<T> implements java.io.Serializable,
 
     // Cache the name to reduce the number of calls into the VM.
     // This field would be set by VM itself during initClassName call.
-    private transient String name;
+    private transient @Stable String name;
     private native String initClassName();
 
     /**
