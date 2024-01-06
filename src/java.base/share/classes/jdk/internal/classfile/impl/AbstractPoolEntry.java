@@ -52,9 +52,12 @@ import java.lang.classfile.constantpool.PackageEntry;
 import java.lang.classfile.constantpool.PoolEntry;
 import java.lang.classfile.constantpool.StringEntry;
 import java.lang.classfile.constantpool.Utf8Entry;
+import java.util.Objects;
+
 import jdk.internal.access.JavaLangAccess;
 import jdk.internal.access.SharedSecrets;
 import jdk.internal.util.ArraysSupport;
+import jdk.internal.vm.annotation.Stable;
 
 public abstract sealed class AbstractPoolEntry {
     /*
@@ -141,21 +144,26 @@ public abstract sealed class AbstractPoolEntry {
         // If we construct a Utf8Entry from a string, we generate the encoding
         // at write time.
 
-        enum State { RAW, BYTE, CHAR, STRING }
+        // processed size and hashCode
+        // chars is null if rawBytes is ASCII-compatible
+        private record Inflation(int stringHash, int charLen, char[] chars) {
+            private Inflation(String stringValue) {
+                this(stringValue.hashCode(), stringValue.length());
+            }
+
+            private Inflation(int stringHash, int charLen) {
+                this(stringHash, charLen, null);
+            }
+        }
 
         private static final JavaLangAccess JLA = SharedSecrets.getJavaLangAccess();
 
-        private State state;
         private final byte[] rawBytes; // null if initialized directly from a string
         private final int offset;
         private final int rawLen;
-        // Set in any state other than RAW
-        private int stringHash; // may be 0, use non-0 charLen to determine state
-        private int charLen;
-        // Set in CHAR state
-        private char[] chars;
-        // Only set in STRING state
-        private String stringValue;
+
+        private @Stable Inflation inflation;
+        private @Stable String stringValue;
 
         Utf8EntryImpl(ConstantPool cpm, int index,
                           byte[] rawBytes, int offset, int rawLen) {
@@ -163,7 +171,6 @@ public abstract sealed class AbstractPoolEntry {
             this.rawBytes = rawBytes;
             this.offset = offset;
             this.rawLen = rawLen;
-            this.state = State.RAW;
         }
 
         Utf8EntryImpl(ConstantPool cpm, int index, String s) {
@@ -171,10 +178,8 @@ public abstract sealed class AbstractPoolEntry {
             this.rawBytes = null;
             this.offset = 0;
             this.rawLen = 0;
-            this.state = State.STRING;
             this.stringValue = s;
-            this.charLen = s.length();
-            this.stringHash = s.hashCode();
+            this.inflation = new Inflation(s);
         }
 
         Utf8EntryImpl(ConstantPool cpm, int index, Utf8EntryImpl u) {
@@ -182,11 +187,16 @@ public abstract sealed class AbstractPoolEntry {
             this.rawBytes = u.rawBytes;
             this.offset = u.offset;
             this.rawLen = u.rawLen;
-            this.state = u.state;
-            this.stringHash = u.stringHash;
-            this.charLen = u.charLen;
-            this.chars = u.chars;
+            this.inflation = u.inflation;
             this.stringValue = u.stringValue;
+        }
+
+        private Inflation inflation() {
+            var inf = inflation;
+            if (inf == null) {
+                return inflation = inflate();
+            }
+            return inf;
         }
 
         /**
@@ -224,13 +234,11 @@ public abstract sealed class AbstractPoolEntry {
          * recognize the four-byte format of standard UTF-8; it uses its own
          * two-times-three-byte format instead.
          */
-        private void inflate() {
+        private Inflation inflate() {
             int singleBytes = JLA.countPositives(rawBytes, offset, rawLen);
             int hash = ArraysSupport.vectorizedHashCode(rawBytes, offset, singleBytes, 0, ArraysSupport.T_BOOLEAN);
             if (singleBytes == rawLen) {
-                this.stringHash = hash;
-                charLen = rawLen;
-                state = State.BYTE;
+                return new Inflation(hash, rawLen);
             }
             else {
                 char[] chararr = new char[rawLen];
@@ -286,10 +294,7 @@ public abstract sealed class AbstractPoolEntry {
                             throw new CpException("malformed input around byte " + px);
                     }
                 }
-                this.stringHash = hash;
-                charLen = chararr_count;
-                this.chars = chararr;
-                state = State.CHAR;
+                return new Inflation(hash, chararr_count, chararr);
             }
 
         }
@@ -298,15 +303,13 @@ public abstract sealed class AbstractPoolEntry {
         public Utf8EntryImpl clone(ConstantPoolBuilder cp) {
             if (cp.canWriteDirect(constantPool))
                 return this;
-            return (state == State.STRING && rawBytes == null)
+            return (stringValue != null && rawBytes == null)
                    ? (Utf8EntryImpl) cp.utf8Entry(stringValue)
                    : ((SplitConstantPool) cp).maybeCloneUtf8Entry(this);
         }
 
         public int stringHash() {
-            if (state == State.RAW)
-                inflate();
-            return stringHash;
+            return inflation().stringHash;
         }
 
         @Override
@@ -316,15 +319,15 @@ public abstract sealed class AbstractPoolEntry {
 
         @Override
         public String toString() {
-            if (state == State.RAW)
-                inflate();
-            if (state != State.STRING) {
-                stringValue = (chars != null)
-                              ? new String(chars, 0, charLen)
-                              : new String(rawBytes, offset, charLen, StandardCharsets.ISO_8859_1);
-                state = State.STRING;
+            var str = stringValue;
+            if (str != null) {
+                return str;
             }
-            return stringValue;
+
+            var inf = inflation();
+            return stringValue = (inf.chars != null)
+                              ? new String(inf.chars, 0, inf.charLen)
+                              : new String(rawBytes, offset, inf.charLen, StandardCharsets.ISO_8859_1);
         }
 
         @Override
@@ -339,17 +342,16 @@ public abstract sealed class AbstractPoolEntry {
 
         @Override
         public int length() {
-            if (state == State.RAW)
-                inflate();
-            return charLen;
+            return inflation().charLen;
         }
 
         @Override
         public char charAt(int index) {
-            if (state == State.STRING)
+            var str = stringValue;
+            if (str != null)
                 return stringValue.charAt(index);
-            if (state == State.RAW)
-                inflate();
+
+            var chars = inflation().chars;
             return (chars != null)
                    ? chars[index]
                    : (char) rawBytes[index + offset];
@@ -376,39 +378,35 @@ public abstract sealed class AbstractPoolEntry {
             if (rawBytes != null && u.rawBytes != null)
                 return Arrays.equals(rawBytes, offset, offset + rawLen,
                                      u.rawBytes, u.offset, u.offset + u.rawLen);
-            else if ((state == State.STRING && u.state == State.STRING))
-                return stringValue.equals(u.stringValue);
             else
                 return stringValue().equals(u.stringValue());
         }
 
         @Override
         public boolean equalsString(String s) {
-            if (state == State.RAW)
-                inflate();
-            switch (state) {
-                case STRING:
-                    return stringValue.equals(s);
-                case CHAR:
-                    if (charLen != s.length() || stringHash() != s.hashCode())
-                        return false;
-                    for (int i=0; i<charLen; i++)
-                        if (chars[i] != s.charAt(i))
-                            return false;
-                    stringValue = s;
-                    state = State.STRING;
-                    return true;
-                case BYTE:
-                    if (rawLen != s.length() || stringHash() != s.hashCode())
-                        return false;
-                    for (int i=0; i<rawLen; i++)
-                        if (rawBytes[offset+i] != s.charAt(i))
-                            return false;
-                    stringValue = s;
-                    state = State.STRING;
-                    return true;
+            var str = stringValue;
+            if (str != null) {
+                return str.equals(s);
             }
-            throw new IllegalStateException("cannot reach here");
+
+            var inf = inflation();
+            var charLen = inf.charLen;
+            if (charLen != s.length() || stringHash() != s.hashCode())
+                return false;
+
+            var chars = inf.chars;
+            if (chars != null) {
+                for (int i = 0; i < charLen; i++)
+                    if (chars[i] != s.charAt(i))
+                        return false;
+            } else {
+                for (int i = 0; i < charLen; i++)
+                    if (rawBytes[offset + i] != s.charAt(i))
+                        return false;
+            }
+
+            stringValue = s;
+            return true;
         }
 
         @Override
@@ -420,12 +418,13 @@ public abstract sealed class AbstractPoolEntry {
             }
             else {
                 // state == STRING and no raw bytes
+                var stringValue = Objects.requireNonNull(this.stringValue);
                 if (stringValue.length() > 65535) {
                     throw new IllegalArgumentException("string too long");
                 }
                 pool.writeU1(tag);
-                pool.writeU2(charLen);
-                for (int i = 0; i < charLen; ++i) {
+                pool.writeU2(stringValue.length());
+                for (int i = 0; i < stringValue.length(); ++i) {
                     char c = stringValue.charAt(i);
                     if (c >= '\001' && c <= '\177') {
                         // Optimistic writing -- hope everything is bytes
