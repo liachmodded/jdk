@@ -25,6 +25,7 @@
 package jdk.internal.classfile.impl;
 
 import java.lang.classfile.CustomAttribute;
+import java.lang.classfile.PseudoInstruction;
 import java.lang.classfile.constantpool.PoolEntry;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
@@ -261,6 +262,10 @@ public class Util {
         for (PoolEntry info : list) {
             writer.writeIndex(info);
         }
+    }
+
+    public static boolean writeLocalVariable(BufWriterImpl buf, PseudoInstruction lvOrLvt) {
+        return ((WritableLocalVariable) lvOrLvt).writeLocalTo(buf);
     }
 
     static interface Writable {

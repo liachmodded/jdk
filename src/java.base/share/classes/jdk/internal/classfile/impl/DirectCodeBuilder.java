@@ -265,7 +265,7 @@ public final class DirectCodeBuilder
                         int lvSize = localVariables.size();
                         b.writeU2(lvSize);
                         for (LocalVariable l : localVariables) {
-                            if (!((Util.WritableLocalVariable) l).writeLocalTo(b)) {
+                            if (!Util.writeLocalVariable(b, l)) {
                                 if (context.deadLabelsOption() == ClassFile.DeadLabelsOption.DROP_DEAD_LABELS) {
                                     lvSize--;
                                 } else {
@@ -288,7 +288,7 @@ public final class DirectCodeBuilder
                         int lvtSize = localVariableTypes.size();
                         b.writeU2(localVariableTypes.size());
                         for (LocalVariableType l : localVariableTypes) {
-                            if (!((Util.WritableLocalVariable) l).writeLocalTo(b)) {
+                            if (!Util.writeLocalVariable(b, l)) {
                                 if (context.deadLabelsOption() == ClassFile.DeadLabelsOption.DROP_DEAD_LABELS) {
                                     lvtSize--;
                                 } else {
