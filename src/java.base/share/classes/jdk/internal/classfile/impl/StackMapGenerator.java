@@ -26,14 +26,12 @@
 package jdk.internal.classfile.impl;
 
 import java.lang.classfile.constantpool.InvokeDynamicEntry;
-import java.lang.classfile.constantpool.NameAndTypeEntry;
 import java.lang.constant.ClassDesc;
 import static java.lang.constant.ConstantDescs.*;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.constantpool.ConstantDynamicEntry;
-import java.lang.classfile.constantpool.DynamicConstantPoolEntry;
 import java.lang.classfile.constantpool.MemberRefEntry;
 import java.lang.classfile.constantpool.ConstantPoolBuilder;
 import java.nio.ByteBuffer;
@@ -153,7 +151,7 @@ public final class StackMapGenerator {
                 dcb.methodInfo.methodName().stringValue(),
                 dcb.methodInfo.methodTypeSymbol(),
                 (dcb.methodInfo.methodFlags() & ACC_STATIC) != 0,
-                ((BufWriterImpl) dcb.bytecodesBufWriter).asByteBuffer(),
+                dcb.bytecodesBufWriter.asByteBuffer(),
                 dcb.constantPool,
                 dcb.context,
                 dcb.handlers);
@@ -384,7 +382,7 @@ public final class StackMapGenerator {
     public Attribute<? extends StackMapTableAttribute> stackMapTableAttribute() {
         return frames.isEmpty() ? null : new UnboundAttribute.AdHocAttribute<>(Attributes.stackMapTable()) {
             @Override
-            public void writeBody(BufWriter b) {
+            public void writeBody(BufWriterImpl b) {
                 b.writeU2(frames.size());
                 Frame prevFrame =  new Frame(classHierarchy);
                 prevFrame.setLocalsFromArg(methodName, methodDesc, isStatic, thisType);

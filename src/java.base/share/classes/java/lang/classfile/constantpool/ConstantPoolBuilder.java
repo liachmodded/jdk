@@ -61,7 +61,7 @@ import static java.util.Objects.requireNonNull;
  */
 @PreviewFeature(feature = PreviewFeature.Feature.CLASSFILE_API)
 public sealed interface ConstantPoolBuilder
-        extends ConstantPool, WritableElement<ConstantPool>
+        extends ConstantPool, WritableElement
         permits SplitConstantPool, TemporaryConstantPool {
 
     /**
@@ -91,14 +91,6 @@ public sealed interface ConstantPoolBuilder
      * @param constantPool the other constant pool
      */
     boolean canWriteDirect(ConstantPool constantPool);
-
-    /**
-     * Writes associated bootstrap method entries to the specified writer
-     *
-     * @param buf the writer
-     * @return false when no bootstrap method entry has been written
-     */
-    boolean writeBootstrapMethods(BufWriter buf);
 
     /**
      * {@return A {@link Utf8Entry} describing the provided {@linkplain String}}

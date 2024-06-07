@@ -326,7 +326,7 @@ public final class ClassReaderImpl
                 = containedClass.findAttribute(Attributes.bootstrapMethods());
         if (a.isEmpty())
             return false;
-        a.get().writeTo(buf);
+        Util.write(a.get(), buf);
         return true;
     }
 
@@ -500,7 +500,6 @@ public final class ClassReaderImpl
         return readEntry(pos, MethodHandleEntry.class);
     }
 
-    @Override
     public boolean compare(BufWriter bufWriter,
                            int bufWriterOffset,
                            int classReaderOffset,
