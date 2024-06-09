@@ -140,6 +140,12 @@ replace_template_file() {
     done
 }
 
+replace_template_file_to() {
+    for i in $(seq 1 $NUM_REPLACEMENTS); do
+      eval "sed \"s|\${FROM${i}}|\${TO${i}}|g\" $1 > $2"
+    done
+}
+
 replace_template_dir() {
     for f in `find $1 -type f` ; do
         replace_template_file $f
@@ -151,6 +157,42 @@ add_replacement() {
     eval FROM$NUM_REPLACEMENTS='$1'
     eval TO$NUM_REPLACEMENTS='$2'
 }
+
+CONTENT_PREFIX="      <content url=\"file://"
+CONTENT_MIDDLEFIX="\">\n        <sourceFolder url=\"file://"
+CONTENT_POSTFIX="\" isTestSource=\"false\" />\n      </content>"
+
+MODULE_ITEM_PREFIX="      <module fileurl=\""
+MODULE_ITEM_MIDDLEFIX="\" filepath=\""
+MODULE_ITEM_SUFFIX="\" />"
+
+module_list=""
+# Replace in each module first...
+for mod in $MODULE_NAMES; do
+    MROOT_VAR="MODULE_ROOTS_${mod//\./_}"
+    roots=""
+    for root in ${!MROOT_VAR}; do
+        if [ "x$CYGPATH" != "x" ]; then
+          root=`$CYGPATH -am $root`
+        elif [ "x$WSL_DISTRO_NAME" != "x" ]; then
+          root=`wslpath -am $root`
+        fi
+
+        roots=$roots"\n$CONTENT_PREFIX""$root""$CONTENT_MIDDLEFIX""$root""$CONTENT_POSTFIX"
+    done
+    add_replacement "###MODULE_CONTENT###" "$roots"
+
+    iml="${IDEA_OUTPUT}/${mod}.iml"
+    replace_template_file_to "${IDEA_OUTPUT}/jdk-module.iml.template" "${iml}"
+
+    if [ "x$CYGPATH" != "x" ]; then
+      iml=`$CYGPATH -am $iml`
+    elif [ "x$WSL_DISTRO_NAME" != "x" ]; then
+      iml=`wslpath -am $iml`
+    fi
+    module_list=$module_list"\n$MODULE_ITEM_PREFIX""$iml""$MODULE_ITEM_MIDDLEFIX""$iml""$MODULE_ITEM_SUFFIX"
+    NUM_REPLACEMENTS=0
+done
 
 add_replacement "###MODULE_NAMES###" "$MODULE_NAMES"
 add_replacement "###VCS_TYPE###" "$VCS_TYPE"
@@ -183,20 +225,7 @@ else
     add_replacement "###IDEA_DIR###" "$IDEA_OUTPUT"
 fi
 
-SOURCE_PREFIX="<sourceFolder url=\"file://"
-SOURCE_POSTFIX="\" isTestSource=\"false\" />"
-
-for root in $MODULE_ROOTS; do
-    if [ "x$CYGPATH" != "x" ]; then
-      root=`$CYGPATH -am $root`
-    elif [ "x$WSL_DISTRO_NAME" != "x" ]; then
-      root=`wslpath -am $root`
-    fi
-
-    SOURCES=$SOURCES" $SOURCE_PREFIX""$root""$SOURCE_POSTFIX"
-done
-
-add_replacement "###SOURCE_ROOTS###" "$SOURCES"
+add_replacement "###MODULES_LIST###" "$module_list"
 
 replace_template_dir "$IDEA_OUTPUT"
 
