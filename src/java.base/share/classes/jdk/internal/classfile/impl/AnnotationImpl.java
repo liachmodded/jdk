@@ -86,7 +86,7 @@ public final class AnnotationImpl implements Annotation, Util.Writable {
         @Override
         public void writeTo(BufWriterImpl buf) {
             buf.writeIndex(name());
-            Util.write(value(), buf);
+            AnnotationReader.writeElementValue(buf, value());
         }
     }
 
@@ -282,7 +282,7 @@ public final class AnnotationImpl implements Annotation, Util.Writable {
         @Override
         public void writeTo(BufWriterImpl buf) {
             buf.writeU1(tag());
-            Util.write(annotation, buf);
+            Util.write(buf, annotation);
         }
 
     }

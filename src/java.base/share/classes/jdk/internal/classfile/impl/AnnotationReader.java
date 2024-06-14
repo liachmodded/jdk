@@ -85,6 +85,24 @@ class AnnotationReader {
         };
     }
 
+    public static void writeElementValue(BufWriterImpl writer, AnnotationValue value) {
+        writer.writeU1(value.tag());
+        // Cannot use type switch in early bootstrap
+        switch (value.tag()) {
+            case AEV_ANNOTATION -> Util.write(writer, ((AnnotationValue.OfAnnotation) value).annotation());
+            case AEV_ARRAY -> Util.writeList(writer, ((AnnotationValue.OfArray) value).values());
+            case AEV_CLASS -> writer.writeIndex(((AnnotationValue.OfClass) value).className());
+            case AEV_ENUM -> {
+                var enu = ((AnnotationValue.OfEnum) value);
+                writer.writeIndex(enu.className());
+                writer.writeIndex(enu.constantName());
+            }
+            case AEV_BYTE, AEV_CHAR, AEV_DOUBLE, AEV_FLOAT, AEV_INT, AEV_LONG, AEV_SHORT, AEV_BOOLEAN ->
+                writer.writeIndex(((AnnotationValue.OfConstant) value).constant());
+            default -> throw new IllegalArgumentException("Unknown annotation value tag " + value.tag());
+        }
+    }
+
     public static List<TypeAnnotation> readTypeAnnotations(ClassReader classReader, int p, LabelContext lc) {
         int numTypeAnnotations = classReader.readU2(p);
         p += 2;
@@ -110,10 +128,11 @@ class AnnotationReader {
         char tag = (char) classReader.readU1(p);
         ++p;
         return switch (tag) {
-            case 'B', 'C', 'D', 'F', 'I', 'J', 'S', 'Z', 's', 'c' -> p + 2;
-            case 'e' -> p + 4;
-            case '@' -> skipAnnotation(classReader, p);
-            case '[' -> {
+            case AEV_BYTE, AEV_CHAR, AEV_DOUBLE, AEV_FLOAT, AEV_INT, AEV_LONG, AEV_SHORT, AEV_BOOLEAN,
+                 AEV_STRING, AEV_CLASS -> p + 2;
+            case AEV_ENUM -> p + 4;
+            case AEV_ANNOTATION -> skipAnnotation(classReader, p);
+            case AEV_ARRAY -> {
                 int numValues = classReader.readU2(p);
                 p += 2;
                 for (int i = 0; i < numValues; ++i) {

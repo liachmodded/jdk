@@ -140,7 +140,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder, Util.Writab
         if (parent != null && parentBsmSize != 0) {
             parent.writeBootstrapMethods(buf);
             for (int i = parentBsmSize; i < bsmSize; i++)
-                Util.write(bootstrapMethodEntry(i), buf);
+                Util.write(buf, bootstrapMethodEntry(i));
             int attrLen = buf.size() - pos;
             buf.patchInt(pos + 2, 4, attrLen - 6);
             buf.patchInt(pos + 6, 2, bsmSize);
@@ -153,7 +153,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder, Util.Writab
                 public void writeBody(BufWriterImpl b) {
                     buf.writeU2(bsmSize);
                     for (int i = 0; i < bsmSize; i++)
-                        Util.write(bootstrapMethodEntry(i), buf);
+                        Util.write(buf, bootstrapMethodEntry(i));
                 }
             };
             a.writeTo(buf);
@@ -174,7 +174,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder, Util.Writab
         }
         for (int i = writeFrom; i < size(); ) {
             PoolEntry info = entryByIndex(i);
-            Util.write(info, buf);
+            Util.write(buf, info);
             i += info.width();
         }
     }

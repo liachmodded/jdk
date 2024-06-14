@@ -53,7 +53,7 @@ public class AttributeHolder {
     public void writeTo(BufWriter buf) {
         buf.writeU2(attributes.size());
         for (Attribute<?> a : attributes)
-            Util.write(a, buf);
+            Util.write(buf, a);
     }
 
     boolean isPresent(AttributeMapper<?> am) {

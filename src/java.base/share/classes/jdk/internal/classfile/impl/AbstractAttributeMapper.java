@@ -101,7 +101,7 @@ public sealed abstract class AbstractAttributeMapper<T extends Attribute<T>>
 
         @Override
         protected void writeBody(BufWriter buf, AnnotationDefaultAttribute attr) {
-            Util.write(attr.defaultValue(), buf);
+            Util.write(buf, attr.defaultValue());
         }
     }
 

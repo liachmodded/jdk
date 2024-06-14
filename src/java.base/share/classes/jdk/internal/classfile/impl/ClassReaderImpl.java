@@ -326,7 +326,7 @@ public final class ClassReaderImpl
                 = containedClass.findAttribute(Attributes.bootstrapMethods());
         if (a.isEmpty())
             return false;
-        Util.write(a.get(), buf);
+        Util.write(buf, a.get());
         return true;
     }
 

@@ -191,7 +191,7 @@ public class Util {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> void write(Object obj, BufWriter writer) {
+    public static <T> void write(BufWriter writer, Object obj) {
         if (obj instanceof CustomAttribute<?> ca) {
             var mapper = (AttributeMapper<T>) ca.attributeMapper();
             mapper.writeAttribute(writer, (T) ca);
@@ -203,7 +203,7 @@ public class Util {
     public static void writeList(BufWriter buf, List<?> list) {
         buf.writeU2(list.size());
         for (var e : list) {
-            write(e, buf);
+            write(buf, e);
         }
     }
 

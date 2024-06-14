@@ -817,7 +817,7 @@ public abstract sealed class UnboundAttribute<T extends Attribute<T>>
             buf.writeU2(elements.size());
             for (AnnotationElement pair : elements()) {
                 buf.writeIndex(pair.name());
-                Util.write(pair.value(), buf);
+                Util.write(buf, pair.value());
             }
         }
     }
