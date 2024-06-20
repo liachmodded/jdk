@@ -237,7 +237,7 @@ public enum AccessFlag {
                              Location.EMPTY_SET;}
                  }),
 
-   /**
+    /**
      * The access flag {@code ACC_VOLATILE}, corresponding to the
      * source modifier {@link Modifier#VOLATILE volatile}, with a mask
      * value of <code>{@value "0x%04x" Modifier#VOLATILE}</code>.
@@ -458,7 +458,10 @@ public enum AccessFlag {
 
     /**
      * {@return kinds of constructs the flag can be applied to in the
-     * latest class file format version}
+     * current class file format version}
+     *
+     * <p>If preview features are enabled, this may be different
+     * from {@code locations(ClassFileFormatVersion.latest())}.
      */
     public Set<Location> locations() {
         return locations;
@@ -483,6 +486,8 @@ public enum AccessFlag {
      * {@return an unmodifiable set of access flags for the given mask value
      * appropriate for the location in question}
      *
+     * <p>If
+     *
      * @param mask bit mask of access flags
      * @param location context to interpret mask value
      * @throws IllegalArgumentException if the mask contains bit
@@ -503,6 +508,24 @@ public enum AccessFlag {
                                                " for location " + location);
         }
         return Collections.unmodifiableSet(result);
+    }
+
+    /**
+     * {@return an unmodifiable set of access flags for the given mask value
+     * for the location and class file format version in question}
+     *
+     * @param mask bit mask of access flags
+     * @param location context to interpret mask value
+     * @param cffv the class file format version to interpret mask value
+     * @throws IllegalArgumentException if the mask contains bit
+     * positions not support for the location in question
+     */
+    public static Set<AccessFlag> maskToAccessFlags(int mask, Location location, ClassFileFormatVersion cffv) {
+        // TODO: implement this, show old flags exactly
+    }
+
+    public static Set<AccessFlag> upgradeFlags(Set<AccessFlag> legacy, ClassFileFormatVersion fromVersion) {
+
     }
 
     /**
