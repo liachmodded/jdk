@@ -33,19 +33,9 @@ import java.util.List;
 import static java.lang.classfile.ClassFile.*;
 
 public record AnnotationImpl(Utf8Entry className, List<AnnotationElement> elements)
-        implements Annotation, Util.Writable {
+        implements Annotation {
     public AnnotationImpl {
         elements = List.copyOf(elements);
-    }
-
-    @Override
-    public void writeTo(BufWriterImpl buf) {
-        buf.writeIndex(className());
-        buf.writeU2(elements().size());
-        for (var e : elements) {
-            buf.writeIndex(e.name());
-            AnnotationReader.writeAnnotationValue(buf, e.value());
-        }
     }
 
     @Override
@@ -71,28 +61,15 @@ public record AnnotationImpl(Utf8Entry className, List<AnnotationElement> elemen
 
     public record AnnotationElementImpl(Utf8Entry name,
                                         AnnotationValue value)
-            implements AnnotationElement, Util.Writable {
-
-        @Override
-        public void writeTo(BufWriterImpl buf) {
-            buf.writeIndex(name());
-            AnnotationReader.writeAnnotationValue(buf, value());
-        }
+            implements AnnotationElement {
     }
 
-    public sealed interface OfConstantImpl extends AnnotationValue.OfConstant, Util.Writable
+    public sealed interface OfConstantImpl extends AnnotationValue.OfConstant
             permits AnnotationImpl.OfStringImpl, AnnotationImpl.OfDoubleImpl,
                     AnnotationImpl.OfFloatImpl, AnnotationImpl.OfLongImpl,
                     AnnotationImpl.OfIntegerImpl, AnnotationImpl.OfShortImpl,
                     AnnotationImpl.OfCharacterImpl, AnnotationImpl.OfByteImpl,
                     AnnotationImpl.OfBooleanImpl {
-
-        @Override
-        default void writeTo(BufWriterImpl buf) {
-            buf.writeU1(tag());
-            buf.writeIndex(constant());
-        }
-
         @Override
         default ConstantDesc constantValue() {
             return constant().constantValue();
@@ -227,71 +204,39 @@ public record AnnotationImpl(Utf8Entry className, List<AnnotationElement> elemen
     }
 
     public record OfArrayImpl(List<AnnotationValue> values)
-            implements AnnotationValue.OfArray, Util.Writable {
+            implements AnnotationValue.OfArray {
 
-        public OfArrayImpl(List<AnnotationValue> values) {
-            this.values = List.copyOf(values);
+        public OfArrayImpl {
+            values = List.copyOf(values);
         }
 
         @Override
         public char tag() {
             return AEV_ARRAY;
         }
-
-        @Override
-        public void writeTo(BufWriterImpl buf) {
-            buf.writeU1(tag());
-            buf.writeU2(values.size());
-            for (var e : values) {
-                AnnotationReader.writeAnnotationValue(buf, e);
-            }
-        }
-
     }
 
     public record OfEnumImpl(Utf8Entry className, Utf8Entry constantName)
-            implements AnnotationValue.OfEnum, Util.Writable {
+            implements AnnotationValue.OfEnum {
         @Override
         public char tag() {
             return AEV_ENUM;
         }
-
-        @Override
-        public void writeTo(BufWriterImpl buf) {
-            buf.writeU1(tag());
-            buf.writeIndex(className);
-            buf.writeIndex(constantName);
-        }
-
     }
 
     public record OfAnnotationImpl(Annotation annotation)
-            implements AnnotationValue.OfAnnotation, Util.Writable {
+            implements AnnotationValue.OfAnnotation {
         @Override
         public char tag() {
             return AEV_ANNOTATION;
         }
-
-        @Override
-        public void writeTo(BufWriterImpl buf) {
-            buf.writeU1(tag());
-            AnnotationReader.writeAnnotation(buf, annotation);
-        }
-
     }
 
     public record OfClassImpl(Utf8Entry className)
-            implements AnnotationValue.OfClass, Util.Writable {
+            implements AnnotationValue.OfClass {
         @Override
         public char tag() {
             return AEV_CLASS;
         }
-
-        @Override
-        public void writeTo(BufWriterImpl buf) {
-            buf.writeU1(tag());
-            buf.writeIndex(className);
-        }
-
     }
 }

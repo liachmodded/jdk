@@ -281,8 +281,12 @@ public final class AnnotationReader {
     }
 
     public static void writeAnnotation(BufWriterImpl buf, Annotation annotation) {
-        // TODO annotation cleanup later
-        ((Util.Writable) annotation).writeTo(buf);
+        buf.writeIndex(annotation.className());
+        buf.writeU2(annotation.elements().size());
+        for (var e : annotation.elements()) {
+            buf.writeIndex(e.name());
+            AnnotationReader.writeAnnotationValue(buf, e.value());
+        }
     }
 
     public static void writeAnnotations(BufWriter buf, List<Annotation> list) {
@@ -354,7 +358,30 @@ public final class AnnotationReader {
     }
 
     public static void writeAnnotationValue(BufWriterImpl buf, AnnotationValue value) {
-        // TODO annotation cleanup later
-        ((Util.Writable) value).writeTo(buf);
+        // cannot use indy type switch in bootstrap
+        var c = value.tag();
+        buf.writeU1(c);
+        switch (c) {
+            case AEV_BOOLEAN, AEV_BYTE, AEV_CHAR, AEV_SHORT, AEV_INT,
+                 AEV_DOUBLE, AEV_FLOAT, AEV_LONG, AEV_STRING ->
+                    buf.writeIndex(((AnnotationImpl.OfConstantImpl) value).constant());
+            case AEV_CLASS -> buf.writeIndex(((AnnotationValue.OfClass) value).className());
+            case AEV_ENUM -> {
+                var ev = (AnnotationValue.OfEnum) value;
+                buf.writeIndex(ev.className());
+                buf.writeIndex(ev.constantName());
+            }
+            case AEV_ANNOTATION -> {
+                var av = (AnnotationValue.OfAnnotation) value;
+                writeAnnotation(buf, av.annotation());
+            }
+            case AEV_ARRAY -> {
+                var av = (AnnotationValue.OfArray) value;
+                buf.writeU2(av.values().size());
+                for (var v : av.values()) {
+                    writeAnnotationValue(buf, v);
+                }
+            }
+        }
     }
 }
