@@ -175,6 +175,13 @@ public final class BufWriterImpl implements BufWriter {
         System.arraycopy(elems, 0, array, bufferOffset, size());
     }
 
+    @SuppressWarnings("deprecated")
+    public void copyAsciiFrom(String string, int start, int len) {
+        reserveSpace(len);
+        string.getBytes(start, start + len, elems, offset);
+        offset += len;
+    }
+
     // writeIndex methods ensure that any CP info written
     // is relative to the correct constant pool
 

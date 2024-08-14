@@ -24,7 +24,10 @@
  */
 package jdk.internal.classfile.impl;
 
+import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.CustomAttribute;
+import java.lang.classfile.FieldBuilder;
+import java.lang.classfile.MethodBuilder;
 import java.lang.classfile.PseudoInstruction;
 import java.lang.classfile.constantpool.PoolEntry;
 import java.lang.constant.ClassDesc;
@@ -287,5 +290,27 @@ public class Util {
 
     interface WritableLocalVariable {
         boolean writeLocalTo(BufWriterImpl buf);
+    }
+
+    // Early bootstrap utilities
+
+    public static Consumer<FieldBuilder> withFlags(int flags) {
+        record WithFlags(int flags) implements Consumer<FieldBuilder> {
+            @Override
+            public void accept(FieldBuilder fb) {
+                fb.withFlags(flags);
+            }
+        }
+        return new WithFlags(flags);
+    }
+
+    public static Consumer<MethodBuilder> withCode(Consumer<? super CodeBuilder> handler) {
+        record WithCode(Consumer<? super CodeBuilder> handler) implements Consumer<MethodBuilder> {
+            @Override
+            public void accept(MethodBuilder mb) {
+                mb.withCode(handler);
+            }
+        }
+        return new WithCode(handler);
     }
 }
