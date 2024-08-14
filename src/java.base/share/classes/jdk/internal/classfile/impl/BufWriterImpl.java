@@ -91,32 +91,59 @@ public final class BufWriterImpl implements BufWriter {
 
     @Override
     public void writeU1(int x) {
-        writeIntBytes(1, x);
+        reserveSpace(1);
+        var e = elems;
+        var o = offset;
+        e[o] = (byte) x;
+        offset += 1;
     }
 
     @Override
     public void writeU2(int x) {
-        writeIntBytes(2, x);
+        reserveSpace(2);
+        var e = elems;
+        var o = offset;
+        e[o] = (byte) (x >> Byte.SIZE);
+        e[o + 1] = (byte) x;
+        offset += 2;
     }
 
     @Override
     public void writeInt(int x) {
-        writeIntBytes(4, x);
+        reserveSpace(4);
+        var e = elems;
+        var o = offset;
+        e[o] = (byte) (x >> Byte.SIZE * 3);
+        e[o + 1] = (byte) (x >> Byte.SIZE * 2);
+        e[o + 2] = (byte) (x >> Byte.SIZE);
+        e[o + 3] = (byte) x;
+        offset += 4;
     }
 
     @Override
     public void writeFloat(float x) {
-        writeInt(Float.floatToIntBits(x));
+        writeInt(Float.floatToRawIntBits(x));
     }
 
     @Override
     public void writeLong(long x) {
-        writeIntBytes(8, x);
+        reserveSpace(8);
+        var e = elems;
+        var o = offset;
+        e[o] = (byte) (x >> Byte.SIZE * 7);
+        e[o + 1] = (byte) (x >> Byte.SIZE * 6);
+        e[o + 2] = (byte) (x >> Byte.SIZE * 5);
+        e[o + 3] = (byte) (x >> Byte.SIZE * 4);
+        e[o + 4] = (byte) (x >> Byte.SIZE * 3);
+        e[o + 5] = (byte) (x >> Byte.SIZE * 2);
+        e[o + 6] = (byte) (x >> Byte.SIZE);
+        e[o + 7] = (byte) x;
+        offset += 8;
     }
 
     @Override
     public void writeDouble(double x) {
-        writeLong(Double.doubleToLongBits(x));
+        writeLong(Double.doubleToRawLongBits(x));
     }
 
     @Override
