@@ -108,7 +108,7 @@ public final class DirectClassBuilder
     }
 
     @Override
-    public ClassBuilder withMethod(String name, MethodTypeDesc descriptor, int methodFlags, Consumer<? super MethodBuilder> handler) {
+    public ClassBuilder withMethod(String name, MethodTypeDesc descriptor, int flags, Consumer<? super MethodBuilder> handler) {
         var method = new DirectMethodBuilder(constantPool, context, constantPool.utf8Entry(name), constantPool.utf8Entry(descriptor), flags, null);
         method.mDesc = descriptor;
         return withMethod(method.run(handler));

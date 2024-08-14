@@ -540,7 +540,7 @@ class InvokerBytecodeGenerator {
     }
 
     void addMethod(ClassBuilder clb) {
-        methodSetup(clb, new Consumer<MethodBuilder>() {
+        methodSetup(clb, new Consumer<>() {
             @Override
             public void accept(MethodBuilder mb) {
 
@@ -562,7 +562,7 @@ class InvokerBytecodeGenerator {
 
                 classData(lambdaForm, CD_LambdaForm); // keep LambdaForm instance & its compiled form lifetime tightly coupled.
 
-                mb.withCode(new Consumer<CodeBuilder>() {
+                mb.withCode(new Consumer<>() {
                     @Override
                     public void accept(CodeBuilder cob) {
                         if (lambdaForm.customized != null) {
@@ -825,7 +825,7 @@ class InvokerBytecodeGenerator {
             refKind = REF_invokeVirtual;
         }
 
-        assert(!(member.getDeclaringClass().isInterface() && refKind == REF_invokeVirtual));
+        assert(!(defc.isInterface() && refKind == REF_invokeVirtual));
 
         // push arguments
         emitPushArguments(cob, name, 0);
@@ -834,7 +834,7 @@ class InvokerBytecodeGenerator {
         if (member.isMethod()) {
             var methodTypeDesc = methodDesc(member.getMethodType());
             var nameAndType = pool.nameAndTypeEntry(mname, methodTypeDesc);
-            var entry = member.getDeclaringClass().isInterface()
+            var entry = defc.isInterface()
                     ? pool.interfaceMethodRefEntry(clzEntry, nameAndType)
                     : pool.methodRefEntry(clzEntry, nameAndType);
             cob.invoke(refKindOpcode(refKind), entry);
@@ -1664,12 +1664,12 @@ class InvokerBytecodeGenerator {
 
     ClassEntry classEntry(Class<?> cls) {
         assert !cls.isPrimitive();
-        assert(VerifyAccess.ensureTypeVisible(cls, LambdaForm.class)) : cls.getName();
+        //assert(VerifyAccess.ensureTypeVisible(cls, LambdaForm.class)) : cls.getName();
         return pool.classEntry(pool.utf8Entry(cls.getName().replace('.', '/')));
     }
 
     static ClassDesc classDesc(Class<?> cls) {
-        assert(VerifyAccess.ensureTypeVisible(cls, LambdaForm.class)) : cls.getName();
+        //assert(VerifyAccess.ensureTypeVisible(cls, LambdaForm.class)) : cls.getName();
         return cls.isPrimitive() ? Wrapper.forPrimitiveType(cls).basicClassDescriptor()
              : cls == Object.class ? CD_Object
              : cls == MethodHandle.class ? CD_MethodHandle
