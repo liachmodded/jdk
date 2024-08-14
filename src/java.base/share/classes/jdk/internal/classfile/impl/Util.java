@@ -327,7 +327,7 @@ public class Util {
     }
 
     public static int hashAsDescriptorString(AbstractPoolEntry.Utf8EntryImpl name) {
-        if (name.charAt(0) == '[') {
+        if (name.isEmpty() || name.charAt(0) == '[') {
             return name.stringHash();
         }
 
@@ -376,9 +376,6 @@ public class Util {
     // digit: 0 - 7
     // index: 0 - SIGNIFICANT_OCTAL_DIGITS - 1
     private static int powerOctal(int digit, int index) {
-        if (digit == 0) {
-            return 1;
-        }
         return digit == 0 ? 1 : powers[powersIndex(digit, index)];
     }
 }
