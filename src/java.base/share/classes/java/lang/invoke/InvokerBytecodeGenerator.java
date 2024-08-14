@@ -422,8 +422,7 @@ class InvokerBytecodeGenerator {
             }
         }
         if (isStaticallyNameable(cls)) {
-            ClassDesc sig = classDesc(cls);
-            cob.checkcast(sig);
+            cob.checkcast(classEntry(cls));
         } else {
             cob.getstatic(classData(cls, CD_Class))
                .swap()
@@ -817,7 +816,7 @@ class InvokerBytecodeGenerator {
     void emitStaticInvoke(CodeBuilder cob, MemberName member, Name name) {
         assert(member.equals(name.function.member()));
         Class<?> defc = member.getDeclaringClass();
-        ClassDesc cdesc = classDesc(defc);
+        var clzEntry = classEntry(defc);
         String mname = member.getName();
         byte refKind = member.getReferenceKind();
         if (refKind == REF_invokeSpecial) {
@@ -834,11 +833,16 @@ class InvokerBytecodeGenerator {
         // invocation
         if (member.isMethod()) {
             var methodTypeDesc = methodDesc(member.getMethodType());
-            cob.invoke(refKindOpcode(refKind), cdesc, mname, methodTypeDesc,
-                                  member.getDeclaringClass().isInterface());
+            var nameAndType = pool.nameAndTypeEntry(mname, methodTypeDesc);
+            var entry = member.getDeclaringClass().isInterface()
+                    ? pool.interfaceMethodRefEntry(clzEntry, nameAndType)
+                    : pool.methodRefEntry(clzEntry, nameAndType);
+            cob.invoke(refKindOpcode(refKind), entry);
         } else {
             var fieldTypeDesc = classDesc(member.getFieldType());
-            cob.fieldAccess(refKindOpcode(refKind), cdesc, mname, fieldTypeDesc);
+            var nameAndType = pool.nameAndTypeEntry(mname, fieldTypeDesc);
+            var entry = pool.fieldRefEntry(clzEntry, nameAndType);
+            cob.fieldAccess(refKindOpcode(refKind), entry);
         }
         // Issue a type assertion for the result, so we can avoid casts later.
         if (name.type == L_TYPE) {
@@ -1658,8 +1662,14 @@ class InvokerBytecodeGenerator {
         }
     }
 
+    ClassEntry classEntry(Class<?> cls) {
+        assert !cls.isPrimitive();
+        assert(VerifyAccess.ensureTypeVisible(cls, LambdaForm.class)) : cls.getName();
+        return pool.classEntry(pool.utf8Entry(cls.getName().replace('.', '/')));
+    }
+
     static ClassDesc classDesc(Class<?> cls) {
-//        assert(VerifyAccess.isTypeVisible(cls, Object.class)) : cls.getName();
+        assert(VerifyAccess.ensureTypeVisible(cls, LambdaForm.class)) : cls.getName();
         return cls.isPrimitive() ? Wrapper.forPrimitiveType(cls).basicClassDescriptor()
              : cls == Object.class ? CD_Object
              : cls == MethodHandle.class ? CD_MethodHandle

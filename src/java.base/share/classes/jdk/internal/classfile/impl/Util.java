@@ -66,6 +66,39 @@ public class Util {
     private Util() {
     }
 
+    // Early bootstrap utilities
+    public static Consumer<FieldBuilder> withFlags(int flags) {
+        record WithFlags(int flags) implements Consumer<FieldBuilder> {
+            @Override
+            public void accept(FieldBuilder fb) {
+                fb.withFlags(flags);
+            }
+        }
+        return new WithFlags(flags);
+    }
+
+    public static Consumer<MethodBuilder> withCode(Consumer<? super CodeBuilder> handler) {
+        record WithCode(Consumer<? super CodeBuilder> handler) implements Consumer<MethodBuilder> {
+            @Override
+            public void accept(MethodBuilder mb) {
+                mb.withCode(handler);
+            }
+        }
+        return new WithCode(handler);
+    }
+
+    public static <E> Consumer<Consumer<E>> passingAll(Iterable<E> container) {
+        record ForEachConsumer<E>(Iterable<E> container) implements Consumer<Consumer<E>> {
+            @Override
+            public void accept(Consumer<E> consumer) {
+                container.forEach(consumer);
+            }
+        }
+        return new ForEachConsumer<>(container);
+    }
+
+    //
+
     private static final int ATTRIBUTE_STABILITY_COUNT = AttributeMapper.AttributeStability.values().length;
 
     public static boolean isAttributeAllowed(final Attribute<?> attr,
@@ -290,27 +323,5 @@ public class Util {
 
     interface WritableLocalVariable {
         boolean writeLocalTo(BufWriterImpl buf);
-    }
-
-    // Early bootstrap utilities
-
-    public static Consumer<FieldBuilder> withFlags(int flags) {
-        record WithFlags(int flags) implements Consumer<FieldBuilder> {
-            @Override
-            public void accept(FieldBuilder fb) {
-                fb.withFlags(flags);
-            }
-        }
-        return new WithFlags(flags);
-    }
-
-    public static Consumer<MethodBuilder> withCode(Consumer<? super CodeBuilder> handler) {
-        record WithCode(Consumer<? super CodeBuilder> handler) implements Consumer<MethodBuilder> {
-            @Override
-            public void accept(MethodBuilder mb) {
-                mb.withCode(handler);
-            }
-        }
-        return new WithCode(handler);
     }
 }

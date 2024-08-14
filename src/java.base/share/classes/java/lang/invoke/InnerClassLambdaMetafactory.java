@@ -34,12 +34,10 @@ import java.io.Serializable;
 import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeBuilder;
-import java.lang.classfile.FieldBuilder;
 import java.lang.classfile.MethodBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.constant.ClassDesc;
-import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.reflect.Modifier;
 import java.util.LinkedHashSet;
@@ -51,7 +49,7 @@ import static java.lang.classfile.ClassFile.*;
 import java.lang.classfile.attribute.ExceptionsAttribute;
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.constantpool.ConstantPoolBuilder;
-import java.lang.classfile.constantpool.MethodRefEntry;
+
 import static java.lang.constant.ConstantDescs.*;
 import static java.lang.invoke.MethodHandles.Lookup.ClassOption.NESTMATE;
 import static java.lang.invoke.MethodHandles.Lookup.ClassOption.STRONG;
@@ -59,7 +57,6 @@ import static java.lang.invoke.MethodType.methodType;
 import jdk.internal.constant.ConstantUtils;
 import jdk.internal.constant.MethodTypeDescImpl;
 import jdk.internal.constant.ReferenceClassDescImpl;
-import sun.invoke.util.Wrapper;
 
 /**
  * Lambda metafactory implementation which dynamically creates an
@@ -155,9 +152,9 @@ import sun.invoke.util.Wrapper;
               isSerializable, altInterfaces, altMethods);
         implMethodClassDesc = implClassDesc(implClass);
         implMethodName = implInfo.getName();
-        implMethodDesc = methodDesc(implInfo.getMethodType());
+        implMethodDesc = ConstantUtils.methodTypeDesc(implInfo.getMethodType());
         constructorType = factoryType.changeReturnType(Void.TYPE);
-        constructorTypeDesc = methodDesc(constructorType);
+        constructorTypeDesc = ConstantUtils.methodTypeDesc(constructorType);
         lambdaClassName = lambdaClassName(targetClass);
         lambdaClassDesc = ClassDesc.ofInternalName(lambdaClassName);
         // If the target class invokes a protected method inherited from a
@@ -177,7 +174,7 @@ import sun.invoke.util.Wrapper;
             argDescs = new ClassDesc[parameterCount];
             for (int i = 0; i < parameterCount; i++) {
                 argNames[i] = "arg$" + (i + 1);
-                argDescs[i] = classDesc(factoryType.parameterType(i));
+                argDescs[i] = ConstantUtils.classDesc(factoryType.parameterType(i));
             }
         } else {
             argNames = EMPTY_STRING_ARRAY;
@@ -288,7 +285,7 @@ import sun.invoke.util.Wrapper;
      */
     private Class<?> generateInnerClass() throws LambdaConversionException {
         List<ClassDesc> interfaces;
-        ClassDesc interfaceDesc = classDesc(interfaceClass);
+        ClassDesc interfaceDesc = ConstantUtils.classDesc(interfaceClass);
         boolean accidentallySerializable = !isSerializable && Serializable.class.isAssignableFrom(interfaceClass);
         if (altInterfaces.length == 0) {
             interfaces = List.of(interfaceDesc);
@@ -297,7 +294,7 @@ import sun.invoke.util.Wrapper;
             Set<ClassDesc> itfs = LinkedHashSet.newLinkedHashSet(altInterfaces.length + 1);
             itfs.add(interfaceDesc);
             for (Class<?> i : altInterfaces) {
-                itfs.add(classDesc(i));
+                itfs.add(ConstantUtils.classDesc(i));
                 accidentallySerializable |= !isSerializable && Serializable.class.isAssignableFrom(i);
             }
             interfaces = List.copyOf(itfs);
@@ -321,7 +318,7 @@ import sun.invoke.util.Wrapper;
 
                 // Forward the SAM method
                 clb.withMethodBody(interfaceMethodName,
-                        methodDesc(interfaceMethodType),
+                        ConstantUtils.methodTypeDesc(interfaceMethodType),
                         ACC_PUBLIC,
                         forwardingMethod(interfaceMethodType));
 
@@ -329,7 +326,7 @@ import sun.invoke.util.Wrapper;
                 if (altMethods != null) {
                     for (MethodType mt : altMethods) {
                         clb.withMethodBody(interfaceMethodName,
-                                methodDesc(mt),
+                                ConstantUtils.methodTypeDesc(mt),
                                 ACC_PUBLIC | ACC_BRIDGE,
                                 forwardingMethod(mt));
                     }
@@ -359,7 +356,7 @@ import sun.invoke.util.Wrapper;
      * Generate a static field and a static initializer that sets this field to an instance of the lambda
      */
     private void generateClassInitializer(ClassBuilder clb) {
-        ClassDesc lambdaTypeDescriptor = classDesc(factoryType.returnType());
+        ClassDesc lambdaTypeDescriptor = ConstantUtils.classDesc(factoryType.returnType());
 
         // Generate the static final field that holds the lambda singleton
         clb.withField(LAMBDA_INSTANCE_FIELD, lambdaTypeDescriptor, ACC_PRIVATE | ACC_STATIC | ACC_FINAL);
@@ -431,7 +428,7 @@ import sun.invoke.util.Wrapper;
                     public void accept(CodeBuilder cob) {
                         cob.new_(SerializationSupport.CD_SerializedLambda)
                            .dup()
-                           .ldc(classDesc(targetClass))
+                           .ldc(ConstantUtils.classDesc(targetClass))
                            .ldc(factoryType.returnType().getName().replace('.', '/'))
                            .ldc(interfaceMethodName)
                            .ldc(interfaceMethodType.toMethodDescriptorString())
@@ -515,7 +512,7 @@ import sun.invoke.util.Wrapper;
                     if (implKind != MethodHandleInfo.REF_invokeStatic) {
                         mtype = mtype.insertParameterTypes(0, implClass);
                     }
-                    cob.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(mtype));
+                    cob.invokevirtual(CD_MethodHandle, "invokeExact", ConstantUtils.methodTypeDesc(mtype));
                 } else {
                     // Invoke the method we want to forward to
                     cob.invoke(invocationOpcode(), implMethodClassDesc, implMethodName, implMethodDesc, implClass.isInterface());
@@ -554,18 +551,5 @@ import sun.invoke.util.Wrapper;
 
     static ClassDesc implClassDesc(Class<?> cls) {
         return cls.isHidden() ? null : ReferenceClassDescImpl.ofValidated(cls.descriptorString());
-    }
-
-    static ClassDesc classDesc(Class<?> cls) {
-        return cls.isPrimitive() ? Wrapper.forPrimitiveType(cls).basicClassDescriptor()
-                                 : ReferenceClassDescImpl.ofValidated(cls.descriptorString());
-    }
-
-    static MethodTypeDesc methodDesc(MethodType mt) {
-        var params = new ClassDesc[mt.parameterCount()];
-        for (int i = 0; i < params.length; i++) {
-            params[i] = classDesc(mt.parameterType(i));
-        }
-        return MethodTypeDescImpl.ofValidated(classDesc(mt.returnType()), params);
     }
 }

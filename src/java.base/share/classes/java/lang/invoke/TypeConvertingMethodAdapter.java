@@ -31,8 +31,6 @@ import java.lang.classfile.TypeKind;
 import java.lang.classfile.constantpool.ConstantPoolBuilder;
 import java.lang.classfile.constantpool.MethodRefEntry;
 import jdk.internal.constant.MethodTypeDescImpl;
-import jdk.internal.constant.ReferenceClassDescImpl;
-import sun.invoke.util.Wrapper;
 
 import static java.lang.constant.ConstantDescs.*;
 
@@ -118,6 +116,15 @@ class TypeConvertingMethodAdapter {
         }
     }
 
+    static void cast(CodeBuilder cob, Class<?> cl) {
+        assert !cl.isPrimitive();
+        if (cl != Object.class) {
+            var cp = cob.constantPool();
+            var ce = cp.classEntry(cp.utf8Entry(cl.getName().replace('.', '/')));
+            cob.checkcast(ce);
+        }
+    }
+
     static void cast(CodeBuilder cob, ClassDesc dt) {
         if (!dt.equals(CD_Object)) {
             cob.checkcast(dt);
@@ -152,7 +159,7 @@ class TypeConvertingMethodAdapter {
                 } else {
                     // Otherwise, box and cast
                     box(cob, TypeKind.from(arg));
-                    cast(cob, classDesc(target));
+                    cast(cob, target);
                 }
             }
         } else {
@@ -162,7 +169,7 @@ class TypeConvertingMethodAdapter {
             } else {
                 // Cast to convert to possibly more specific type, and generate CCE for invalid arg
                 src = functional;
-                cast(cob, classDesc(functional));
+                cast(cob, functional);
             }
             if (target.isPrimitive()) {
                 // Reference argument to primitive target
@@ -192,16 +199,9 @@ class TypeConvertingMethodAdapter {
             } else {
                 // Both reference types: just case to target type
                 if (src != target) {
-                    cast(cob, classDesc(target));
+                    cast(cob, target);
                 }
             }
         }
-    }
-
-    static ClassDesc classDesc(Class<?> cls) {
-        return cls.isPrimitive() ? Wrapper.forPrimitiveType(cls).basicClassDescriptor()
-             : cls == Object.class ? CD_Object
-             : cls == String.class ? CD_String
-             : ReferenceClassDescImpl.ofValidated(cls.descriptorString());
     }
 }
