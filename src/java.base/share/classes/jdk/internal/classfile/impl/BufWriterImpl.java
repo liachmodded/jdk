@@ -175,7 +175,7 @@ public final class BufWriterImpl implements BufWriter {
         System.arraycopy(elems, 0, array, bufferOffset, size());
     }
 
-    @SuppressWarnings("deprecated")
+    @SuppressWarnings("deprecation")
     public void copyAsciiFrom(String string, int start, int len) {
         reserveSpace(len);
         string.getBytes(start, start + len, elems, offset);
