@@ -25,6 +25,7 @@
 
 package java.lang.invoke;
 
+import jdk.internal.constant.ConstantUtils;
 import sun.invoke.util.VerifyAccess;
 import sun.invoke.util.VerifyType;
 import sun.invoke.util.Wrapper;
@@ -141,7 +142,7 @@ class InvokerBytecodeGenerator {
         this.pool = ConstantPoolBuilder.of();
         this.name = name;
         this.className = CLASS_PREFIX + name;
-        this.thisClass = pool.classEntry(pool.utf8Entry(className));
+        this.thisClass = pool.classEntry(ClassDesc.ofInternalName(className));
         this.lambdaForm = lambdaForm;
         this.invokerName = invokerName;
         this.invokerType = invokerType;
@@ -422,7 +423,7 @@ class InvokerBytecodeGenerator {
             }
         }
         if (isStaticallyNameable(cls)) {
-            cob.checkcast(classEntry(cls));
+            cob.checkcast(classDesc(cls));
         } else {
             cob.getstatic(classData(cls, CD_Class))
                .swap()
@@ -816,7 +817,6 @@ class InvokerBytecodeGenerator {
     void emitStaticInvoke(CodeBuilder cob, MemberName member, Name name) {
         assert(member.equals(name.function.member()));
         Class<?> defc = member.getDeclaringClass();
-        var clzEntry = classEntry(defc);
         String mname = member.getName();
         byte refKind = member.getReferenceKind();
         if (refKind == REF_invokeSpecial) {
@@ -832,17 +832,11 @@ class InvokerBytecodeGenerator {
 
         // invocation
         if (member.isMethod()) {
-            var methodTypeDesc = methodDesc(member.getMethodType());
-            var nameAndType = pool.nameAndTypeEntry(mname, methodTypeDesc);
-            var entry = defc.isInterface()
-                    ? pool.interfaceMethodRefEntry(clzEntry, nameAndType)
-                    : pool.methodRefEntry(clzEntry, nameAndType);
-            cob.invoke(refKindOpcode(refKind), entry);
+            cob.invoke(refKindOpcode(refKind), classDesc(defc), mname,
+                    methodDesc(member.getMethodType()), defc.isInterface());
         } else {
-            var fieldTypeDesc = classDesc(member.getFieldType());
-            var nameAndType = pool.nameAndTypeEntry(mname, fieldTypeDesc);
-            var entry = pool.fieldRefEntry(clzEntry, nameAndType);
-            cob.fieldAccess(refKindOpcode(refKind), entry);
+            cob.fieldAccess(refKindOpcode(refKind), classDesc(defc), mname,
+                    classDesc(member.getFieldType()));
         }
         // Issue a type assertion for the result, so we can avoid casts later.
         if (name.type == L_TYPE) {
@@ -1660,12 +1654,6 @@ class InvokerBytecodeGenerator {
                 }
             });
         }
-    }
-
-    ClassEntry classEntry(Class<?> cls) {
-        assert !cls.isPrimitive();
-        //assert(VerifyAccess.ensureTypeVisible(cls, LambdaForm.class)) : cls.getName();
-        return pool.classEntry(pool.utf8Entry(cls.getName().replace('.', '/')));
     }
 
     static ClassDesc classDesc(Class<?> cls) {

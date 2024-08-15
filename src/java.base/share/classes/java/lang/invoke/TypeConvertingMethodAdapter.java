@@ -30,6 +30,8 @@ import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.constantpool.ConstantPoolBuilder;
 import java.lang.classfile.constantpool.MethodRefEntry;
+
+import jdk.internal.constant.ConstantUtils;
 import jdk.internal.constant.MethodTypeDescImpl;
 
 import static java.lang.constant.ConstantDescs.*;
@@ -119,9 +121,7 @@ class TypeConvertingMethodAdapter {
     static void cast(CodeBuilder cob, Class<?> cl) {
         assert !cl.isPrimitive();
         if (cl != Object.class) {
-            var cp = cob.constantPool();
-            var ce = cp.classEntry(cp.utf8Entry(cl.getName().replace('.', '/')));
-            cob.checkcast(ce);
+            cob.checkcast(ConstantUtils.classDesc(cl));
         }
     }
 

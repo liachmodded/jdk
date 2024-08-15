@@ -413,9 +413,8 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
 
     @Override
     public AbstractPoolEntry.ClassEntryImpl classEntry(ClassDesc cd) {
-        if (cd.isPrimitive()) {
+        if (cd.isPrimitive()) // implicit null check
             throw new IllegalArgumentException("Cannot be encoded as ClassEntry: " + cd.displayName());
-        }
 
         // only find, cannot create class entries
         var e = findClassEntry(cd.descriptorString().hashCode(),

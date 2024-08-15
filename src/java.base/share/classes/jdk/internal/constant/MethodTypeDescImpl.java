@@ -198,17 +198,35 @@ public final class MethodTypeDescImpl implements MethodTypeDesc {
         if (desc != null)
             return desc;
 
-        int len = 2 + returnType.descriptorString().length();
+        return cachedDescriptorString = computeDescriptorString();
+    }
+
+    private String computeDescriptorString() {
+        int len = 2 + typeLength(returnType);
         for (ClassDesc argType : argTypes) {
-            len += argType.descriptorString().length();
+            len += typeLength(argType);
         }
         StringBuilder sb = new StringBuilder(len).append('(');
         for (ClassDesc argType : argTypes) {
-            sb.append(argType.descriptorString());
+            appendType(sb, argType);
         }
-        desc = sb.append(')').append(returnType.descriptorString()).toString();
-        cachedDescriptorString = desc;
-        return desc;
+        sb.append(')');
+        appendType(sb, returnType);
+        return sb.toString();
+    }
+
+    private int typeLength(ClassDesc type) {
+        return type instanceof ArrayClassDescImpl array
+                ? array.element().descriptorString().length() + array.rank()
+                : type.descriptorString().length();
+    }
+
+    private void appendType(StringBuilder sb, ClassDesc type) {
+        if (type instanceof ArrayClassDescImpl array) {
+            sb.repeat('[', array.rank()).append(array.element().descriptorString());
+        } else {
+            sb.append(type.descriptorString());
+        }
     }
 
     @Override

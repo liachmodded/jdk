@@ -33,6 +33,8 @@ import sun.invoke.util.Wrapper;
 
 import static java.util.Objects.requireNonNull;
 
+import static jdk.internal.constant.ConstantUtils.MAX_ARRAY_TYPE_DESC_DIMENSIONS;
+
 /**
  * A <a href="package-summary.html#nominal">nominal descriptor</a> for the class
  * constant corresponding to a primitive type (e.g., {@code int.class}).
@@ -58,6 +60,31 @@ public final class PrimitiveClassDescImpl
             || "VIJCSBFDZ".indexOf(descriptor.charAt(0)) < 0)
             throw new IllegalArgumentException(String.format("not a valid primitive type descriptor: %s", descriptor));
         this.descriptor = descriptor;
+    }
+
+    @Override
+    public boolean isPrimitive() {
+        return true;
+    }
+
+    @Override
+    public ClassDesc arrayType(int rank) {
+        ConstantUtils.validateArrayDepth(rank);
+        if (descriptor.charAt(0) == 'V')
+            throw new IllegalArgumentException("not a valid reference type descriptor: " + "[".repeat(rank) + "V");
+        return ArrayClassDescImpl.ofValidated(this, rank);
+    }
+
+    @Override
+    public ClassDesc arrayType() {
+        if (descriptor.charAt(0) == 'V')
+            throw new IllegalArgumentException("not a valid reference type descriptor: [V");
+        return ArrayClassDescImpl.ofValidated(this, 1);
+    }
+
+    @Override
+    public String displayName() {
+        return Wrapper.forBasicType(descriptorString().charAt(0)).primitiveSimpleName();
     }
 
     @Override
