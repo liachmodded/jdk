@@ -54,10 +54,6 @@ import java.lang.classfile.constantpool.Utf8Entry;
 import jdk.internal.access.JavaLangAccess;
 import jdk.internal.access.SharedSecrets;
 import jdk.internal.util.ArraysSupport;
-import jdk.internal.util.Preconditions;
-import jdk.internal.vm.annotation.Stable;
-
-import static java.util.Objects.checkIndex;
 
 public abstract sealed class AbstractPoolEntry {
     /*
@@ -143,46 +139,34 @@ public abstract sealed class AbstractPoolEntry {
 
         enum State { RAW, BYTE, CHAR, STRING }
 
-        record ByteRange(byte[] bytes, int start, int len) {
-            char charAt(int i) {
-                // trusted offsets
-                return (char) bytes[start + i]; // validated to be positive
-            }
-
-            boolean equals(ByteRange u) {
-                return Arrays.equals(bytes, start, start + len,
-                        u.bytes, u.start, u.start + u.len);
-            }
-
-            ByteRange copy() {
-                if (start == 3) // not part of other CP
-                    return this;
-                return new ByteRange(Arrays.copyOfRange(bytes, start - 3, start + len), 3, len);
-            }
-        }
-
         private static final JavaLangAccess JLA = SharedSecrets.getJavaLangAccess();
 
         private State state;
-        private @Stable ByteRange raw;
+        private final byte[] rawBytes; // null if initialized directly from a string
+        private final int offset;
+        private final int rawLen;
         // Set in any state other than RAW
-        private @Stable int stringHash; // may be 0, use non-0 charLen to determine state
-        private @Stable int charLen;
+        private int stringHash; // may be 0, use non-0 charLen to determine state
+        private int charLen;
         // Set in CHAR state
-        private @Stable char[] chars;
+        private char[] chars;
         // Only set in STRING state
-        private @Stable String stringValue;
+        private String stringValue;
 
         Utf8EntryImpl(ConstantPool cpm, int index,
                           byte[] rawBytes, int offset, int rawLen) {
             super(cpm, ClassFile.TAG_UTF8, index, 0);
-            this.raw = new ByteRange(rawBytes, offset, rawLen);
+            this.rawBytes = rawBytes;
+            this.offset = offset;
+            this.rawLen = rawLen;
             this.state = State.RAW;
         }
 
         Utf8EntryImpl(ConstantPool cpm, int index, String s) {
             super(cpm, ClassFile.TAG_UTF8, index, 0);
-            this.raw = null;
+            this.rawBytes = null;
+            this.offset = 0;
+            this.rawLen = 0;
             this.state = State.STRING;
             this.stringValue = s;
             this.charLen = s.length();
@@ -191,12 +175,9 @@ public abstract sealed class AbstractPoolEntry {
 
         Utf8EntryImpl(ConstantPool cpm, int index, Utf8EntryImpl u) {
             super(cpm, ClassFile.TAG_UTF8, index, 0);
-            var raw = u.raw;
-            if (raw == null)
-                raw = u.raw = computeRaw(u.stringValue);
-            else if (cpm == TemporaryConstantPool.INSTANCE)
-                raw = raw.copy(); // defend against leaks
-            this.raw = raw;
+            this.rawBytes = u.rawBytes;
+            this.offset = u.offset;
+            this.rawLen = u.rawLen;
             this.state = u.state;
             this.stringHash = u.stringHash;
             this.charLen = u.charLen;
@@ -240,9 +221,6 @@ public abstract sealed class AbstractPoolEntry {
          * two-times-three-byte format instead.
          */
         private void inflate() {
-            byte[] rawBytes = raw.bytes;
-            int offset = raw.start;
-            int rawLen = raw.len;
             int singleBytes = JLA.countPositives(rawBytes, offset, rawLen);
             int hash = ArraysSupport.hashCodeOfUnsigned(rawBytes, offset, singleBytes, 0);
             if (singleBytes == rawLen) {
@@ -316,9 +294,7 @@ public abstract sealed class AbstractPoolEntry {
         public Utf8EntryImpl clone(ConstantPoolBuilder cp) {
             if (cp.canWriteDirect(constantPool))
                 return this;
-
-            // Note: raw is computed and set in the copy constructor
-            return (state == State.STRING && raw == null)
+            return (state == State.STRING && rawBytes == null)
                    ? (Utf8EntryImpl) cp.utf8Entry(stringValue)
                    : ((SplitConstantPool) cp).maybeCloneUtf8Entry(this);
         }
@@ -341,7 +317,7 @@ public abstract sealed class AbstractPoolEntry {
             if (state != State.STRING) {
                 stringValue = (chars != null)
                               ? new String(chars, 0, charLen)
-                              : new String(raw.bytes, raw.start, charLen, StandardCharsets.ISO_8859_1);
+                              : new String(rawBytes, offset, charLen, StandardCharsets.ISO_8859_1);
                 state = State.STRING;
             }
             return stringValue;
@@ -370,10 +346,9 @@ public abstract sealed class AbstractPoolEntry {
                 return stringValue.charAt(index);
             if (state == State.RAW)
                 inflate();
-            checkIndex(index, charLen);
             return (chars != null)
                    ? chars[index]
-                   : raw.charAt(index);
+                   : (char) rawBytes[index + offset];
         }
 
         @Override
@@ -394,8 +369,9 @@ public abstract sealed class AbstractPoolEntry {
             if (hashCode() != u.hashCode()
                 || length() != u.length())
                 return false;
-            if (raw != null && u.raw != null)
-                return raw.equals(u.raw);
+            if (rawBytes != null && u.rawBytes != null)
+                return Arrays.equals(rawBytes, offset, offset + rawLen,
+                                     u.rawBytes, u.offset, u.offset + u.rawLen);
             else if ((state == State.STRING && u.state == State.STRING))
                 return stringValue.equals(u.stringValue);
             else
@@ -419,10 +395,10 @@ public abstract sealed class AbstractPoolEntry {
                     state = State.STRING;
                     return true;
                 case BYTE:
-                    if (charLen != s.length() || stringHash() != s.hashCode())
+                    if (rawLen != s.length() || stringHash() != s.hashCode())
                         return false;
-                    for (int i = 0; i < charLen; i++)
-                        if (raw.charAt(i) != s.charAt(i))
+                    for (int i=0; i<rawLen; i++)
+                        if (rawBytes[offset+i] != s.charAt(i))
                             return false;
                     stringValue = s;
                     state = State.STRING;
@@ -433,10 +409,10 @@ public abstract sealed class AbstractPoolEntry {
 
         @Override
         void writeTo(BufWriterImpl pool) {
-            if (raw != null) {
+            if (rawBytes != null) {
                 pool.writeU1(tag);
-                pool.writeU2(raw.len);
-                pool.writeBytes(raw.bytes, raw.start, raw.len);
+                pool.writeU2(rawLen);
+                pool.writeBytes(rawBytes, offset, rawLen);
             }
             else {
                 // state == STRING and no raw bytes
@@ -494,54 +470,6 @@ public abstract sealed class AbstractPoolEntry {
                     }
                 }
             }
-        }
-
-        @SuppressWarnings("deprecation")
-        static ByteRange computeRaw(String str) {
-            int len = str.length();
-            int byteLen = len;
-            for (int i = 0; i < len; i++) {
-                char c = str.charAt(i);
-                if (c == 0 || c > Byte.MAX_VALUE) {
-                    byteLen += c >= 0x800 ? 2 : 1;
-                }
-            }
-
-            if (byteLen > 0xFFFF)
-                throw new IllegalArgumentException("string too long: " + byteLen + ", content: " + str);
-            byte[] alloc = new byte[byteLen + 3];
-            alloc[0] = ClassFile.TAG_UTF8;
-            alloc[1] = (byte) (byteLen >> Byte.SIZE);
-            alloc[2] = (byte) (byteLen);
-            if (byteLen == len) {
-                str.getBytes(0, len, alloc, 3);
-            } else {
-                int i;
-                int count = 3;
-                for (i = 0; i < len; i++) { // optimized for initial run of ASCII
-                    int c = str.charAt(i);
-                    if (c >= 0x80 || c == 0) break;
-                    alloc[count++] = (byte) c;
-                }
-
-                for (; i < len; i++) {
-                    int c = str.charAt(i);
-                    if (c < 0x80 && c != 0) {
-                        alloc[count++] = (byte) c;
-                    } else if (c >= 0x800) {
-                        alloc[count++] = (byte) (0xE0 | ((c >> 12) & 0x0F));
-                        alloc[count++] = (byte) (0x80 | ((c >>  6) & 0x3F));
-                        alloc[count++] = (byte) (0x80 | ((c >>  0) & 0x3F));
-                    } else {
-                        alloc[count++] = (byte) (0xC0 | ((c >>  6) & 0x1F));
-                        alloc[count++] = (byte) (0x80 | ((c >>  0) & 0x3F));
-                    }
-                }
-
-                assert count == byteLen + 3;
-            }
-
-            return new ByteRange(alloc, 3, byteLen);
         }
     }
 
