@@ -121,7 +121,7 @@ class TypeConvertingMethodAdapter {
     static void cast(CodeBuilder cob, Class<?> cl) {
         assert !cl.isPrimitive();
         if (cl != Object.class) {
-            cob.checkcast(ConstantUtils.classDesc(cl));
+            cob.checkcast(ConstantUtils.referenceClassDesc(cl));
         }
     }
 

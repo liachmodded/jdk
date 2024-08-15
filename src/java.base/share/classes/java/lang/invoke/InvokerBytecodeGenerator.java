@@ -26,6 +26,7 @@
 package java.lang.invoke;
 
 import jdk.internal.constant.ConstantUtils;
+import jdk.internal.misc.Unsafe;
 import sun.invoke.util.VerifyAccess;
 import sun.invoke.util.VerifyType;
 import sun.invoke.util.Wrapper;
@@ -48,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -56,6 +58,7 @@ import jdk.internal.constant.ReferenceClassDescImpl;
 
 import static java.lang.classfile.ClassFile.*;
 import static java.lang.constant.ConstantDescs.*;
+import static java.lang.invoke.ClassSpecializer.CD_BoundMethodHandle;
 import static java.lang.invoke.LambdaForm.*;
 import static java.lang.invoke.LambdaForm.BasicType.*;
 import static java.lang.invoke.MethodHandleNatives.Constants.*;
@@ -1656,13 +1659,68 @@ class InvokerBytecodeGenerator {
         }
     }
 
+    private static final Map<Class<?>, ClassDesc> FAST_INVOCABLE_DESCRIPTORS;
+
+    static {
+        var map = new HashMap<Class<?>, ClassDesc>();
+        for (var wrap : Wrapper.values()) {
+            map.put(wrap.wrapperType(), wrap.wrapperClassDescriptor());
+        }
+        map.put(Object.class, CD_Object);
+        map.put(Number.class, CD_Number);
+        map.put(String.class, CD_String);
+        map.put(MethodHandle.class, CD_MethodHandle);
+        map.put(DirectMethodHandle.class, CD_DirectMethodHandle);
+        map.put(MethodHandleImpl.class, CD_MethodHandleImpl);
+        map.put(List.class, CD_List);
+        map.put(MethodHandles.class, CD_MethodHandles);
+        map.put(MethodHandleImpl.LoopClauses.class, CD_LoopClauses);
+        map.put(MethodHandleImpl.CasesHolder.class, CD_CasesHolder);
+        map.put(LambdaForm.class, CD_LambdaForm);
+        map.put(LambdaForm.Name.class, CD_LambdaForm_Name);
+        map.put(MethodType.class, CD_MethodType);
+        map.put(BoundMethodHandle.class, CD_BoundMethodHandle);
+        put(map, BoundMethodHandle.SpeciesData.class);
+        put(map, MemberName.class);
+        put(map, Unsafe.class);
+        put(map, Invokers.class);
+        put(map, DelegatingMethodHandle.class);
+        put(map, MethodHandleStatics.class);
+        put(map, MethodHandleImpl.CountingWrapper.class);
+
+        FAST_INVOCABLE_DESCRIPTORS = Map.copyOf(map);
+    }
+
+    private static void put(Map<Class<?>, ClassDesc> map, Class<?> clz) {
+        map.put(clz, ConstantUtils.referenceClassDesc(clz));
+    }
+
     static ClassDesc classDesc(Class<?> cls) {
-        //assert(VerifyAccess.ensureTypeVisible(cls, LambdaForm.class)) : cls.getName();
+        if (cls.isArray()) {
+            int arrayLevel = 0;
+            while (cls.isArray()) {
+                cls = cls.componentType();
+                arrayLevel++;
+            }
+
+            ClassDesc cd = nonArrayDesc(cls);
+            return cd.arrayType(arrayLevel);
+        }
+        return nonArrayDesc(cls);
+    }
+
+    private static ClassDesc nonArrayDesc(Class<?> cls) {
         return cls.isPrimitive() ? Wrapper.forPrimitiveType(cls).basicClassDescriptor()
-             : cls == Object.class ? CD_Object
-             : cls == MethodHandle.class ? CD_MethodHandle
-             : cls == DirectMethodHandle.class ? CD_DirectMethodHandle
-             : ReferenceClassDescImpl.ofValidated(cls.descriptorString());
+                : classOrInterfaceDesc(cls);
+    }
+
+    private static ClassDesc classOrInterfaceDesc(Class<?> cls) {
+        var ret = FAST_INVOCABLE_DESCRIPTORS.get(cls);
+        if (ret != null)
+            return ret;
+
+        ret = ConstantUtils.classDesc(cls);
+        return ret;
     }
 
     static MethodTypeDesc methodDesc(MethodType mt) {

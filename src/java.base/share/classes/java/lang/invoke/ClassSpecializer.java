@@ -66,7 +66,7 @@ import static java.lang.invoke.MethodHandles.Lookup.IMPL_LOOKUP;
 abstract class ClassSpecializer<T,K,S extends ClassSpecializer<T,K,S>.SpeciesData> {
 
     private static final ClassDesc CD_LambdaForm = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/LambdaForm;");
-    private static final ClassDesc CD_BoundMethodHandle = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/BoundMethodHandle;");
+    static final ClassDesc CD_BoundMethodHandle = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/BoundMethodHandle;");
 
     private final Class<T> topClass;
     private final Class<K> keyType;
@@ -969,19 +969,10 @@ abstract class ClassSpecializer<T,K,S extends ClassSpecializer<T,K,S>.SpeciesDat
     }
 
     static ClassDesc classDesc(Class<?> cls) {
-        return cls.isPrimitive() ? Wrapper.forPrimitiveType(cls).basicClassDescriptor()
-             : cls == Object.class ? CD_Object
-             : cls == MethodType.class ? CD_MethodType
-             : cls == LambdaForm.class ? CD_LambdaForm
-             : cls == BoundMethodHandle.class ? CD_BoundMethodHandle
-             : ReferenceClassDescImpl.ofValidated(cls.descriptorString());
+        return InvokerBytecodeGenerator.classDesc(cls);
     }
 
     static MethodTypeDesc methodDesc(MethodType mt) {
-        var params = new ClassDesc[mt.parameterCount()];
-        for (int i = 0; i < params.length; i++) {
-            params[i] = classDesc(mt.parameterType(i));
-        }
-        return MethodTypeDescImpl.ofValidated(classDesc(mt.returnType()), params);
+        return InvokerBytecodeGenerator.methodDesc(mt);
     }
 }
