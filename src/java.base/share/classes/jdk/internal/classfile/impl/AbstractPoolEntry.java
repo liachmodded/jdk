@@ -421,18 +421,17 @@ public abstract sealed class AbstractPoolEntry {
                 }
                 pool.writeU1(tag);
                 pool.writeU2(charLen);
+                pool.reserveSpace(charLen);
                 int i = 0;
 
-                // optimistic scan, try batch write first
+                // optimistic scan
                 for (; i < charLen; i++) {
                     char c = stringValue.charAt(i);
                     if (c >= '\001' && c <= '\177') {
-                        continue;
+                        pool.writeU1((byte) c);
+                    } else {
+                        break;
                     }
-                    break;
-                }
-                if (i > 0) {
-                    pool.copyAsciiFrom(stringValue, 0, i);
                 }
 
                 // slow loop fallback
@@ -455,6 +454,7 @@ public abstract sealed class AbstractPoolEntry {
                     }
                     int byteLengthFinal = byteLength;
                     pool.patchInt(pool.size() - i - 2, 2, byteLengthFinal);
+                    pool.reserveSpace(byteLengthFinal - i);
                     for (int j = i; j < charLength; ++j) {
                         c = stringValue.charAt(j);
                         if (c >= '\001' && c <= '\177') {
