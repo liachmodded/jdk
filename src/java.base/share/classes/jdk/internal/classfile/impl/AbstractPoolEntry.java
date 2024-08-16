@@ -447,7 +447,9 @@ public abstract sealed class AbstractPoolEntry {
             }
             else {
                 // state == STRING and no raw bytes
-                if (stringValue.length() > 65535) {
+                var stringValue = this.stringValue;
+                var charLen = this.charLen;
+                if (charLen > 65535) {
                     throw new IllegalArgumentException("string too long");
                 }
                 pool.writeU1(tag);
@@ -458,12 +460,11 @@ public abstract sealed class AbstractPoolEntry {
                 // optimistic scan
                 for (; i < charLen; i++) {
                     char c = stringValue.charAt(i);
-                    if (c >= '\001' && c <= '\177') {
-                        pool.writeU1((byte) c);
-                    } else {
+                    if (c == 0 || c > Byte.MAX_VALUE)
                         break;
-                    }
                 }
+
+                pool.copyAsciiFrom(stringValue, 0, i);
 
                 // slow loop fallback
                 if (i < charLen) {
