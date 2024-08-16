@@ -38,6 +38,8 @@ import java.lang.classfile.attribute.BootstrapMethodsAttribute;
 import java.lang.classfile.constantpool.*;
 import java.util.Objects;
 
+import jdk.internal.constant.ConstantUtils;
+
 import static java.lang.classfile.ClassFile.TAG_CLASS;
 import static java.lang.classfile.ClassFile.TAG_CONSTANTDYNAMIC;
 import static java.lang.classfile.ClassFile.TAG_DOUBLE;
@@ -299,24 +301,6 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         return re.ref1.equalsString(value);
     }
 
-    private AbstractPoolEntry.ClassEntryImpl findClassEntry(int descriptorHash, String value, boolean needsTruncation) {
-        // invariant: canWriteDirect(ref.constantPool())
-        int hash = AbstractPoolEntry.hash1(TAG_CLASS, descriptorHash);
-        EntryMap<PoolEntry> map = map();
-        for (int token = map.firstToken(hash); token != -1; token = map.nextToken(hash, token)) {
-            PoolEntry e = map.getElementByToken(token);
-            if (e.tag() == TAG_CLASS
-                && e instanceof AbstractPoolEntry.ClassEntryImpl re
-                && matches(re, value, needsTruncation))
-                return re;
-        }
-        if (!doneFullScan) {
-            fullScan();
-            return findClassEntry(descriptorHash, value, needsTruncation);
-        }
-        return null;
-    }
-
     private<T extends AbstractPoolEntry> AbstractPoolEntry findEntry(int tag, T ref1) {
         // invariant: canWriteDirect(ref1.constantPool())
         int hash = AbstractPoolEntry.hash1(tag, ref1.index());
@@ -390,6 +374,22 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         return null;
     }
 
+    private AbstractPoolEntry.Utf8EntryImpl tryFindUtf8(int hash, String section, int start, int end) {
+        EntryMap<PoolEntry> map = map();
+        for (int token = map.firstToken(hash); token != -1; token = map.nextToken(hash, token)) {
+            PoolEntry e = map.getElementByToken(token);
+            if (e.tag() == ClassFile.TAG_UTF8
+                && e instanceof AbstractPoolEntry.Utf8EntryImpl ce
+                && ce.equalsRegion(section, start, end))
+                return ce;
+        }
+        if (!doneFullScan) {
+            fullScan();
+            return tryFindUtf8(hash, section, start, end);
+        }
+        return null;
+    }
+
     @Override
     public AbstractPoolEntry.Utf8EntryImpl utf8Entry(String s) {
         var ce = tryFindUtf8(AbstractPoolEntry.hashString(s.hashCode()), s);
@@ -407,7 +407,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
     @Override
     public AbstractPoolEntry.ClassEntryImpl classEntry(Utf8Entry nameEntry) {
         AbstractPoolEntry.Utf8EntryImpl ne = maybeCloneUtf8Entry(nameEntry);
-        var e = findClassEntry(Util.hashAsDescriptorString(ne), ne.stringValue(), false);
+        var e = (AbstractPoolEntry.ClassEntryImpl) findEntry(TAG_CLASS, ne);
         return e == null ? internalAdd(new AbstractPoolEntry.ClassEntryImpl(this, size, ne)) : e;
     }
 
@@ -416,14 +416,20 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         if (cd.isPrimitive()) // implicit null check
             throw new IllegalArgumentException("Cannot be encoded as ClassEntry: " + cd.displayName());
 
-        // only find, cannot create class entries
-        var e = findClassEntry(cd.descriptorString().hashCode(),
-                               cd.descriptorString(),
-                               cd.isClassOrInterface());
+        AbstractPoolEntry.Utf8EntryImpl utf8;
+        if (cd.isClassOrInterface()) {
+            var desc = cd.descriptorString();
+            int hash = Util.utf8EntryHash(desc);
+            utf8 = tryFindUtf8(AbstractPoolEntry.hashString(hash), desc, 1, desc.length() - 1);
+            if (utf8 == null) {
+                // reuse our computed hash
+                utf8 = internalAdd(new AbstractPoolEntry.Utf8EntryImpl(this, size, ConstantUtils.dropFirstAndLastChar(desc), hash));
+            }
+        } else {
+            utf8 = utf8Entry(cd.descriptorString());
+        }
 
-        if (e == null)
-            e = classEntry(utf8Entry(cd.isArray() ? cd.descriptorString() : Util.toInternalName(cd)));
-
+        var e = classEntry(utf8);
         if (e.sym == null)
             e.sym = cd;
         return e;

@@ -163,6 +163,10 @@ public abstract sealed class AbstractPoolEntry {
         }
 
         Utf8EntryImpl(ConstantPool cpm, int index, String s) {
+            this(cpm, index, s, s.hashCode());
+        }
+
+        Utf8EntryImpl(ConstantPool cpm, int index, String s, int hash) {
             super(cpm, ClassFile.TAG_UTF8, index, 0);
             this.rawBytes = null;
             this.offset = 0;
@@ -170,7 +174,7 @@ public abstract sealed class AbstractPoolEntry {
             this.state = State.STRING;
             this.stringValue = s;
             this.charLen = s.length();
-            this.stringHash = s.hashCode();
+            this.stringHash = hash;
         }
 
         Utf8EntryImpl(ConstantPool cpm, int index, Utf8EntryImpl u) {
@@ -378,6 +382,33 @@ public abstract sealed class AbstractPoolEntry {
                 return stringValue().equals(u.stringValue());
         }
 
+        public boolean equalsRegion(String s, int start, int end) {
+            // start and end values trusted
+            if (state == State.RAW)
+                inflate();
+            int len = charLen;
+            if (len != end - start)
+                return false;
+
+            var sv = stringValue;
+            if (sv != null) {
+                return sv.regionMatches(0, s, start, len);
+            }
+
+            var chars = this.chars;
+            if (chars != null) {
+                for (int i = 0; i < len; i++)
+                    if (chars[i] != s.charAt(start + i))
+                        return false;
+            } else {
+                var bytes = this.rawBytes;
+                for (int i = 0; i < len; i++)
+                    if (bytes[offset + i] != s.charAt(start + i))
+                        return false;
+            }
+            return true;
+        }
+
         @Override
         public boolean equalsString(String s) {
             if (state == State.RAW)
@@ -481,11 +512,6 @@ public abstract sealed class AbstractPoolEntry {
             this.ref1 = ref1;
         }
 
-        public AbstractRefEntry(ConstantPool constantPool, int tag, int index, T ref1, int hash) {
-            super(constantPool, tag, index, hash);
-            this.ref1 = ref1;
-        }
-
         public T ref1() {
             return ref1;
         }
@@ -538,10 +564,6 @@ public abstract sealed class AbstractPoolEntry {
             super(constantPool, tag, index, ref1);
         }
 
-        public AbstractNamedEntry(ConstantPool constantPool, int tag, int index, Utf8EntryImpl ref1, int hash) {
-            super(constantPool, tag, index, ref1, hash);
-        }
-
         public Utf8Entry name() {
             return ref1;
         }
@@ -565,8 +587,7 @@ public abstract sealed class AbstractPoolEntry {
         public ClassDesc sym = null;
 
         ClassEntryImpl(ConstantPool cpm, int index, Utf8EntryImpl name) {
-            super(cpm, ClassFile.TAG_CLASS, index, name,
-                    hash1(ClassFile.TAG_CLASS, Util.hashAsDescriptorString(name)));
+            super(cpm, ClassFile.TAG_CLASS, index, name);
         }
 
         @Override

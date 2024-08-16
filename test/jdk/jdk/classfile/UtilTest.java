@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,15 +24,17 @@
 /*
  * @test
  * @summary Testing ClassFile Util.
+ * @library java.base
+ * @build java.base/jdk.internal.classfile.impl.*
  * @run junit UtilTest
  */
 import java.lang.constant.MethodTypeDesc;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-import jdk.internal.classfile.impl.AbstractPoolEntry;
-import jdk.internal.classfile.impl.TemporaryConstantPool;
 import jdk.internal.classfile.impl.Util;
+import jdk.internal.classfile.impl.UtilAccess;
+import jdk.internal.constant.ConstantUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -103,9 +105,33 @@ class UtilTest {
             CopyOnWriteArrayList.class,
             AtomicReferenceFieldUpdater.class
     })
-    void testHashAsDescriptorString(Class<?> type) {
-        var utf8 = (AbstractPoolEntry.Utf8EntryImpl)
-                TemporaryConstantPool.INSTANCE.utf8Entry(type.getName().replace('.', '/'));
-        assertEquals(type.descriptorString().hashCode(), Util.hashAsDescriptorString(utf8));
+    void testUtf8EntryHash(Class<?> type) {
+        var cd = type.describeConstable().orElseThrow();
+        assertEquals(ConstantUtils.binaryToInternal(type.getName()).hashCode(), Util.utf8EntryHash(cd.descriptorString()));
+    }
+
+    // Ensures the initialization statement of the powers array is filling in the right values
+    @Test
+    void testPowersArray() {
+        int[] powers = new int[7 * UtilAccess.significantOctalDigits()];
+        for (int i = 1, k = 31; i <= 7; i++, k *= 31) {
+            int t = powers[UtilAccess.powersIndex(i, 0)] = k;
+
+            for (int j = 1; j < UtilAccess.significantOctalDigits(); j++) {
+                t *= t;
+                t *= t;
+                t *= t;
+                powers[UtilAccess.powersIndex(i, j)] = t;
+            }
+        }
+
+        assertArrayEquals(powers, UtilAccess.powersTable());
+    }
+
+    //
+    @Test
+    void testModularMultiplicativeInverse() {
+        assertEquals(1, 31 * UtilAccess.reverse31());
+        assertEquals(1, 31L * Integer.toUnsignedLong(UtilAccess.reverse31()) % (1L << 32));
     }
 }
