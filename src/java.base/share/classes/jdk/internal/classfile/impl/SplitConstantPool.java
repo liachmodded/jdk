@@ -286,21 +286,6 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         return null;
     }
 
-    private static boolean matches(AbstractPoolEntry.ClassEntryImpl re, String value, boolean needsTruncation) {
-        if (needsTruncation) {
-            var sym = re.sym;
-            if (sym != null) {
-                return value.equals(sym.descriptorString());
-            }
-
-            var utf8 = re.ref1;
-            return utf8.length() + 2 == value.length()
-                    // Promote to String state for potentially faster matching
-                    && utf8.stringValue().regionMatches(0, value, 1, utf8.length());
-        }
-        return re.ref1.equalsString(value);
-    }
-
     private<T extends AbstractPoolEntry> AbstractPoolEntry findEntry(int tag, T ref1) {
         // invariant: canWriteDirect(ref1.constantPool())
         int hash = AbstractPoolEntry.hash1(tag, ref1.index());
@@ -392,8 +377,9 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
 
     @Override
     public AbstractPoolEntry.Utf8EntryImpl utf8Entry(String s) {
-        var ce = tryFindUtf8(AbstractPoolEntry.hashString(s.hashCode()), s);
-        return ce == null ? internalAdd(new AbstractPoolEntry.Utf8EntryImpl(this, size, s)) : ce;
+        int stringHash = s.hashCode();
+        var ce = tryFindUtf8(AbstractPoolEntry.hashString(stringHash), s);
+        return ce == null ? internalAdd(new AbstractPoolEntry.Utf8EntryImpl(this, size, s, stringHash)) : ce;
     }
 
     AbstractPoolEntry.Utf8EntryImpl maybeCloneUtf8Entry(Utf8Entry entry) {
