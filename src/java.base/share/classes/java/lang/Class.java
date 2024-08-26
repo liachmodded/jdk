@@ -4715,9 +4715,7 @@ public final class Class<T> implements java.io.Serializable,
      */
     @Override
     public Optional<ClassDesc> describeConstable() {
-        Class<?> c = isArray() ? elementType() : this;
-        return c.isHidden() ? Optional.empty()
-                            : Optional.of(ConstantUtils.classDesc(this));
+        return ConstantUtils.DESCS.get(this);
    }
 
     /**

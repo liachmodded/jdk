@@ -44,6 +44,7 @@ import java.util.Set;
 
 import static java.lang.constant.DirectMethodHandleDesc.*;
 import static java.lang.constant.DirectMethodHandleDesc.Kind.STATIC;
+import static jdk.internal.constant.ConstantUtils.classDesc;
 
 /**
  * Predefined values of <a href="package-summary.html#nominal">nominal descriptor</a>
@@ -68,115 +69,115 @@ public final class ConstantDescs {
     // Don't change the order of these declarations!
 
     /** {@link ClassDesc} representing {@link Object} */
-    public static final ClassDesc CD_Object = ReferenceClassDescImpl.ofValidated("Ljava/lang/Object;");
+    public static final ClassDesc CD_Object = classDesc(Object.class);
 
     /** {@link ClassDesc} representing {@link String} */
-    public static final ClassDesc CD_String = ReferenceClassDescImpl.ofValidated("Ljava/lang/String;");
+    public static final ClassDesc CD_String = classDesc(String.class);
 
     /** {@link ClassDesc} representing {@link Class} */
-    public static final ClassDesc CD_Class = ReferenceClassDescImpl.ofValidated("Ljava/lang/Class;");
+    public static final ClassDesc CD_Class = classDesc(Class.class);
 
     /** {@link ClassDesc} representing {@link Number} */
-    public static final ClassDesc CD_Number = ReferenceClassDescImpl.ofValidated("Ljava/lang/Number;");
+    public static final ClassDesc CD_Number = classDesc(Number.class);
 
     /** {@link ClassDesc} representing {@link Integer} */
-    public static final ClassDesc CD_Integer = ReferenceClassDescImpl.ofValidated("Ljava/lang/Integer;");
+    public static final ClassDesc CD_Integer = classDesc(Integer.class);
 
     /** {@link ClassDesc} representing {@link Long} */
-    public static final ClassDesc CD_Long = ReferenceClassDescImpl.ofValidated("Ljava/lang/Long;");
+    public static final ClassDesc CD_Long = classDesc(Long.class);
 
     /** {@link ClassDesc} representing {@link Float} */
-    public static final ClassDesc CD_Float = ReferenceClassDescImpl.ofValidated("Ljava/lang/Float;");
+    public static final ClassDesc CD_Float = classDesc(Float.class);
 
     /** {@link ClassDesc} representing {@link Double} */
-    public static final ClassDesc CD_Double = ReferenceClassDescImpl.ofValidated("Ljava/lang/Double;");
+    public static final ClassDesc CD_Double = classDesc(Double.class);
 
     /** {@link ClassDesc} representing {@link Short} */
-    public static final ClassDesc CD_Short = ReferenceClassDescImpl.ofValidated("Ljava/lang/Short;");
+    public static final ClassDesc CD_Short = classDesc(Short.class);
 
     /** {@link ClassDesc} representing {@link Byte} */
-    public static final ClassDesc CD_Byte = ReferenceClassDescImpl.ofValidated("Ljava/lang/Byte;");
+    public static final ClassDesc CD_Byte = classDesc(Byte.class);
 
     /** {@link ClassDesc} representing {@link Character} */
-    public static final ClassDesc CD_Character = ReferenceClassDescImpl.ofValidated("Ljava/lang/Character;");
+    public static final ClassDesc CD_Character = classDesc(Character.class);
 
     /** {@link ClassDesc} representing {@link Boolean} */
-    public static final ClassDesc CD_Boolean = ReferenceClassDescImpl.ofValidated("Ljava/lang/Boolean;");
+    public static final ClassDesc CD_Boolean = classDesc(Boolean.class);
 
     /** {@link ClassDesc} representing {@link Void} */
-    public static final ClassDesc CD_Void = ReferenceClassDescImpl.ofValidated("Ljava/lang/Void;");
+    public static final ClassDesc CD_Void = classDesc(Void.class);
 
     /** {@link ClassDesc} representing {@link Throwable} */
-    public static final ClassDesc CD_Throwable = ReferenceClassDescImpl.ofValidated("Ljava/lang/Throwable;");
+    public static final ClassDesc CD_Throwable = classDesc(Throwable.class);
 
     /** {@link ClassDesc} representing {@link Exception} */
-    public static final ClassDesc CD_Exception = ReferenceClassDescImpl.ofValidated("Ljava/lang/Exception;");
+    public static final ClassDesc CD_Exception = classDesc(Exception.class);
 
     /** {@link ClassDesc} representing {@link Enum} */
-    public static final ClassDesc CD_Enum = ReferenceClassDescImpl.ofValidated("Ljava/lang/Enum;");
+    public static final ClassDesc CD_Enum = classDesc(Enum.class);
 
     /** {@link ClassDesc} representing {@link VarHandle} */
-    public static final ClassDesc CD_VarHandle = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/VarHandle;");
+    public static final ClassDesc CD_VarHandle = classDesc(VarHandle.class);
 
     /** {@link ClassDesc} representing {@link MethodHandles} */
-    public static final ClassDesc CD_MethodHandles = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/MethodHandles;");
+    public static final ClassDesc CD_MethodHandles = classDesc(MethodHandles.class);
 
     /** {@link ClassDesc} representing {@link MethodHandles.Lookup} */
-    public static final ClassDesc CD_MethodHandles_Lookup = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/MethodHandles$Lookup;");
+    public static final ClassDesc CD_MethodHandles_Lookup = classDesc(Lookup.class);
 
     /** {@link ClassDesc} representing {@link MethodHandle} */
-    public static final ClassDesc CD_MethodHandle = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/MethodHandle;");
+    public static final ClassDesc CD_MethodHandle = classDesc(MethodHandle.class);
 
     /** {@link ClassDesc} representing {@link MethodType} */
-    public static final ClassDesc CD_MethodType = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/MethodType;");
+    public static final ClassDesc CD_MethodType = classDesc(MethodType.class);
 
     /** {@link ClassDesc} representing {@link CallSite} */
-    public static final ClassDesc CD_CallSite = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/CallSite;");
+    public static final ClassDesc CD_CallSite = classDesc(CallSite.class);
 
     /** {@link ClassDesc} representing {@link Collection} */
-    public static final ClassDesc CD_Collection = ReferenceClassDescImpl.ofValidated("Ljava/util/Collection;");
+    public static final ClassDesc CD_Collection = classDesc(Collection.class);
 
     /** {@link ClassDesc} representing {@link List} */
-    public static final ClassDesc CD_List = ReferenceClassDescImpl.ofValidated("Ljava/util/List;");
+    public static final ClassDesc CD_List = classDesc(List.class);
 
     /** {@link ClassDesc} representing {@link Set} */
-    public static final ClassDesc CD_Set = ReferenceClassDescImpl.ofValidated("Ljava/util/Set;");
+    public static final ClassDesc CD_Set = classDesc(Set.class);
 
     /** {@link ClassDesc} representing {@link Map} */
-    public static final ClassDesc CD_Map = ReferenceClassDescImpl.ofValidated("Ljava/util/Map;");
+    public static final ClassDesc CD_Map = classDesc(Map.class);
 
     /** {@link ClassDesc} representing {@link ConstantDesc} */
-    public static final ClassDesc CD_ConstantDesc = ReferenceClassDescImpl.ofValidated("Ljava/lang/constant/ConstantDesc;");
+    public static final ClassDesc CD_ConstantDesc = classDesc(ConstantDesc.class);
 
     /** {@link ClassDesc} representing {@link ClassDesc} */
-    public static final ClassDesc CD_ClassDesc = ReferenceClassDescImpl.ofValidated("Ljava/lang/constant/ClassDesc;");
+    public static final ClassDesc CD_ClassDesc = classDesc(ClassDesc.class);
 
     /** {@link ClassDesc} representing {@link EnumDesc} */
-    public static final ClassDesc CD_EnumDesc = ReferenceClassDescImpl.ofValidated("Ljava/lang/Enum$EnumDesc;");
+    public static final ClassDesc CD_EnumDesc = classDesc(EnumDesc.class);
 
     /** {@link ClassDesc} representing {@link MethodTypeDesc} */
-    public static final ClassDesc CD_MethodTypeDesc = ReferenceClassDescImpl.ofValidated("Ljava/lang/constant/MethodTypeDesc;");
+    public static final ClassDesc CD_MethodTypeDesc = classDesc(MethodTypeDesc.class);
 
     /** {@link ClassDesc} representing {@link MethodHandleDesc} */
-    public static final ClassDesc CD_MethodHandleDesc = ReferenceClassDescImpl.ofValidated("Ljava/lang/constant/MethodHandleDesc;");
+    public static final ClassDesc CD_MethodHandleDesc = classDesc(MethodHandleDesc.class);
 
     /** {@link ClassDesc} representing {@link DirectMethodHandleDesc} */
-    public static final ClassDesc CD_DirectMethodHandleDesc = ReferenceClassDescImpl.ofValidated("Ljava/lang/constant/DirectMethodHandleDesc;");
+    public static final ClassDesc CD_DirectMethodHandleDesc = classDesc(DirectMethodHandleDesc.class);
 
     /** {@link ClassDesc} representing {@link VarHandleDesc} */
-    public static final ClassDesc CD_VarHandleDesc = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/VarHandle$VarHandleDesc;");
+    public static final ClassDesc CD_VarHandleDesc = classDesc(VarHandleDesc.class);
 
     /** {@link ClassDesc} representing {@link DirectMethodHandleDesc.Kind} */
-    public static final ClassDesc CD_MethodHandleDesc_Kind = ReferenceClassDescImpl.ofValidated("Ljava/lang/constant/DirectMethodHandleDesc$Kind;");
+    public static final ClassDesc CD_MethodHandleDesc_Kind = classDesc(DirectMethodHandleDesc.Kind.class);
 
     /** {@link ClassDesc} representing {@link DynamicConstantDesc} */
-    public static final ClassDesc CD_DynamicConstantDesc = ReferenceClassDescImpl.ofValidated("Ljava/lang/constant/DynamicConstantDesc;");
+    public static final ClassDesc CD_DynamicConstantDesc = classDesc(DynamicConstantDesc.class);
 
     /** {@link ClassDesc} representing {@link DynamicCallSiteDesc} */
-    public static final ClassDesc CD_DynamicCallSiteDesc = ReferenceClassDescImpl.ofValidated("Ljava/lang/constant/DynamicCallSiteDesc;");
+    public static final ClassDesc CD_DynamicCallSiteDesc = classDesc(DynamicCallSiteDesc.class);
 
     /** {@link ClassDesc} representing {@link ConstantBootstraps} */
-    public static final ClassDesc CD_ConstantBootstraps = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/ConstantBootstraps;");
+    public static final ClassDesc CD_ConstantBootstraps = classDesc(ConstantBootstraps.class);
 
     private static final ClassDesc[] INDY_BOOTSTRAP_ARGS = {
             CD_MethodHandles_Lookup,
@@ -328,7 +329,7 @@ public final class ConstantDescs {
      *
      * @since 21
      */
-    public static final MethodTypeDesc MTD_void = MethodTypeDesc.of(CD_void);
+    public static final MethodTypeDesc MTD_void = MethodType.methodType(void.class).describeConstable().orElseThrow();
 
     static final DirectMethodHandleDesc MHD_METHODHANDLE_ASTYPE
             = MethodHandleDesc.ofMethod(Kind.VIRTUAL, CD_MethodHandle, "asType",

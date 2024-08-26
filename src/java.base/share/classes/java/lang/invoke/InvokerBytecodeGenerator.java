@@ -25,6 +25,7 @@
 
 package java.lang.invoke;
 
+import jdk.internal.classfile.impl.InternalWriteConstantPool;
 import sun.invoke.util.VerifyAccess;
 import sun.invoke.util.VerifyType;
 import sun.invoke.util.Wrapper;
@@ -35,6 +36,7 @@ import java.lang.classfile.attribute.SourceFileAttribute;
 import java.lang.classfile.instruction.SwitchCase;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDesc;
+import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.LambdaForm.BasicType;
 import java.lang.invoke.LambdaForm.Name;
@@ -58,6 +60,9 @@ import static java.lang.invoke.MethodHandleNatives.Constants.*;
 import static java.lang.invoke.MethodHandleStatics.*;
 import static java.lang.invoke.MethodHandles.Lookup.IMPL_LOOKUP;
 
+import static jdk.internal.constant.ConstantUtils.classDesc;
+import static jdk.internal.constant.ConstantUtils.methodTypeDesc;
+
 /**
  * Code generation backend for LambdaForm.
  * <p>
@@ -65,20 +70,20 @@ import static java.lang.invoke.MethodHandles.Lookup.IMPL_LOOKUP;
  */
 class InvokerBytecodeGenerator {
     /** Define class names for convenience. */
-    private static final ClassDesc CD_CasesHolder = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/MethodHandleImpl$CasesHolder;");
-    private static final ClassDesc CD_DirectMethodHandle = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/DirectMethodHandle;");
-    private static final ClassDesc CD_MethodHandleImpl = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/MethodHandleImpl;");
-    private static final ClassDesc CD_LambdaForm = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/LambdaForm;");
-    private static final ClassDesc CD_LambdaForm_Name = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/LambdaForm$Name;");
-    private static final ClassDesc CD_LoopClauses = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/MethodHandleImpl$LoopClauses;");
-    private static final ClassDesc CD_Object_array  = ReferenceClassDescImpl.ofValidated("[Ljava/lang/Object;");
-    private static final ClassDesc CD_MethodHandle_array = ReferenceClassDescImpl.ofValidated("[Ljava/lang/invoke/MethodHandle;");
-    private static final ClassDesc CD_MethodHandle_array2 = ReferenceClassDescImpl.ofValidated("[[Ljava/lang/invoke/MethodHandle;");
+    private static final ClassDesc CD_CasesHolder = classDesc(MethodHandleImpl.CasesHolder.class);
+    private static final ClassDesc CD_DirectMethodHandle = classDesc(DirectMethodHandleDesc.class);
+    private static final ClassDesc CD_MethodHandleImpl = classDesc(MethodHandleImpl.class);
+    static final ClassDesc CD_LambdaForm = classDesc(LambdaForm.class);
+    private static final ClassDesc CD_LambdaForm_Name = classDesc(LambdaForm.Name.class);
+    private static final ClassDesc CD_LoopClauses = classDesc(MethodHandleImpl.LoopClauses.class);
+    private static final ClassDesc CD_Object_array  = classDesc(Object[].class);
+    private static final ClassDesc CD_MethodHandle_array = classDesc(MethodHandle[].class);
+    private static final ClassDesc CD_MethodHandle_array2 = classDesc(MethodHandle[][].class);
 
-    private static final MethodTypeDesc MTD_boolean_Object = MethodTypeDescImpl.ofValidated(CD_boolean, CD_Object);
-    private static final MethodTypeDesc MTD_Object_int = MethodTypeDescImpl.ofValidated(CD_Object, CD_int);
-    private static final MethodTypeDesc MTD_Object_Class = MethodTypeDescImpl.ofValidated(CD_Object, CD_Class);
-    private static final MethodTypeDesc MTD_Object_Object = MethodTypeDescImpl.ofValidated(CD_Object, CD_Object);
+    private static final MethodTypeDesc MTD_boolean_Object = MethodType.methodType(boolean.class, Object.class).describeConstable().get();
+    private static final MethodTypeDesc MTD_Object_int = MethodType.methodType(Object.class, int.class).describeConstable().get();
+    private static final MethodTypeDesc MTD_Object_Class = MethodType.methodType(Object.class, Class.class).describeConstable().get();
+    private static final MethodTypeDesc MTD_Object_Object = MethodType.genericMethodType(1).describeConstable().get();
 
     private static final String CLASS_PREFIX = "java/lang/invoke/LambdaForm$";
     private static final String SOURCE_PREFIX = "LambdaForm$";
@@ -258,7 +263,8 @@ class InvokerBytecodeGenerator {
      */
     private byte[] classFileSetup(Consumer<? super ClassBuilder> config) {
         try {
-            return ClassFile.of().build(classDesc, new Consumer<>() {
+            var pool = new InternalWriteConstantPool();
+            return ClassFile.of().build(pool.classEntry(classDesc), pool, new Consumer<>() {
                 @Override
                 public void accept(ClassBuilder clb) {
                     clb.withFlags(ACC_FINAL | ACC_SUPER)
@@ -273,7 +279,7 @@ class InvokerBytecodeGenerator {
     }
 
     private void methodSetup(ClassBuilder clb, Consumer<? super MethodBuilder> config) {
-        var invokerDesc = methodDesc(invokerType);
+        var invokerDesc = methodTypeDesc(invokerType);
         clb.withMethod(invokerName, invokerDesc, ACC_STATIC, config);
     }
 
@@ -354,8 +360,6 @@ class InvokerBytecodeGenerator {
 
     /**
      * Emit a boxing call.
-     *
-     * @param wrapper primitive type class to box.
      */
     private void emitBoxing(CodeBuilder cob, TypeKind tk) {
         TypeConvertingMethodAdapter.box(cob, tk);
@@ -363,8 +367,6 @@ class InvokerBytecodeGenerator {
 
     /**
      * Emit an unboxing call (plus preceding checkcast).
-     *
-     * @param wrapper wrapper type class to unbox.
      */
     private void emitUnboxing(CodeBuilder cob, TypeKind target) {
         switch (target) {
@@ -673,6 +675,7 @@ class InvokerBytecodeGenerator {
     static final class BytecodeGenerationException extends RuntimeException {
         BytecodeGenerationException(Exception cause) {
             super(cause);
+            System.out.println(cause.getMessage());
         }
     }
 
@@ -729,7 +732,7 @@ class InvokerBytecodeGenerator {
 
         // invocation
         MethodType type = name.function.methodType();
-        cob.invokevirtual(CD_MethodHandle, "invokeBasic", methodDesc(type.basicType()));
+        cob.invokevirtual(CD_MethodHandle, "invokeBasic", methodTypeDesc(type.basicType()));
     }
 
     private static final Class<?>[] STATICALLY_INVOCABLE_PACKAGES = {
@@ -842,7 +845,7 @@ class InvokerBytecodeGenerator {
 
         // invocation
         if (member.isMethod()) {
-            var methodTypeDesc = methodDesc(member.getMethodType());
+            var methodTypeDesc = methodTypeDesc(member.getMethodType());
             cob.invoke(refKindOpcode(refKind), cdesc, mname, methodTypeDesc,
                                   member.getDeclaringClass().isInterface());
         } else {
@@ -966,7 +969,7 @@ class InvokerBytecodeGenerator {
         // load target
         emitPushArgument(cob, invoker, 0);
         emitPushArguments(cob, args, 1); // skip 1st argument: method handle
-        cob.invokevirtual(CD_MethodHandle, "invokeBasic", methodDesc(type.basicType()));
+        cob.invokevirtual(CD_MethodHandle, "invokeBasic", methodTypeDesc(type.basicType()));
         cob.labelBinding(L_endBlock);
         cob.goto_w(L_done);
 
@@ -988,7 +991,7 @@ class InvokerBytecodeGenerator {
         cob.swap();
         emitPushArguments(cob, args, 1); // skip 1st argument: method handle
         MethodType catcherType = type.insertParameterTypes(0, Throwable.class);
-        cob.invokevirtual(CD_MethodHandle, "invokeBasic", methodDesc(catcherType.basicType()));
+        cob.invokevirtual(CD_MethodHandle, "invokeBasic", methodTypeDesc(catcherType.basicType()));
         cob.goto_w(L_done);
 
         cob.labelBinding(L_rethrow);
@@ -1080,7 +1083,7 @@ class InvokerBytecodeGenerator {
         if (isNonVoid) {
             cleanupType = cleanupType.insertParameterTypes(1, returnType);
         }
-        MethodTypeDesc cleanupDesc = methodDesc(cleanupType.basicType());
+        MethodTypeDesc cleanupDesc = methodTypeDesc(cleanupType.basicType());
 
         // exception handler table
         cob.exceptionCatch(lFrom, lTo, lCatch, CD_Throwable);
@@ -1089,7 +1092,7 @@ class InvokerBytecodeGenerator {
         cob.labelBinding(lFrom);
         emitPushArgument(cob, invoker, 0); // load target
         emitPushArguments(cob, args, 1); // load args (skip 0: method handle)
-        cob.invokevirtual(CD_MethodHandle, "invokeBasic", methodDesc(type.basicType()));
+        cob.invokevirtual(CD_MethodHandle, "invokeBasic", methodTypeDesc(type.basicType()));
         cob.labelBinding(lTo);
 
         // FINALLY_NORMAL:
@@ -1146,7 +1149,7 @@ class InvokerBytecodeGenerator {
         MethodType caseType = args.function.resolvedHandle().type()
             .dropParameterTypes(0, 1) // drop collector
             .changeReturnType(returnType);
-        MethodTypeDesc caseDescriptor = methodDesc(caseType.basicType());
+        MethodTypeDesc caseDescriptor = methodTypeDesc(caseType.basicType());
 
         emitPushArgument(cob, invoker, 2); // push cases
         cob.getfield(CD_CasesHolder, "cases", CD_MethodHandle_array);
@@ -1394,7 +1397,7 @@ class InvokerBytecodeGenerator {
         }
         // load loop args (skip 0: method handle)
         emitPushArguments(cob, args, 1);
-        cob.invokevirtual(CD_MethodHandle, "invokeBasic", methodDesc(type));
+        cob.invokevirtual(CD_MethodHandle, "invokeBasic", methodTypeDesc(type));
     }
 
     private void emitPushClauseArray(CodeBuilder cob, int clauseDataSlot, int which) {
@@ -1621,7 +1624,7 @@ class InvokerBytecodeGenerator {
                                 }
 
                                 // Invoke
-                                MethodTypeDesc targetDesc = methodDesc(dstType.basicType());
+                                MethodTypeDesc targetDesc = methodTypeDesc(dstType.basicType());
                                 cob.invokevirtual(CD_MethodHandle, "invokeBasic", targetDesc);
 
                                 // Box primitive types
@@ -1665,22 +1668,5 @@ class InvokerBytecodeGenerator {
                 }
             });
         }
-    }
-
-    static ClassDesc classDesc(Class<?> cls) {
-//        assert(VerifyAccess.isTypeVisible(cls, Object.class)) : cls.getName();
-        return cls.isPrimitive() ? Wrapper.forPrimitiveType(cls).basicClassDescriptor()
-             : cls == MethodHandle.class ? CD_MethodHandle
-             : cls == DirectMethodHandle.class ? CD_DirectMethodHandle
-             : cls == Object.class ? CD_Object
-             : ReferenceClassDescImpl.ofValidated(cls.descriptorString());
-    }
-
-    static MethodTypeDesc methodDesc(MethodType mt) {
-        var params = new ClassDesc[mt.parameterCount()];
-        for (int i = 0; i < params.length; i++) {
-            params[i] = classDesc(mt.parameterType(i));
-        }
-        return MethodTypeDescImpl.ofValidated(classDesc(mt.returnType()), params);
     }
 }

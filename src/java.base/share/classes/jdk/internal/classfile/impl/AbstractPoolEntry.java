@@ -295,7 +295,7 @@ public abstract sealed class AbstractPoolEntry {
         }
 
         @Override
-        public Utf8EntryImpl clone(ConstantPoolBuilder cp) {
+        public Utf8Entry clone(ConstantPoolBuilder cp) {
             if (cp.canWriteDirect(constantPool))
                 return this;
             return (state == State.STRING && rawBytes == null)
@@ -521,9 +521,9 @@ public abstract sealed class AbstractPoolEntry {
         }
     }
 
-    abstract static sealed class AbstractNamedEntry extends AbstractRefEntry<Utf8EntryImpl> {
+    abstract static sealed class AbstractNamedEntry extends AbstractRefEntry<Utf8Entry> {
 
-        public AbstractNamedEntry(ConstantPool constantPool, int tag, int index, Utf8EntryImpl ref1) {
+        public AbstractNamedEntry(ConstantPool constantPool, int tag, int index, Utf8Entry ref1) {
             super(constantPool, tag, index, ref1);
         }
 
@@ -540,7 +540,7 @@ public abstract sealed class AbstractPoolEntry {
 
         public ClassDesc sym = null;
 
-        ClassEntryImpl(ConstantPool cpm, int index, Utf8EntryImpl name) {
+        ClassEntryImpl(ConstantPool cpm, int index, Utf8Entry name) {
             super(cpm, ClassFile.TAG_CLASS, index, name);
         }
 
@@ -578,7 +578,7 @@ public abstract sealed class AbstractPoolEntry {
 
     public static final class PackageEntryImpl extends AbstractNamedEntry implements PackageEntry {
 
-        PackageEntryImpl(ConstantPool cpm, int index, Utf8EntryImpl name) {
+        PackageEntryImpl(ConstantPool cpm, int index, Utf8Entry name) {
             super(cpm, ClassFile.TAG_PACKAGE, index, name);
         }
 
@@ -604,7 +604,7 @@ public abstract sealed class AbstractPoolEntry {
 
     public static final class ModuleEntryImpl extends AbstractNamedEntry implements ModuleEntry {
 
-        ModuleEntryImpl(ConstantPool cpm, int index, Utf8EntryImpl name) {
+        ModuleEntryImpl(ConstantPool cpm, int index, Utf8Entry name) {
             super(cpm, ClassFile.TAG_MODULE, index, name);
         }
 
@@ -628,12 +628,12 @@ public abstract sealed class AbstractPoolEntry {
         }
     }
 
-    public static final class NameAndTypeEntryImpl extends AbstractRefsEntry<Utf8EntryImpl, Utf8EntryImpl>
+    public static final class NameAndTypeEntryImpl extends AbstractRefsEntry<Utf8Entry, Utf8Entry>
             implements NameAndTypeEntry {
 
         public TypeDescriptor typeSym = null;
 
-        NameAndTypeEntryImpl(ConstantPool cpm, int index, Utf8EntryImpl name, Utf8EntryImpl type) {
+        NameAndTypeEntryImpl(ConstantPool cpm, int index, Utf8Entry name, Utf8Entry type) {
             super(cpm, ClassFile.TAG_NAMEANDTYPE, index, name, type);
         }
 
@@ -940,12 +940,12 @@ public abstract sealed class AbstractPoolEntry {
     }
 
     public static final class MethodTypeEntryImpl
-            extends AbstractRefEntry<Utf8EntryImpl>
+            extends AbstractRefEntry<Utf8Entry>
             implements MethodTypeEntry {
 
         public MethodTypeDesc sym = null;
 
-        MethodTypeEntryImpl(ConstantPool cpm, int index, Utf8EntryImpl descriptor) {
+        MethodTypeEntryImpl(ConstantPool cpm, int index, Utf8Entry descriptor) {
             super(cpm, ClassFile.TAG_METHODTYPE, index, descriptor);
         }
 
@@ -985,15 +985,15 @@ public abstract sealed class AbstractPoolEntry {
     }
 
     public static final class StringEntryImpl
-            extends AbstractRefEntry<Utf8EntryImpl>
+            extends AbstractRefEntry<Utf8Entry>
             implements StringEntry {
 
-        StringEntryImpl(ConstantPool cpm, int index, Utf8EntryImpl utf8) {
+        StringEntryImpl(ConstantPool cpm, int index, Utf8Entry utf8) {
             super(cpm, ClassFile.TAG_STRING, index, utf8);
         }
 
         @Override
-        public Utf8EntryImpl utf8() {
+        public Utf8Entry utf8() {
             return ref1;
         }
 
@@ -1189,5 +1189,55 @@ public abstract sealed class AbstractPoolEntry {
         CpException(String s) {
             super(s);
         }
+    }
+
+    // Start dark magic
+
+    // implements Utf8Entry instead of PoolEntry to make exhaustive switches work
+    // Use live entry for fast hashing, and use batch string copying
+    public static final class LiveUtf8EntryImpl extends AbstractPoolEntry implements Utf8Entry {
+        final TypeDescriptor sym;
+        final boolean internalNameLike;
+
+        LiveUtf8EntryImpl(ConstantPool constantPool, int index, TypeDescriptor sym, boolean internalNameLike) {
+            super(constantPool, ClassFile.TAG_UTF8, index, hash2(ClassFile.TAG_UNICODE, System.identityHashCode(sym), Boolean.hashCode(internalNameLike)));
+            this.sym = sym;
+            this.internalNameLike = internalNameLike;
+        }
+
+        @Override
+        void writeTo(BufWriterImpl buf) {
+            buf.writeU1(ClassFile.TAG_UTF8);
+            int d = internalNameLike ? 1 : 0;
+            var body = sym.descriptorString();
+            buf.writeU2(body.length() - (internalNameLike ? 2 : 0));
+            buf.copyBytesFrom(body, d, body.length() - d);
+        }
+
+        @Override
+        PoolEntry clone(ConstantPoolBuilder cp) {
+            if (cp != constantPool)
+                throw new UnsupportedOperationException("Huh? cp = ".concat(cp.toString()));
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return stringValue();
+        }
+
+        @Override
+        public String stringValue() {
+            System.out.println("stringValue called");
+            var body = sym.descriptorString();
+            return internalNameLike ? body.substring(1, body.length() - 1) : body;
+        }
+
+        // stubs
+        @Override public boolean equalsString(String s) { throw new UnsupportedOperationException(); }
+        @Override public int length() { throw new UnsupportedOperationException(); }
+        @Override public char charAt(int index) { throw new UnsupportedOperationException(); }
+        @Override public CharSequence subSequence(int start, int end) { throw new UnsupportedOperationException(); }
+        @Override public ConstantDesc constantValue() { throw new UnsupportedOperationException(); }
     }
 }

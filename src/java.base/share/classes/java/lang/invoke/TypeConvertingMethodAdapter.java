@@ -25,47 +25,44 @@
 
 package java.lang.invoke;
 
-import java.lang.constant.ClassDesc;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.constantpool.ConstantPoolBuilder;
 import java.lang.classfile.constantpool.MethodRefEntry;
-import jdk.internal.constant.MethodTypeDescImpl;
-import jdk.internal.constant.ReferenceClassDescImpl;
-import sun.invoke.util.Wrapper;
 
-import static java.lang.constant.ConstantDescs.*;
+import static jdk.internal.constant.ConstantUtils.classDesc;
+import static jdk.internal.constant.ConstantUtils.methodTypeDesc;
 
 class TypeConvertingMethodAdapter {
 
     private static class BoxHolder {
         private static final ConstantPoolBuilder CP = ConstantPoolBuilder.of();
 
-        private static MethodRefEntry box(ClassDesc primitive, ClassDesc target) {
-            return CP.methodRefEntry(target, "valueOf", MethodTypeDescImpl.ofValidated(target, primitive));
+        private static MethodRefEntry box(Class<?> primitive, Class<?> target) {
+            return CP.methodRefEntry(classDesc(target), "valueOf", methodTypeDesc(MethodType.methodType(target, primitive)));
         }
 
-        private static final MethodRefEntry BOX_BOOLEAN = box(CD_boolean, CD_Boolean),
-                                            BOX_BYTE    = box(CD_byte, CD_Byte),
-                                            BOX_SHORT   = box(CD_short, CD_Short),
-                                            BOX_CHAR    = box(CD_char, CD_Character),
-                                            BOX_INT     = box(CD_int, CD_Integer),
-                                            BOX_LONG    = box(CD_long, CD_Long),
-                                            BOX_FLOAT   = box(CD_float, CD_Float),
-                                            BOX_DOUBLE  = box(CD_double, CD_Double);
+        private static final MethodRefEntry BOX_BOOLEAN = box(boolean.class, Boolean.class),
+                                            BOX_BYTE    = box(byte.class, Byte.class),
+                                            BOX_SHORT   = box(short.class, Short.class),
+                                            BOX_CHAR    = box(char.class, Character.class),
+                                            BOX_INT     = box(int.class, Integer.class),
+                                            BOX_LONG    = box(long.class, Long.class),
+                                            BOX_FLOAT   = box(float.class, Float.class),
+                                            BOX_DOUBLE  = box(double.class, Double.class);
 
-        private static MethodRefEntry unbox(ClassDesc owner, String methodName, ClassDesc primitiveTarget) {
-            return CP.methodRefEntry(owner, methodName, MethodTypeDescImpl.ofValidated(primitiveTarget));
+        private static MethodRefEntry unbox(Class<?> owner, String methodName, Class<?> primitiveTarget) {
+            return CP.methodRefEntry(classDesc(owner), methodName, methodTypeDesc(MethodType.methodType(primitiveTarget)));
         }
 
-        private static final MethodRefEntry UNBOX_BOOLEAN = unbox(CD_Boolean, "booleanValue", CD_boolean),
-                                            UNBOX_BYTE    = unbox(CD_Number, "byteValue", CD_byte),
-                                            UNBOX_SHORT   = unbox(CD_Number, "shortValue", CD_short),
-                                            UNBOX_CHAR    = unbox(CD_Character, "charValue", CD_char),
-                                            UNBOX_INT     = unbox(CD_Number, "intValue", CD_int),
-                                            UNBOX_LONG    = unbox(CD_Number, "longValue", CD_long),
-                                            UNBOX_FLOAT   = unbox(CD_Number, "floatValue", CD_float),
-                                            UNBOX_DOUBLE  = unbox(CD_Number, "doubleValue", CD_double);
+        private static final MethodRefEntry UNBOX_BOOLEAN = unbox(Boolean.class, "booleanValue", boolean.class),
+                                            UNBOX_BYTE    = unbox(Number.class, "byteValue", byte.class),
+                                            UNBOX_SHORT   = unbox(Number.class, "shortValue", short.class),
+                                            UNBOX_CHAR    = unbox(Character.class, "charValue", char.class),
+                                            UNBOX_INT     = unbox(Number.class, "intValue", int.class),
+                                            UNBOX_LONG    = unbox(Number.class, "longValue", long.class),
+                                            UNBOX_FLOAT   = unbox(Number.class, "floatValue", float.class),
+                                            UNBOX_DOUBLE  = unbox(Number.class, "doubleValue", double.class);
     }
 
     private static TypeKind primitiveTypeKindFromClass(Class<?> type) {
@@ -118,9 +115,9 @@ class TypeConvertingMethodAdapter {
         }
     }
 
-    static void cast(CodeBuilder cob, ClassDesc dt) {
-        if (!dt.equals(CD_Object)) {
-            cob.checkcast(dt);
+    static void cast(CodeBuilder cob, Class<?> dt) {
+        if (dt != Object.class) {
+            cob.checkcast(classDesc(dt));
         }
     }
 
@@ -152,7 +149,7 @@ class TypeConvertingMethodAdapter {
                 } else {
                     // Otherwise, box and cast
                     box(cob, TypeKind.from(arg));
-                    cast(cob, classDesc(target));
+                    cast(cob, target);
                 }
             }
         } else {
@@ -162,7 +159,7 @@ class TypeConvertingMethodAdapter {
             } else {
                 // Cast to convert to possibly more specific type, and generate CCE for invalid arg
                 src = functional;
-                cast(cob, classDesc(functional));
+                cast(cob, functional);
             }
             if (target.isPrimitive()) {
                 // Reference argument to primitive target
@@ -180,28 +177,21 @@ class TypeConvertingMethodAdapter {
                     // Source type is reference type, but not boxed type,
                     // assume it is super type of target type
                     if (target == char.class) {
-                        cast(cob, CD_Character);
+                        cast(cob, Character.class);
                     } else if (target == boolean.class) {
-                        cast(cob, CD_Boolean);
+                        cast(cob, Boolean.class);
                     } else {
                         // Boxed number to primitive
-                        cast(cob, CD_Number);
+                        cast(cob, Number.class);
                     }
                     unbox(cob, TypeKind.from(target));
                 }
             } else {
                 // Both reference types: just case to target type
                 if (src != target) {
-                    cast(cob, classDesc(target));
+                    cast(cob, target);
                 }
             }
         }
-    }
-
-    static ClassDesc classDesc(Class<?> cls) {
-        return cls.isPrimitive() ? Wrapper.forPrimitiveType(cls).basicClassDescriptor()
-             : cls == Object.class ? CD_Object
-             : cls == String.class ? CD_String
-             : ReferenceClassDescImpl.ofValidated(cls.descriptorString());
     }
 }

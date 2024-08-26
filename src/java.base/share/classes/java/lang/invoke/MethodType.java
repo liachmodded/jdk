@@ -44,6 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 
+import jdk.internal.constant.MethodTypeDescImpl;
 import jdk.internal.util.ReferencedKeySet;
 import jdk.internal.util.ReferenceKey;
 import jdk.internal.vm.annotation.Stable;
@@ -153,6 +154,7 @@ class MethodType
                                      // private communication for readObject and readResolve
     private @Stable Invokers invokers;   // cache of handy higher-order adapters
     private @Stable String methodDescriptor;  // cache for toMethodDescriptorString
+    private @Stable Optional<MethodTypeDesc> desc; // TODO StableValue
 
     /**
      * Constructor that performs no copying or validation.
@@ -1291,6 +1293,21 @@ class MethodType
      */
     @Override
     public Optional<MethodTypeDesc> describeConstable() {
+        var desc = this.desc;
+        if (desc != null)
+            return desc;
+
+        // ensure single identity of returned desc
+        synchronized (this) {
+            desc = this.desc;
+            if (desc != null)
+                return desc;
+
+            return this.desc = computeConstable();
+        }
+    }
+
+    private Optional<MethodTypeDesc> computeConstable() {
         var retDesc = returnType().describeConstable();
         if (retDesc.isEmpty())
             return Optional.empty();
@@ -1305,7 +1322,7 @@ class MethodType
                 return Optional.empty();
             params[i] = paramDesc.get();
         }
-        return Optional.of(MethodTypeDesc.of(retDesc.get(), params));
+        return Optional.of(MethodTypeDescImpl.ofValidated(retDesc.get(), params));
     }
 
     //--- Serialization.

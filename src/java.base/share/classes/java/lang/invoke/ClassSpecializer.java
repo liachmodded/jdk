@@ -42,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import jdk.internal.classfile.impl.InternalWriteConstantPool;
 import jdk.internal.constant.MethodTypeDescImpl;
 import jdk.internal.constant.ReferenceClassDescImpl;
 import jdk.internal.loader.BootLoader;
@@ -56,6 +57,9 @@ import static java.lang.invoke.MethodHandleNatives.Constants.REF_putStatic;
 import static java.lang.invoke.MethodHandleStatics.*;
 import static java.lang.invoke.MethodHandles.Lookup.IMPL_LOOKUP;
 
+import static jdk.internal.constant.ConstantUtils.classDesc;
+import static jdk.internal.constant.ConstantUtils.methodTypeDesc;
+
 /**
  * Class specialization code.
  * @param <T> top class under which species classes are created.
@@ -65,8 +69,8 @@ import static java.lang.invoke.MethodHandles.Lookup.IMPL_LOOKUP;
 /*non-public*/
 abstract class ClassSpecializer<T,K,S extends ClassSpecializer<T,K,S>.SpeciesData> {
 
-    private static final ClassDesc CD_LambdaForm = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/LambdaForm;");
-    private static final ClassDesc CD_BoundMethodHandle = ReferenceClassDescImpl.ofValidated("Ljava/lang/invoke/BoundMethodHandle;");
+    private static final ClassDesc CD_LambdaForm = InvokerBytecodeGenerator.CD_LambdaForm;
+    private static final ClassDesc CD_BoundMethodHandle = classDesc(BoundMethodHandle.class);
 
     private final Class<T> topClass;
     private final Class<K> keyType;
@@ -614,7 +618,8 @@ abstract class ClassSpecializer<T,K,S extends ClassSpecializer<T,K,S>.SpeciesDat
         byte[] generateConcreteSpeciesCodeFile(String className0, ClassSpecializer<T,K,S>.SpeciesData speciesData) {
             final ClassDesc classDesc = ClassDesc.of(className0);
             final ClassDesc superClassDesc = classDesc(speciesData.deriveSuperClass());
-            return ClassFile.of().build(classDesc, new Consumer<ClassBuilder>() {
+            var pool = new InternalWriteConstantPool();
+            return ClassFile.of().build(pool.classEntry(classDesc), pool, new Consumer<ClassBuilder>() {
                 @Override
                 public void accept(ClassBuilder clb) {
                     clb.withFlags(ACC_FINAL | ACC_SUPER)
@@ -724,7 +729,7 @@ abstract class ClassSpecializer<T,K,S extends ClassSpecializer<T,K,S>.SpeciesDat
                     MethodType thisCtorType = superCtorType.appendParameterTypes(fieldTypes);
 
                     // emit constructor
-                    clb.withMethodBody(INIT_NAME, methodDesc(thisCtorType), ACC_PRIVATE,
+                    clb.withMethodBody(INIT_NAME, methodTypeDesc(thisCtorType), ACC_PRIVATE,
                             new Consumer<>() {
                                 @Override
                                 public void accept(CodeBuilder cob) {
@@ -736,7 +741,7 @@ abstract class ClassSpecializer<T,K,S extends ClassSpecializer<T,K,S>.SpeciesDat
                                     }
 
                                     // super(ca...)
-                                    cob.invokespecial(superClassDesc, INIT_NAME, methodDesc(superCtorType));
+                                    cob.invokespecial(superClassDesc, INIT_NAME, methodTypeDesc(superCtorType));
 
                                     // store down fields
                                     Var lastFV = AFTER_THIS.lastOf(ctorArgs);
@@ -754,7 +759,7 @@ abstract class ClassSpecializer<T,K,S extends ClassSpecializer<T,K,S>.SpeciesDat
 
                     // emit make()  ...factory method wrapping constructor
                     MethodType ftryType = thisCtorType.changeReturnType(topClass());
-                    clb.withMethodBody("make", methodDesc(ftryType), ACC_STATIC,
+                    clb.withMethodBody("make", methodTypeDesc(ftryType), ACC_STATIC,
                             new Consumer<>() {
                                 @Override
                                 public void accept(CodeBuilder cob) {
@@ -767,7 +772,7 @@ abstract class ClassSpecializer<T,K,S extends ClassSpecializer<T,K,S>.SpeciesDat
                                     }
 
                                     // finally, invoke the constructor and return
-                                    cob.invokespecial(classDesc, INIT_NAME, methodDesc(thisCtorType))
+                                    cob.invokespecial(classDesc, INIT_NAME, methodTypeDesc(thisCtorType))
                                             .areturn();
                                 }
                             });
@@ -783,7 +788,7 @@ abstract class ClassSpecializer<T,K,S extends ClassSpecializer<T,K,S>.SpeciesDat
                         final String     TNAME = TRANSFORM_NAMES.get(whichtm);
                         final MethodType TTYPE = TRANSFORM_TYPES.get(whichtm);
                         final int        TMODS = TRANSFORM_MODS.get(whichtm);
-                        clb.withMethod(TNAME, methodDesc(TTYPE), (TMODS & ACC_PPP) | ACC_FINAL, new Consumer<MethodBuilder>() {
+                        clb.withMethod(TNAME, methodTypeDesc(TTYPE), (TMODS & ACC_PPP) | ACC_FINAL, new Consumer<MethodBuilder>() {
                             @Override
                             public void accept(MethodBuilder mb) {
                                 mb.with(ExceptionsAttribute.ofSymbols(CD_Throwable))
@@ -966,22 +971,5 @@ abstract class ClassSpecializer<T,K,S extends ClassSpecializer<T,K,S>.SpeciesDat
     static String classBCName(String str) {
         assert(str.indexOf('/') < 0) : str;
         return str.replace('.', '/');
-    }
-
-    static ClassDesc classDesc(Class<?> cls) {
-        return cls.isPrimitive() ? Wrapper.forPrimitiveType(cls).basicClassDescriptor()
-             : cls == Object.class ? CD_Object
-             : cls == MethodType.class ? CD_MethodType
-             : cls == LambdaForm.class ? CD_LambdaForm
-             : cls == BoundMethodHandle.class ? CD_BoundMethodHandle
-             : ReferenceClassDescImpl.ofValidated(cls.descriptorString());
-    }
-
-    static MethodTypeDesc methodDesc(MethodType mt) {
-        var params = new ClassDesc[mt.parameterCount()];
-        for (int i = 0; i < params.length; i++) {
-            params[i] = classDesc(mt.parameterType(i));
-        }
-        return MethodTypeDescImpl.ofValidated(classDesc(mt.returnType()), params);
     }
 }

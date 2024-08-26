@@ -33,6 +33,7 @@ import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static jdk.internal.constant.PrimitiveClassDescImpl.*;
@@ -46,6 +47,22 @@ public final class ConstantUtils {
     public static final ClassDesc[] EMPTY_CLASSDESC = new ClassDesc[0];
     public static final int MAX_ARRAY_TYPE_DESC_DIMENSIONS = 255;
     public static final ClassDesc CD_module_info = binaryNameToDesc("module-info");
+    // Ensures identity of ClassDesc; speed in classfile writing
+    public static final ClassValue<Optional<ClassDesc>> DESCS = new ClassValue<>() {
+        @Override
+        protected Optional<ClassDesc> computeValue(Class<?> type) {
+            if (type.isArray()) {
+                var opt = DESCS.get(type.componentType());
+                return opt.isEmpty() ? opt : Optional.of(opt.get().arrayType());
+            }
+            if (type.isPrimitive()) {
+                return Optional.of(Wrapper.forPrimitiveType(type).basicClassDescriptor());
+            }
+            if (type.isHidden())
+                return Optional.empty();
+            return Optional.of(binaryNameToDesc(type.getName()));
+        }
+    };
 
     private static final Set<String> pointyNames = Set.of(ConstantDescs.INIT_NAME, ConstantDescs.CLASS_INIT_NAME);
 
@@ -76,10 +93,8 @@ public final class ConstantUtils {
      * type.
      */
     public static ClassDesc classDesc(Class<?> type) {
-        if (type.isPrimitive()) {
-            return Wrapper.forPrimitiveType(type).basicClassDescriptor();
-        }
-        return referenceClassDesc(type);
+        // identity sharing
+        return DESCS.get(type).orElseThrow();
     }
 
     /**
@@ -96,15 +111,8 @@ public final class ConstantUtils {
      * type and parameter types can be described nominally.
      */
     public static MethodTypeDesc methodTypeDesc(MethodType type) {
-        var returnDesc = classDesc(type.returnType());
-        if (type.parameterCount() == 0) {
-            return MethodTypeDescImpl.ofValidated(returnDesc, EMPTY_CLASSDESC);
-        }
-        var paramDescs = new ClassDesc[type.parameterCount()];
-        for (int i = 0; i < type.parameterCount(); i++) {
-            paramDescs[i] = classDesc(type.parameterType(i));
-        }
-        return MethodTypeDescImpl.ofValidated(returnDesc, paramDescs);
+        // identity sharing
+        return type.describeConstable().get();
     }
 
     /**

@@ -54,17 +54,17 @@ import static java.lang.classfile.ClassFile.TAG_NAMEANDTYPE;
 import static java.lang.classfile.ClassFile.TAG_PACKAGE;
 import static java.lang.classfile.ClassFile.TAG_STRING;
 
-public final class SplitConstantPool implements ConstantPoolBuilder {
+public non-sealed class SplitConstantPool implements ConstantPoolBuilder {
 
-    private final ClassReaderImpl parent;
-    private final int parentSize, parentBsmSize;
+    final ClassReaderImpl parent;
+    final int parentSize, parentBsmSize;
 
-    private int size, bsmSize;
-    private PoolEntry[] myEntries;
-    private BootstrapMethodEntryImpl[] myBsmEntries;
-    private boolean doneFullScan;
-    private EntryMap<PoolEntry> map;
-    private EntryMap<BootstrapMethodEntryImpl> bsmMap;
+    int size, bsmSize;
+    PoolEntry[] myEntries;
+    BootstrapMethodEntryImpl[] myBsmEntries;
+    boolean doneFullScan;
+    EntryMap<PoolEntry> map;
+    EntryMap<BootstrapMethodEntryImpl> bsmMap;
 
     public SplitConstantPool() {
         this.size = 1;
@@ -178,7 +178,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         }
     }
 
-    private EntryMap<PoolEntry> map() {
+    EntryMap<PoolEntry> map() {
         if (map == null) {
             map = new EntryMap<>(Math.max(size, 1024), .75f) {
                 @Override
@@ -240,7 +240,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         return bsmMap;
     }
 
-    private <E extends PoolEntry> E internalAdd(E cpi) {
+    <E extends PoolEntry> E internalAdd(E cpi) {
         return internalAdd(cpi, cpi.hashCode());
     }
 
@@ -283,7 +283,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         return null;
     }
 
-    private<T extends AbstractPoolEntry> AbstractPoolEntry findEntry(int tag, T ref1) {
+    private<T extends PoolEntry> AbstractPoolEntry findEntry(int tag, T ref1) {
         // invariant: canWriteDirect(ref1.constantPool())
         int hash = AbstractPoolEntry.hash1(tag, ref1.index());
         EntryMap<PoolEntry> map = map();
@@ -301,7 +301,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         return null;
     }
 
-    private <T extends AbstractPoolEntry, U extends AbstractPoolEntry>
+    private <T extends PoolEntry, U extends PoolEntry>
             AbstractPoolEntry findEntry(int tag, T ref1, U ref2) {
         // invariant: canWriteDirect(ref1.constantPool()), canWriteDirect(ref2.constantPool())
         int hash = AbstractPoolEntry.hash2(tag, ref1.index(), ref2.index());
@@ -363,7 +363,9 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         return ce == null ? internalAdd(new AbstractPoolEntry.Utf8EntryImpl(this, size, s, hash)) : ce;
     }
 
-    AbstractPoolEntry.Utf8EntryImpl maybeCloneUtf8Entry(Utf8Entry entry) {
+    Utf8Entry maybeCloneUtf8Entry(Utf8Entry entry) {
+        if (entry instanceof AbstractPoolEntry.LiveUtf8EntryImpl)
+            return entry;
         AbstractPoolEntry.Utf8EntryImpl e = (AbstractPoolEntry.Utf8EntryImpl) entry;
         if (e.constantPool == this || e.constantPool == parent)
             return e;
@@ -373,29 +375,29 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
 
     @Override
     public AbstractPoolEntry.ClassEntryImpl classEntry(Utf8Entry nameEntry) {
-        AbstractPoolEntry.Utf8EntryImpl ne = maybeCloneUtf8Entry(nameEntry);
+        var ne = maybeCloneUtf8Entry(nameEntry);
         var e = (AbstractPoolEntry.ClassEntryImpl) findEntry(TAG_CLASS, ne);
         return e == null ? internalAdd(new AbstractPoolEntry.ClassEntryImpl(this, size, ne)) : e;
     }
 
     @Override
     public PackageEntry packageEntry(Utf8Entry nameEntry) {
-        AbstractPoolEntry.Utf8EntryImpl ne = maybeCloneUtf8Entry(nameEntry);
+        var ne = maybeCloneUtf8Entry(nameEntry);
         var e = (AbstractPoolEntry.PackageEntryImpl) findEntry(TAG_PACKAGE, ne);
         return e == null ? internalAdd(new AbstractPoolEntry.PackageEntryImpl(this, size, ne)) : e;
     }
 
     @Override
     public ModuleEntry moduleEntry(Utf8Entry nameEntry) {
-        AbstractPoolEntry.Utf8EntryImpl ne = maybeCloneUtf8Entry(nameEntry);
+        var ne = maybeCloneUtf8Entry(nameEntry);
         var e = (AbstractPoolEntry.ModuleEntryImpl) findEntry(TAG_MODULE, ne);
         return e == null ? internalAdd(new AbstractPoolEntry.ModuleEntryImpl(this, size, ne)) : e;
     }
 
     @Override
     public AbstractPoolEntry.NameAndTypeEntryImpl nameAndTypeEntry(Utf8Entry nameEntry, Utf8Entry typeEntry) {
-        AbstractPoolEntry.Utf8EntryImpl ne = maybeCloneUtf8Entry(nameEntry);
-        AbstractPoolEntry.Utf8EntryImpl te = maybeCloneUtf8Entry(typeEntry);
+        var ne = maybeCloneUtf8Entry(nameEntry);
+        var te = maybeCloneUtf8Entry(typeEntry);
         var e = (AbstractPoolEntry.NameAndTypeEntryImpl) findEntry(TAG_NAMEANDTYPE, ne, te);
         return e == null ? internalAdd(new AbstractPoolEntry.NameAndTypeEntryImpl(this, size, ne, te)) : e;
     }
@@ -445,7 +447,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
 
     @Override
     public MethodTypeEntry methodTypeEntry(Utf8Entry descriptor) {
-        AbstractPoolEntry.Utf8EntryImpl de = maybeCloneUtf8Entry(descriptor);
+        var de = maybeCloneUtf8Entry(descriptor);
         var e = (AbstractPoolEntry.MethodTypeEntryImpl) findEntry(TAG_METHODTYPE, de);
         return e == null ? internalAdd(new AbstractPoolEntry.MethodTypeEntryImpl(this, size, de)) : e;
     }
@@ -566,7 +568,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
 
     @Override
     public StringEntry stringEntry(Utf8Entry utf8) {
-        AbstractPoolEntry.Utf8EntryImpl ue = maybeCloneUtf8Entry(utf8);
+        var ue = maybeCloneUtf8Entry(utf8);
         var e = (AbstractPoolEntry.StringEntryImpl) findEntry(TAG_STRING, ue);
         return e == null ? internalAdd(new AbstractPoolEntry.StringEntryImpl(this, size, ue)) : e;
     }

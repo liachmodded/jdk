@@ -37,7 +37,7 @@ import jdk.internal.javac.PreviewFeature;
 @PreviewFeature(feature = PreviewFeature.Feature.CLASSFILE_API)
 public sealed interface Utf8Entry
         extends CharSequence, AnnotationConstantValueEntry
-        permits AbstractPoolEntry.Utf8EntryImpl {
+        permits AbstractPoolEntry.Utf8EntryImpl, AbstractPoolEntry.LiveUtf8EntryImpl {
 
     /**
      * {@return the string value for this entry}
