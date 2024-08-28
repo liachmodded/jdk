@@ -24,7 +24,6 @@
  */
 package jdk.internal.classfile.impl;
 
-import java.lang.constant.ConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.util.Arrays;
 import java.util.List;
@@ -526,7 +525,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
             return methodHandleEntry(refKind, reference);
         }
         return internalAdd(new AbstractPoolEntry.MethodHandleEntryImpl(this, size,
-                hash, refKind, (AbstractPoolEntry.AbstractMemberRefEntry) reference), hash);
+                refKind, (AbstractPoolEntry.AbstractMemberRefEntry) reference), hash);
     }
 
     @Override
@@ -553,7 +552,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         }
 
         AbstractPoolEntry.InvokeDynamicEntryImpl ce =
-                new AbstractPoolEntry.InvokeDynamicEntryImpl(this, size, hash,
+                new AbstractPoolEntry.InvokeDynamicEntryImpl(this, size,
                         (BootstrapMethodEntryImpl) bootstrapMethodEntry,
                         (AbstractPoolEntry.NameAndTypeEntryImpl) nameAndType);
         internalAdd(ce, hash);
@@ -584,7 +583,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         }
 
         AbstractPoolEntry.ConstantDynamicEntryImpl ce =
-                new AbstractPoolEntry.ConstantDynamicEntryImpl(this, size, hash,
+                new AbstractPoolEntry.ConstantDynamicEntryImpl(this, size,
                         (BootstrapMethodEntryImpl) bootstrapMethodEntry,
                         (AbstractPoolEntry.NameAndTypeEntryImpl) nameAndType);
         internalAdd(ce, hash);
