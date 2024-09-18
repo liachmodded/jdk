@@ -1565,13 +1565,13 @@ class InvokerBytecodeGenerator {
      */
     static MemberName generateNamedFunctionInvoker(MethodTypeForm typeForm) {
         MethodType invokerType = NamedFunction.INVOKER_METHOD_TYPE;
-        String invokerName = "invoke_" + shortenSignature(basicTypeSignature(typeForm.erasedType()));
+        String invokerName = "invoke_" + shortenSignature(basicTypeSignature(typeForm.basicType()));
         InvokerBytecodeGenerator g = new InvokerBytecodeGenerator("NFI", invokerName, invokerType);
         return g.loadMethod(g.generateNamedFunctionInvokerImpl(typeForm));
     }
 
     private byte[] generateNamedFunctionInvokerImpl(MethodTypeForm typeForm) {
-        MethodType dstType = typeForm.erasedType();
+        MethodType dstType = typeForm.basicType();
         final byte[] classFile = classFileSetup(new Consumer<>() {
             @Override
             public void accept(ClassBuilder clb) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,8 +33,8 @@ import static java.lang.invoke.MethodHandleStatics.newIllegalArgumentException;
 
 /**
  * Shared information for a group of method types, which differ
- * only by reference types, and therefore share a common erasure
- * and wrapping.
+ * only by computational types, and therefore share common
+ * calling semantics.
  * <p>
  * For an empirical discussion of the structure of method types,
  * see <a href="http://groups.google.com/group/jvm-languages/browse_thread/thread/ac9308ae74da9b7e/">
@@ -46,8 +46,7 @@ import static java.lang.invoke.MethodHandleStatics.newIllegalArgumentException;
  */
 final class MethodTypeForm {
     final short parameterSlotCount;
-    final short primitiveCount;
-    final MethodType erasedType;        // the canonical erasure
+    final boolean anyPrimitive;
     final MethodType basicType;         // the canonical erasure, with primitives simplified
 
     // Cached adapter information:
@@ -92,13 +91,6 @@ final class MethodTypeForm {
             LF_VH_GEN_LINKER           = 24,  // VarHandle generic linker
             LF_COLLECTOR               = 25,  // collector handle
             LF_LIMIT                   = 26;
-
-    /** Return the type corresponding uniquely (1-1) to this MT-form.
-     *  It might have any primitive returns or arguments, but will have no references except Object.
-     */
-    public MethodType erasedType() {
-        return erasedType;
-    }
 
     /** Return the basic type derived from the erased type of this MT-form.
      *  A basic type is erased (all references Object) and also has all primitive
@@ -150,81 +142,37 @@ final class MethodTypeForm {
      * This MTF will stand for that type and all un-erased variations.
      * Eagerly compute some basic properties of the type, common to all variations.
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    protected MethodTypeForm(MethodType erasedType) {
-        this.erasedType = erasedType;
+    @SuppressWarnings("unchecked")
+    MethodTypeForm(MethodType basicType) {
+        assert basicType.typesAreBasic() : basicType;
 
-        Class<?>[] ptypes = erasedType.ptypes();
+        Class<?>[] ptypes = basicType.ptypes();
         int pslotCount = ptypes.length;
-
-        // Walk the argument types, looking for primitives.
-        short primitiveCount = 0, longArgCount = 0;
-        Class<?>[] erasedPtypes = ptypes;
-        Class<?>[] basicPtypes = erasedPtypes;
-        for (int i = 0; i < erasedPtypes.length; i++) {
-            Class<?> ptype = erasedPtypes[i];
-            if (ptype != Object.class) {
-                ++primitiveCount;
-                Wrapper w = Wrapper.forPrimitiveType(ptype);
-                if (w.isDoubleWord())  ++longArgCount;
-                if (w.isSubwordOrInt() && ptype != int.class) {
-                    if (basicPtypes == erasedPtypes)
-                        basicPtypes = basicPtypes.clone();
-                    basicPtypes[i] = int.class;
-                }
+        boolean anyPrimitive = basicType.returnType().isPrimitive();
+        for (var p : basicType.ptypes()) {
+            if (p == double.class || p == float.class) {
+                pslotCount++;
+                anyPrimitive = true;
+            } else if (!anyPrimitive && p.isPrimitive()) {
+                anyPrimitive = true;
             }
         }
-        pslotCount += longArgCount;                  // #slots = #args + #longs
-        Class<?> returnType = erasedType.returnType();
-        Class<?> basicReturnType = returnType;
-        if (returnType != Object.class) {
-            ++primitiveCount; // even void.class counts as a prim here
-            Wrapper w = Wrapper.forPrimitiveType(returnType);
-            if (w.isSubwordOrInt() && returnType != int.class)
-                basicReturnType = int.class;
-        }
-        if (erasedPtypes == basicPtypes && basicReturnType == returnType) {
-            // Basic type
-            this.basicType = erasedType;
 
-            if (pslotCount >= 256)  throw newIllegalArgumentException("too many arguments");
+        if (pslotCount >= 256) throw newIllegalArgumentException("too many arguments");
 
-            this.primitiveCount = primitiveCount;
-            this.parameterSlotCount = (short)pslotCount;
-            this.lambdaForms   = new SoftReference[LF_LIMIT];
-            this.methodHandles = new SoftReference[MH_LIMIT];
-        } else {
-            this.basicType = MethodType.methodType(basicReturnType, basicPtypes, true);
-            // fill in rest of data from the basic type:
-            MethodTypeForm that = this.basicType.form();
-            assert(this != that);
-
-            this.parameterSlotCount = that.parameterSlotCount;
-            this.primitiveCount = that.primitiveCount;
-            this.methodHandles = null;
-            this.lambdaForms = null;
-        }
+        this.basicType = basicType;
+        this.anyPrimitive = anyPrimitive;
+        this.parameterSlotCount = (short) pslotCount;
+        this.lambdaForms = (SoftReference<LambdaForm>[]) new SoftReference<?>[LF_LIMIT];
+        this.methodHandles = (SoftReference<MethodHandle>[]) new SoftReference<?>[MH_LIMIT];
     }
 
-    public int parameterCount() {
-        return erasedType.parameterCount();
-    }
     public int parameterSlotCount() {
         return parameterSlotCount;
     }
-    public boolean hasPrimitives() {
-        return primitiveCount != 0;
-    }
 
-    static MethodTypeForm findForm(MethodType mt) {
-        MethodType erased = canonicalize(mt, ERASE);
-        if (erased == null) {
-            // It is already erased.  Make a new MethodTypeForm.
-            return new MethodTypeForm(mt);
-        } else {
-            // Share the MethodTypeForm with the erased version.
-            return erased.form();
-        }
+    public boolean hasPrimitives() {
+        return anyPrimitive;
     }
 
     /** Codes for {@link #canonicalize(java.lang.Class, int)}.
@@ -294,6 +242,6 @@ final class MethodTypeForm {
 
     @Override
     public String toString() {
-        return "Form"+erasedType;
+        return "Form" + basicType;
     }
 }

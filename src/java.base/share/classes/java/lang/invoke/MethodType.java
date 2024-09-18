@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,21 +28,16 @@ package java.lang.invoke;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.Constable;
 import java.lang.constant.MethodTypeDesc;
-import java.lang.ref.Reference;
-import java.lang.ref.ReferenceQueue;
-import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.function.Supplier;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
+import java.util.function.UnaryOperator;
 
 import jdk.internal.util.ReferencedKeySet;
 import jdk.internal.util.ReferenceKey;
@@ -148,7 +143,9 @@ class MethodType
     private final @Stable Class<?>[] ptypes;
 
     // The remaining fields are caches of various sorts:
-    private @Stable MethodTypeForm form; // erased form, plus cached data about primitives
+    private @Stable MethodTypeForm form; // basic form, plus cached data about primitives
+    private @Stable MethodType erased; // the erased mt, all references become objects
+
     private @Stable Object wrapAlt;  // alternative wrapped/unwrapped version and
                                      // private communication for readObject and readResolve
     private @Stable Invokers invokers;   // cache of handy higher-order adapters
@@ -163,11 +160,64 @@ class MethodType
         this.ptypes = ptypes;
     }
 
-    /*trusted*/ MethodTypeForm form() { return form; }
+    /// Checks that this method type is a basic type.
+    boolean typesAreBasic() {
+        var r = rtype;
+        if (r != void.class && !isBasicType(r))
+            return false;
+
+        for (var c : ptypes)
+            if (!isBasicType(c))
+                return false;
+        return true;
+    }
+
+    /// Checks that a class is a basic type class, void omitted.
+    private static boolean isBasicType(Class<?> cl) {
+        return cl == Object.class || cl == int.class || cl == long.class
+                || cl == float.class || cl == double.class;
+    }
+
+    /// Convert a non-basic-type input to a basic type.
+    /// The input must be non-basic type.
+    private static Class<?> nonBasicToBasicType(Class<?> cl) {
+        if (cl == byte.class || cl == short.class
+                || cl == char.class || cl == boolean.class)
+            return int.class;  // subwords to int
+        return Object.class; // references
+    }
+
+    /*trusted*/ MethodTypeForm form() {
+        var form = this.form;
+        if (form == null)
+            return this.form = findForm();
+        return form;
+    }
+
+    /// Finds the form and the basic type for a non-basic type.
+    private MethodTypeForm findForm() {
+        assert !typesAreBasic();
+        var returnType = rtype;
+        if (returnType != void.class && !isBasicType(returnType)) {
+            returnType = nonBasicToBasicType(returnType);
+        }
+        boolean unchanged = true;
+        var paramTypes = ptypes;
+        for (int i = 0; i < paramTypes.length; i++) {
+            if (!isBasicType(paramTypes[i])) {
+                if (unchanged) {
+                    paramTypes = paramTypes.clone();
+                    unchanged = false;
+                }
+                paramTypes[i] = nonBasicToBasicType(paramTypes[i]);
+            }
+        }
+        var basic = MethodType.methodType(returnType, paramTypes, true);
+        assert basic.typesAreBasic() && basic.form != null;
+        return basic.form;
+    }
     /*trusted*/ Class<?> rtype() { return rtype; }
     /*trusted*/ Class<?>[] ptypes() { return ptypes; }
-
-    void setForm(MethodTypeForm f) { form = f; }
 
     /** This number, mandated by the JVM spec as 255,
      *  is the maximum number of <em>slots</em>
@@ -230,13 +280,41 @@ class MethodType
         return new IndexOutOfBoundsException(num.toString());
     }
 
-    static final ReferencedKeySet<MethodType> internTable =
-        ReferencedKeySet.create(false, true, new Supplier<>() {
-            @Override
-            public Map<ReferenceKey<MethodType>, ReferenceKey<MethodType>> get() {
-                return new ConcurrentHashMap<>(512);
+    private record Interner(boolean trusted) implements Supplier<Map<ReferenceKey<MethodType>,
+            ReferenceKey<MethodType>>>, UnaryOperator<MethodType> {
+        private static final Interner TRUSTED = new Interner(true);
+        private static final Interner UNTRUSTED = new Interner(false);
+
+        @Override
+        public Map<ReferenceKey<MethodType>, ReferenceKey<MethodType>> get() {
+            return new ConcurrentHashMap<>(512);
+        }
+
+        @Override
+        public MethodType apply(MethodType primordialMT) {
+            var rtype = primordialMT.rtype();
+            var ptypes = primordialMT.ptypes();
+            MethodType mt;
+            Objects.requireNonNull(rtype);
+            if (trusted) {
+                MethodType.checkPtypes(ptypes);
+                mt = primordialMT;
+            } else {
+                // Make defensive copy then validate
+                ptypes = Arrays.copyOf(ptypes, ptypes.length);
+                MethodType.checkPtypes(ptypes);
+                mt = new MethodType(rtype, ptypes);
             }
-        });
+            if (mt.typesAreBasic()) {
+                mt.form = new MethodTypeForm(mt);
+                // basic types always have form != null && form.type == this
+            }
+            return mt;
+        }
+    }
+
+    static final ReferencedKeySet<MethodType> internTable =
+        ReferencedKeySet.create(false, true, Interner.TRUSTED);
 
     static final Class<?>[] NO_PTYPES = {};
 
@@ -395,27 +473,12 @@ class MethodType
      */
     private static MethodType makeImpl(Class<?> rtype, Class<?>[] ptypes, boolean trusted) {
         if (ptypes.length == 0) {
-            ptypes = NO_PTYPES; trusted = true;
+            ptypes = NO_PTYPES;
+            trusted = true;
         }
-        MethodType primordialMT = new MethodType(rtype, ptypes);
-        MethodType mt = internTable.get(primordialMT);
-        if (mt != null)
-            return mt;
-
-        // promote the object to the Real Thing, and reprobe
-        Objects.requireNonNull(rtype);
-        if (trusted) {
-            MethodType.checkPtypes(ptypes);
-            mt = primordialMT;
-        } else {
-            // Make defensive copy then validate
-            ptypes = Arrays.copyOf(ptypes, ptypes.length);
-            MethodType.checkPtypes(ptypes);
-            mt = new MethodType(rtype, ptypes);
-        }
-        mt.form = MethodTypeForm.findForm(mt);
-        return internTable.intern(mt);
+        return internTable.intern(new MethodType(rtype, ptypes), trusted ? Interner.TRUSTED : Interner.UNTRUSTED);
     }
+
     private static final @Stable MethodType[] objectOnlyTypes = new MethodType[20];
 
     /**
@@ -710,7 +773,7 @@ class MethodType
      * @return true if any of the types are primitives
      */
     public boolean hasPrimitives() {
-        return form.hasPrimitives();
+        return form().hasPrimitives();
     }
 
     /**
@@ -731,7 +794,12 @@ class MethodType
      * @return a version of the original type with all reference types replaced
      */
     public MethodType erase() {
-        return form.erasedType();
+        var erased = this.erased;
+        if (erased != null)
+            return erased;
+
+        erased = MethodTypeForm.canonicalize(this, MethodTypeForm.ERASE);
+        return this.erased = erased == null ? this : erased;
     }
 
     /**
@@ -742,7 +810,7 @@ class MethodType
      */
     /*non-public*/
     MethodType basicType() {
-        return form.basicType();
+        return form().basicType();
     }
 
     private static final @Stable Class<?>[] METHOD_HANDLE_ARRAY
@@ -769,7 +837,8 @@ class MethodType
 
     /*non-public*/
     boolean isGeneric() {
-        return this == erase() && !hasPrimitives();
+        var form = this.form;
+        return form != null && form.basicType() == this && !form.hasPrimitives();
     }
 
     /**
@@ -975,7 +1044,7 @@ class MethodType
     boolean isViewableAs(MethodType newType, boolean keepInterfaces) {
         if (!VerifyType.isNullConversion(returnType(), newType.returnType(), keepInterfaces))
             return false;
-        if (form == newType.form && form.erasedType == this)
+        if (erase() == newType.erase() && erase() == this)
             return true;  // my reference parameters are all Object
         if (ptypes == newType.ptypes)
             return true;
@@ -990,8 +1059,8 @@ class MethodType
     }
     /*non-public*/
     boolean isConvertibleTo(MethodType newType) {
-        MethodTypeForm oldForm = this.form();
-        MethodTypeForm newForm = newType.form();
+        MethodType oldForm = this.erase();
+        MethodType newForm = newType.erase();
         if (oldForm == newForm)
             // same parameter count, same primitive/object mix
             return true;
@@ -1009,8 +1078,8 @@ class MethodType
                 return false;
             return true;
         }
-        if ((!oldForm.hasPrimitives() && oldForm.erasedType == this) ||
-            (!newForm.hasPrimitives() && newForm.erasedType == newType)) {
+        if ((!oldForm.hasPrimitives() && oldForm == this) ||
+            (!newForm.hasPrimitives() && newForm == newType)) {
             // Somewhat complicated test to avoid a loop of 2 or more trips.
             // If either type has only Object parameters, we know we can convert.
             assert(canConvertParameters(srcTypes, dstTypes));
@@ -1147,7 +1216,7 @@ class MethodType
      */
     /*non-public*/
     int parameterSlotCount() {
-        return form.parameterSlotCount();
+        return form().parameterSlotCount();
     }
 
     /*non-public*/
