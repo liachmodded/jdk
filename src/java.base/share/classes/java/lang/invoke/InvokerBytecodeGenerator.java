@@ -145,7 +145,7 @@ class InvokerBytecodeGenerator {
     private InvokerBytecodeGenerator(String name, String invokerName, MethodType invokerType) {
         this(null, invokerType.parameterCount(),
              name, invokerName, invokerType);
-        MethodType mt = invokerType.erase();
+        MethodType mt = invokerType;
         // Create an array to map name indexes to locals indexes.
         localsMap[0] = 0; // localsMap has at least one element
         for (int i = 1, index = 0; i < localsMap.length; i++) {

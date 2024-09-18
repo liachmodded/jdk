@@ -807,7 +807,6 @@ final class MemberName implements Member, Cloneable {
                 type = mt;
             else
                 this.type = type = getMethodType();
-            if (type.erase() == type)  return;
             if (VerifyAccess.ensureTypeVisible(type, refc))  return;
             throw new LinkageError("bad method type alias: "+type+" not visible from "+refc);
         } else {
