@@ -150,7 +150,7 @@ final class MethodTypeForm {
         int pslotCount = ptypes.length;
         boolean anyPrimitive = basicType.returnType().isPrimitive();
         for (var p : basicType.ptypes()) {
-            if (p == double.class || p == float.class) {
+            if (p == double.class || p == long.class) {
                 pslotCount++;
                 anyPrimitive = true;
             } else if (!anyPrimitive && p.isPrimitive()) {
