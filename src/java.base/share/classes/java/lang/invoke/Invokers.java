@@ -170,7 +170,7 @@ class Invokers {
     /** If the target type seems to be common enough, eagerly compile the invoker to bytecodes. */
     private void maybeCompileToBytecode(MethodHandle invoker) {
         final int EAGER_COMPILE_ARITY_LIMIT = 10;
-        if (targetType == targetType.basicType() &&
+        if (targetType == targetType.erase() &&
             targetType.parameterCount() < EAGER_COMPILE_ARITY_LIMIT) {
             invoker.form.compileToBytecode();
         }

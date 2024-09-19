@@ -145,11 +145,10 @@ class InvokerBytecodeGenerator {
     private InvokerBytecodeGenerator(String name, String invokerName, MethodType invokerType) {
         this(null, invokerType.parameterCount(),
              name, invokerName, invokerType);
-        MethodType mt = invokerType;
         // Create an array to map name indexes to locals indexes.
         localsMap[0] = 0; // localsMap has at least one element
         for (int i = 1, index = 0; i < localsMap.length; i++) {
-            Class<?> cl = mt.parameterType(i - 1);
+            Class<?> cl = invokerType.parameterType(i - 1);
             index += (cl == long.class || cl == double.class) ? 2 : 1;
             localsMap[i] = index;
         }
