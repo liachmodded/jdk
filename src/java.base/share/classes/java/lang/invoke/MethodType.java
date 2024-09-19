@@ -30,6 +30,7 @@ import java.lang.constant.Constable;
 import java.lang.constant.MethodTypeDesc;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.UnaryOperator;
 
 import jdk.internal.util.ReferencedKeySet;
 import jdk.internal.util.ReferenceKey;
@@ -178,13 +178,10 @@ class MethodType
                 || cl == float.class || cl == double.class;
     }
 
-    /// Convert a non-basic-type input to a basic type.
-    /// The input must be non-basic type.
-    private static Class<?> nonBasicToBasicType(Class<?> cl) {
-        if (cl == byte.class || cl == short.class
-                || cl == char.class || cl == boolean.class)
-            return int.class;  // subwords to int
-        return Object.class; // references
+    /// Returns if this is a subword primitive type.
+    private static boolean isSubwordPrimitive(Class<?> cl) {
+        return cl == byte.class || cl == short.class
+                || cl == char.class || cl == boolean.class;
     }
 
     /*trusted*/ MethodTypeForm form() {
@@ -198,8 +195,14 @@ class MethodType
     private MethodTypeForm findForm() {
         assert !typesAreBasic();
         var returnType = rtype;
+        var sameAsErased = true;
         if (returnType != void.class && !isBasicType(returnType)) {
-            returnType = nonBasicToBasicType(returnType);
+            if (isSubwordPrimitive(returnType)) {
+                sameAsErased = false;
+                returnType = int.class;
+            } else {
+                returnType = Object.class;
+            }
         }
         boolean unchanged = true;
         var paramTypes = ptypes;
@@ -209,11 +212,18 @@ class MethodType
                     paramTypes = paramTypes.clone();
                     unchanged = false;
                 }
-                paramTypes[i] = nonBasicToBasicType(paramTypes[i]);
+                if (isSubwordPrimitive(returnType)) {
+                    sameAsErased = false;
+                    paramTypes[i] = int.class;
+                } else {
+                    paramTypes[i] = Object.class;
+                }
             }
         }
         var basic = MethodType.methodType(returnType, paramTypes, true);
         assert basic.typesAreBasic() && basic.form != null;
+        if (sameAsErased)
+            this.erased = basic;
         return basic.form;
     }
     /*trusted*/ Class<?> rtype() { return rtype; }
@@ -281,7 +291,7 @@ class MethodType
     }
 
     private record Interner(boolean trusted) implements Supplier<Map<ReferenceKey<MethodType>,
-            ReferenceKey<MethodType>>>, UnaryOperator<MethodType> {
+            ReferenceKey<MethodType>>>, Function<MethodType, MethodType> {
         private static final Interner TRUSTED = new Interner(true);
         private static final Interner UNTRUSTED = new Interner(false);
 
@@ -476,6 +486,7 @@ class MethodType
             ptypes = NO_PTYPES;
             trusted = true;
         }
+        // Note: currently intern is same as get + putIfAbsent; we can patch CHM later to perform single access if slow
         return internTable.intern(new MethodType(rtype, ptypes), trusted ? Interner.TRUSTED : Interner.UNTRUSTED);
     }
 

@@ -36,8 +36,8 @@ import java.util.Objects;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -404,7 +404,7 @@ public final class ReferencedKeyMap<K, V> implements Map<K, V> {
      * @implNote This version of intern should not be called during phase1
      * using a lambda. Use an UnaryOperator instance instead.
      */
-    static <T> T intern(ReferencedKeyMap<T, ReferenceKey<T>> setMap, T key, UnaryOperator<T> interner) {
+    static <T> T intern(ReferencedKeyMap<T, ReferenceKey<T>> setMap, T key, Function<T, T> interner) {
         T value = existingKey(setMap, key);
         if (value != null) {
             return value;

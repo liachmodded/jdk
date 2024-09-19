@@ -31,8 +31,8 @@ import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
 /**
  * This class provides management of {@link Set set} where it is desirable to
@@ -208,7 +208,7 @@ public final class ReferencedKeySet<T> extends AbstractSet<T> {
      * @implNote This version of intern should not be called during phase1
      * using a lambda. Use an UnaryOperator instance instead.
      */
-    public T intern(T e, UnaryOperator<T> interner) {
+    public T intern(T e, Function<T, T> interner) {
         return ReferencedKeyMap.intern(map, e, interner);
     }
 }
