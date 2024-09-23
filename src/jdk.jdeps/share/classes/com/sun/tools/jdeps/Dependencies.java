@@ -461,7 +461,9 @@ public class Dependencies {
                 v.scan(cpInfo);
             }
             try {
-                classfile.superclass().ifPresent(v::addClass);
+                var superclass = classfile.superclass();
+                if (superclass != null)
+                    v.addClass(superclass);
                 v.addClasses(classfile.interfaces());
                 v.scanAttributes(classfile);
 
@@ -503,7 +505,9 @@ public class Dependencies {
         public Iterable<? extends Dependency> findDependencies(ClassModel classfile) {
             try {
                 Visitor v = new Visitor(classfile);
-                classfile.superclass().ifPresent(v::addClass);
+                var superclass = classfile.superclass();
+                if (superclass != null)
+                    v.addClass(superclass);
                 v.addClasses(classfile.interfaces());
                 // inner classes?
                 for (var f : classfile.fields()) {
@@ -683,7 +687,9 @@ public class Dependencies {
             }
 
             private void scan(Signature.TypeParam param) {
-                param.classBound().ifPresent(this::scan);
+                var cb = param.classBound();
+                if (cb != null)
+                    scan(cb);
                 for (var itf : param.interfaceBounds()) {
                     scan(itf);
                 }
@@ -692,7 +698,9 @@ public class Dependencies {
             private void scan(Signature sig) {
                 switch (sig) {
                     case Signature.ClassTypeSig ct -> {
-                        ct.outerType().ifPresent(this::scan);
+                        var ot = ct.outerType();
+                        if (ot != null)
+                            scan(ot);
                         scan(ct.classDesc());
                         for (var arg : ct.typeArgs()) {
                             if (arg instanceof Signature.TypeArg.Bounded bounded) {

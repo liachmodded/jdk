@@ -279,8 +279,8 @@ public class TestOrigin extends TestRunner {
         ModuleAttribute module = cf.findAttribute(Attributes.module()).orElseThrow();
 
         List<ModuleRequireInfo> newRequires = new ArrayList<>(3);
-        newRequires.add(ModuleRequireInfo.of(module.requires().get(0).requires(), ClassFile.ACC_MANDATED, module.requires().get(0).requiresVersion().orElse(null)));
-        newRequires.add(ModuleRequireInfo.of(module.requires().get(1).requires(), ClassFile.ACC_SYNTHETIC, module.requires().get(1).requiresVersion().orElse(null)));
+        newRequires.add(ModuleRequireInfo.of(module.requires().get(0).requires(), ClassFile.ACC_MANDATED, module.requires().get(0).requiresVersion()));
+        newRequires.add(ModuleRequireInfo.of(module.requires().get(1).requires(), ClassFile.ACC_SYNTHETIC, module.requires().get(1).requiresVersion()));
         newRequires.add(module.requires().get(2));
 
         List<ModuleExportInfo> newExports = new ArrayList<>(3);
@@ -296,7 +296,7 @@ public class TestOrigin extends TestRunner {
 
         ModuleAttribute newModule = ModuleAttribute.of(module.moduleName(),
                                                           module.moduleFlagsMask(),
-                                                          module.moduleVersion().orElse(null),
+                                                          module.moduleVersion(),
                                                           newRequires,
                                                           newExports,
                                                           newOpens,

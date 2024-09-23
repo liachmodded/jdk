@@ -262,8 +262,8 @@ public class DeprecatedTest extends TestResult {
             echo("Testing inner class : " + innerClassName);
             ClassModel innerCf = readClassFile(classes.get(innerClassName));
             DeprecatedAttribute attr = innerCf.findAttribute(Attributes.deprecated()).orElse(null);
-            assert innerClass.innerName().isPresent();
-            String innerClassSimpleName = innerClass.innerName().get().stringValue();
+            assert innerClass.innerName() != null;
+            String innerClassSimpleName = innerClass.innerName().stringValue();
             testAttribute(innerClassSimpleName, attr, innerCf);
             if (innerClassName.contains("Local")) {
                 testMethods(innerCf);

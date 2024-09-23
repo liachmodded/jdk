@@ -54,6 +54,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
 
@@ -687,7 +688,7 @@ public class JavapTask implements DisassemblerTool.DisassemblerTask, Messages {
                 try {
                     int result = EXIT_OK;
                     for (var inner : inners.classes()) {
-                        var outerClassInfo = inner.outerClass();
+                        var outerClassInfo = Optional.ofNullable(inner.outerClass());
                         String outerClassName = outerClassInfo.map(ClassEntry::asInternalName).orElse(null);
                         if (cm.thisClass().asInternalName().equals(outerClassName)) {
                             var innerClassInfo = inner.innerClass();

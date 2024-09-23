@@ -53,9 +53,9 @@ class ClassPrinterTest {
                 .withSuperclass(ClassDesc.of("Boo"))
                 .withInterfaceSymbols(ClassDesc.of("Phee"), ClassDesc.of("Phoo"))
                 .with(InnerClassesAttribute.of(
-                        InnerClassInfo.of(ClassDesc.of("Phee"), Optional.of(ClassDesc.of("Phoo")), Optional.of("InnerName"), ClassFile.ACC_PROTECTED),
-                        InnerClassInfo.of(ClassDesc.of("Phoo"), Optional.empty(), Optional.empty(), ClassFile.ACC_PRIVATE)))
-                .with(EnclosingMethodAttribute.of(ClassDesc.of("Phee"), Optional.of("enclosingMethod"), Optional.of(MethodTypeDesc.of(ConstantDescs.CD_Double, ConstantDescs.CD_Collection))))
+                        InnerClassInfo.of(ClassDesc.of("Phee"), ClassDesc.of("Phoo"), "InnerName", ClassFile.ACC_PROTECTED),
+                        InnerClassInfo.of(ClassDesc.of("Phoo"), null, null, ClassFile.ACC_PRIVATE)))
+                .with(EnclosingMethodAttribute.of(ClassDesc.of("Phee"), "enclosingMethod", MethodTypeDesc.of(ConstantDescs.CD_Double, ConstantDescs.CD_Collection)))
                 .with(SyntheticAttribute.of())
                 .with(SignatureAttribute.of(ClassSignature.of(Signature.ClassTypeSig.of(ClassDesc.of("Boo")), Signature.ClassTypeSig.of(ClassDesc.of("Phee")), Signature.ClassTypeSig.of(ClassDesc.of("Phoo")))))
                 .with(DeprecatedAttribute.of())

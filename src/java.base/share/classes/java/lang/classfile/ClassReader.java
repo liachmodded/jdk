@@ -31,7 +31,6 @@ import java.lang.classfile.constantpool.PoolEntry;
 import java.lang.classfile.constantpool.Utf8Entry;
 import jdk.internal.classfile.impl.ClassReaderImpl;
 
-import java.util.Optional;
 import java.util.function.Function;
 import jdk.internal.javac.PreviewFeature;
 
@@ -64,8 +63,8 @@ public sealed interface ClassReader extends ConstantPool
     /** {@return the constant pool entry describing the name of class} */
     ClassEntry thisClassEntry();
 
-    /** {@return the constant pool entry describing the name of the superclass, if any} */
-    Optional<ClassEntry> superclassEntry();
+    /** {@return the constant pool entry describing the name of the superclass, if any, may be null} */
+    ClassEntry superclassEntry();
 
     /** {@return the length of the classfile, in bytes} */
     int classfileLength();

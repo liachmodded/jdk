@@ -30,6 +30,7 @@ import java.lang.reflect.AccessFlag;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.lang.classfile.AccessFlags;
@@ -170,7 +171,7 @@ final class FingerPrint {
         ClassAttributes attrs = new ClassAttributes(
                 cm.flags(),
                 cm.thisClass().asInternalName(),
-                cm.superclass().map(ClassEntry::asInternalName).orElse(null),
+                Optional.ofNullable(cm.superclass()).map(ClassEntry::asInternalName).orElse(null),
                 cm.majorVersion());
         cm.forEach(attrs);
         return attrs;
@@ -267,10 +268,10 @@ final class FingerPrint {
             switch (cle) {
                 case InnerClassesAttribute ica -> {
                     for (var icm : ica.classes()) {
-                        if (this.maybeNestedClass && icm.outerClass().isPresent()
+                        if (this.maybeNestedClass && icm.outerClass() != null
                                 && this.name.equals(icm.innerClass().asInternalName())
                                 && this.outerClassName == null) {
-                            this.outerClassName = icm.outerClass().get().asInternalName();
+                            this.outerClassName = icm.outerClass().asInternalName();
                         }
                     }
                 }

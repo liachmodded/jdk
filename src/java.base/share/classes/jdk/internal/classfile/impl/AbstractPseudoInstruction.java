@@ -60,14 +60,6 @@ public abstract sealed class AbstractPseudoInstruction
             this.tryEnd = tryEnd;
         }
 
-        public ExceptionCatchImpl(Label handler, Label tryStart, Label tryEnd,
-                                  Optional<ClassEntry> catchTypeEntry) {
-            this.catchTypeEntry = catchTypeEntry.orElse(null);
-            this.handler = handler;
-            this.tryStart = tryStart;
-            this.tryEnd = tryEnd;
-        }
-
         @Override
         public Label tryStart() {
             return tryStart;
@@ -84,8 +76,8 @@ public abstract sealed class AbstractPseudoInstruction
         }
 
         @Override
-        public Optional<ClassEntry> catchType() {
-            return Optional.ofNullable(catchTypeEntry);
+        public ClassEntry catchType() {
+            return catchTypeEntry;
         }
 
         ClassEntry catchTypeEntry() {

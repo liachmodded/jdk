@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import java.lang.constant.ClassDesc;
@@ -162,9 +163,9 @@ public class ClassWriter extends BasicWriter {
                 }
                 print("module ");
                 print(() -> modAttr.moduleName().name().stringValue());
-                if (modAttr.moduleVersion().isPresent()) {
+                if (modAttr.moduleVersion() != null) {
                     print("@");
-                    print(() -> modAttr.moduleVersion().get().stringValue());
+                    print(() -> modAttr.moduleVersion().stringValue());
                 }
             } else {
                 // fallback for malformed class files
@@ -184,12 +185,14 @@ public class ClassWriter extends BasicWriter {
             var sigAttr = classModel.findAttribute(Attributes.signature()).orElse(null);
             if (sigAttr == null) {
                 // use info from class file header
-                if ((classModel.flags().flagsMask() & ACC_INTERFACE) == 0
-                        && classModel.superclass().isPresent()) {
-                    String sn = getJavaName(classModel.superclass().get().asInternalName());
-                    if (!sn.equals("java.lang.Object")) {
-                        print(" extends ");
-                        print(sn);
+                if ((classModel.flags().flagsMask() & ACC_INTERFACE) == 0) {
+                    var sup = classModel.superclass();
+                    if (sup != null) {
+                        String sn = getJavaName(sup.asInternalName());
+                        if (!sn.equals("java.lang.Object")) {
+                            print(" extends ");
+                            print(sn);
+                        }
                     }
                 }
                 var interfaces = classModel.interfaces();
@@ -213,16 +216,16 @@ public class ClassWriter extends BasicWriter {
             println("major version: " + classModel.majorVersion());
             writeList(String.format("flags: (0x%04x) ", cm.flags().flagsMask()),
                     getClassFlags(cm.flags()), "\n");
-            print("this_class: #");print(() -> classModel.thisClass().index());
+            print("this_class: ");printPoolIndex(() -> classModel.thisClass());
             tab();
             print(() -> "// " + classModel.thisClass().asInternalName());
             println();
-            print("super_class: #");print(() -> classModel.superclass()
-                    .map(ClassEntry::index).orElse(0));
+            print("super_class: ");printPoolIndex(() -> classModel.superclass());
             try {
-                if (classModel.superclass().isPresent()) {
+                var sup = classModel.superclass();
+                if (sup != null) {
                     tab();
-                    print(() -> "// " + classModel.superclass().get().asInternalName());
+                    print(() -> "// " + sup.asInternalName());
                 }
             } catch (IllegalArgumentException e) {
                 report(e);
@@ -332,7 +335,7 @@ public class ClassWriter extends BasicWriter {
 
         private boolean isObject(Signature sig) {
             return (sig instanceof Signature.ClassTypeSig cts)
-                    && cts.outerType().isEmpty()
+                    && cts.outerType() == null
                     && cts.className().equals("java/lang/Object")
                     && (cts.typeArgs().isEmpty());
         }
@@ -344,10 +347,10 @@ public class ClassWriter extends BasicWriter {
                 for (var tp : tps) {
                     sb.append(sep).append(tp.identifier());
                     sep = " extends ";
-                    if (tp.classBound().isPresent()
-                            && (verbose || !isObject(tp.classBound().get()))) {
+                    if (tp.classBound() != null
+                            && (verbose || !isObject(tp.classBound()))) {
                         sb.append(sep);
-                        print(sb, tp.classBound().get());
+                        print(sb, tp.classBound());
                         sep = " & ";
                     }
                     for (var bound: tp.interfaceBounds()) {
@@ -365,8 +368,8 @@ public class ClassWriter extends BasicWriter {
             if (sig instanceof Signature.BaseTypeSig bts) {
                     sb.append(ClassDesc.ofDescriptor("" + bts.baseType()).displayName());
             } else if (sig instanceof Signature.ClassTypeSig cts) {
-                if (cts.outerType().isPresent()) {
-                    print(sb, cts.outerType().get());
+                if (cts.outerType() != null) {
+                    print(sb, cts.outerType());
                     sb.append(".");
                 }
                 sb.append(getJavaName(cts.className()));

@@ -344,12 +344,12 @@ public class Scan {
             }
 
             var superclass = curClass.superclass();
-            if (superclass.isEmpty()) { // reached Object
+            if (superclass == null) { // reached Object
                 curClass = null;
                 break;
             }
 
-            String superName = superclass.get().asInternalName();
+            String superName = superclass.asInternalName();
             curClass = finder.find(superName);
             if (curClass == null) {
                 errorNoClass(superName);
@@ -404,10 +404,10 @@ public class Scan {
      */
     void checkSuper(ClassModel cf)  {
         var superclass = cf.superclass();
-        if (superclass.isEmpty()) {
+        if (superclass == null) {
             return;
         }
-        String sname = superclass.get().asInternalName();
+        String sname = superclass.asInternalName();
         DeprData dd = db.getTypeDeprecated(sname);
         if (dd != null) {
             printType("scan.out.extends", cf, sname, dd.isForRemoval());

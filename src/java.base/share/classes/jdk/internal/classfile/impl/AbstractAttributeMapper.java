@@ -240,7 +240,7 @@ public sealed abstract class AbstractAttributeMapper<T extends Attribute<T>>
         @Override
         protected void writeBody(BufWriter buf, EnclosingMethodAttribute attr) {
             buf.writeIndex(attr.enclosingClass());
-            buf.writeIndexOrZero(attr.enclosingMethod().orElse(null));
+            buf.writeIndexOrZero(attr.enclosingMethod());
         }
     }
 
@@ -280,8 +280,8 @@ public sealed abstract class AbstractAttributeMapper<T extends Attribute<T>>
             buf.writeU2(classes.size());
             for (InnerClassInfo ic : classes) {
                 buf.writeIndex(ic.innerClass());
-                buf.writeIndexOrZero(ic.outerClass().orElse(null));
-                buf.writeIndexOrZero(ic.innerName().orElse(null));
+                buf.writeIndexOrZero(ic.outerClass());
+                buf.writeIndexOrZero(ic.innerName());
                 buf.writeU2(ic.flagsMask());
             }
         }
@@ -379,7 +379,7 @@ public sealed abstract class AbstractAttributeMapper<T extends Attribute<T>>
             List<MethodParameterInfo> parameters = attr.parameters();
             buf.writeU1(parameters.size());
             for (MethodParameterInfo info : parameters) {
-                buf.writeIndexOrZero(info.name().orElse(null));
+                buf.writeIndexOrZero(info.name());
                 buf.writeU2(info.flagsMask());
             }
         }
@@ -401,12 +401,12 @@ public sealed abstract class AbstractAttributeMapper<T extends Attribute<T>>
         protected void writeBody(BufWriter buf, ModuleAttribute attr) {
             buf.writeIndex(attr.moduleName());
             buf.writeU2(attr.moduleFlagsMask());
-            buf.writeIndexOrZero(attr.moduleVersion().orElse(null));
+            buf.writeIndexOrZero(attr.moduleVersion());
             buf.writeU2(attr.requires().size());
             for (ModuleRequireInfo require : attr.requires()) {
                 buf.writeIndex(require.requires());
                 buf.writeU2(require.requiresFlagsMask());
-                buf.writeIndexOrZero(require.requiresVersion().orElse(null));
+                buf.writeIndexOrZero(require.requiresVersion());
             }
             buf.writeU2(attr.exports().size());
             for (ModuleExportInfo export : attr.exports()) {

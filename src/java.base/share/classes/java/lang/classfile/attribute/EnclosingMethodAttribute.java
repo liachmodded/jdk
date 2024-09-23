@@ -26,7 +26,6 @@ package java.lang.classfile.attribute;
 
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
-import java.util.Optional;
 
 import java.lang.classfile.Attribute;
 import java.lang.classfile.ClassElement;
@@ -67,61 +66,67 @@ public sealed interface EnclosingMethodAttribute
 
     /**
      * {@return the name and type of the enclosing method, if the class is
-     * immediately enclosed by a method or constructor}
+     * immediately enclosed by a method or constructor, otherwise {@code null}}
      */
-    Optional<NameAndTypeEntry> enclosingMethod();
+    NameAndTypeEntry enclosingMethod();
 
     /**
      * {@return the name of the enclosing method, if the class is
-     * immediately enclosed by a method or constructor}
+     * immediately enclosed by a method or constructor, otherwise
+     * {@code null}}
      */
-    default Optional<Utf8Entry> enclosingMethodName() {
-        return enclosingMethod().map(NameAndTypeEntry::name);
+    default Utf8Entry enclosingMethodName() {
+        var em = enclosingMethod();
+        return em == null ? null : em.name();
     }
 
     /**
      * {@return the type of the enclosing method, if the class is
-     * immediately enclosed by a method or constructor}
+     * immediately enclosed by a method or constructor, otherwise
+     * {@code null}}
      */
-    default Optional<Utf8Entry> enclosingMethodType() {
-        return enclosingMethod().map(NameAndTypeEntry::type);
+    default Utf8Entry enclosingMethodType() {
+        var em = enclosingMethod();
+        return em == null ? null : em.type();
     }
 
     /**
      * {@return the type of the enclosing method, if the class is
-     * immediately enclosed by a method or constructor}
+     * immediately enclosed by a method or constructor, otherwise
+     * {@code null}}
      */
-    default Optional<MethodTypeDesc> enclosingMethodTypeSymbol() {
-        return enclosingMethod().map(Util::methodTypeSymbol);
+    default MethodTypeDesc enclosingMethodTypeSymbol() {
+        var em = enclosingMethod();
+        return em == null ? null : Util.methodTypeSymbol(em);
     }
 
     /**
      * {@return an {@code EnclosingMethod} attribute}
      * @param className the class name
-     * @param method the name and type of the enclosing method or {@code empty} if
+     * @param method the name and type of the enclosing method or {@code null} if
      *               the class is not immediately enclosed by a method or constructor
      */
     static EnclosingMethodAttribute of(ClassEntry className,
-                                       Optional<NameAndTypeEntry> method) {
-        return new UnboundAttribute.UnboundEnclosingMethodAttribute(className, method.orElse(null));
+                                       NameAndTypeEntry method) {
+        return new UnboundAttribute.UnboundEnclosingMethodAttribute(className, method);
     }
 
     /**
      * {@return an {@code EnclosingMethod} attribute}
      * @param className the class name
-     * @param methodName the name of the enclosing method or {@code empty} if
+     * @param methodName the name of the enclosing method or {@code null} if
      *                   the class is not immediately enclosed by a method or constructor
-     * @param methodType the type of the enclosing method or {@code empty} if
+     * @param methodType the type of the enclosing method or {@code null} if
      *                   the class is not immediately enclosed by a method or constructor
      * @throws IllegalArgumentException if {@code className} represents a primitive type
      */
     static EnclosingMethodAttribute of(ClassDesc className,
-                                       Optional<String> methodName,
-                                       Optional<MethodTypeDesc> methodType) {
+                                       String methodName,
+                                       MethodTypeDesc methodType) {
         return new UnboundAttribute.UnboundEnclosingMethodAttribute(
                         TemporaryConstantPool.INSTANCE.classEntry(className),
-                        methodName.isPresent() && methodType.isPresent()
-                                ? TemporaryConstantPool.INSTANCE.nameAndTypeEntry(methodName.get(), methodType.get())
+                        methodName != null && methodType != null
+                                ? TemporaryConstantPool.INSTANCE.nameAndTypeEntry(methodName, methodType)
                                 : null);
     }
 }

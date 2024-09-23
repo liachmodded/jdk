@@ -36,6 +36,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -577,7 +578,7 @@ public final class ClassPrinterImpl {
                 .with(leaf("class name", clm.thisClass().asInternalName()),
                       leaf("version", clm.majorVersion() + "." + clm.minorVersion()),
                       list("flags", "flag", clm.flags().flags().stream().map(AccessFlag::name)),
-                      leaf("superclass", clm.superclass().map(ClassEntry::asInternalName).orElse("")),
+                      leaf("superclass", Optional.ofNullable(clm.superclass()).map(ClassEntry::asInternalName).orElse("")),
                       list("interfaces", "interface", clm.interfaces().stream().map(ClassEntry::asInternalName)),
                       list("attributes", "attribute", clm.attributes().stream().map(Attribute::attributeName)))
                 .with(constantPoolToTree(clm.constantPool(), verbosity))
@@ -776,7 +777,7 @@ public final class ClassPrinterImpl {
                     com.labelToBci(exc.tryStart()),
                     com.labelToBci(exc.tryEnd()),
                     com.labelToBci(exc.handler()),
-                    exc.catchType().map(ct -> ct.name().stringValue()).orElse(null))).toList();
+                    Optional.ofNullable(exc.catchType()).map(ct -> ct.name().stringValue()).orElse(null))).toList();
             int bci = 0;
             for (var coe : com) {
                 if (coe instanceof Instruction ins) {
@@ -933,9 +934,9 @@ public final class ClassPrinterImpl {
                 case EnclosingMethodAttribute ema ->
                     nodes.add(map("enclosing method",
                             "class", ema.enclosingClass().name().stringValue(),
-                            "method name", ema.enclosingMethodName()
+                            "method name", Optional.ofNullable(ema.enclosingMethodName())
                                     .map(Utf8Entry::stringValue).orElse("null"),
-                            "method type", ema.enclosingMethodType()
+                            "method type", Optional.ofNullable(ema.enclosingMethodType())
                                     .map(Utf8Entry::stringValue).orElse("null")));
                 case ExceptionsAttribute exa ->
                     nodes.add(list("exceptions", "exc", exa.exceptions().stream()
@@ -944,16 +945,17 @@ public final class ClassPrinterImpl {
                     nodes.add(new ListNodeImpl(BLOCK, "inner classes", ica.classes().stream()
                             .map(ic -> new MapNodeImpl(FLOW, "cls").with(
                                 leaf("inner class", ic.innerClass().name().stringValue()),
-                                leaf("outer class", ic.outerClass()
+                                leaf("outer class", Optional.ofNullable(ic.outerClass())
                                         .map(cle -> cle.name().stringValue()).orElse("null")),
-                                leaf("inner name", ic.innerName().map(Utf8Entry::stringValue).orElse("null")),
+                                leaf("inner name", Optional.ofNullable(ic.innerName())
+                                        .map(Utf8Entry::stringValue).orElse("null")),
                                 list("flags", "flag", ic.flags().stream().map(AccessFlag::name))))));
                 case MethodParametersAttribute mpa -> {
                     var n = new MapNodeImpl(BLOCK, "method parameters");
                     for (int i = 0; i < mpa.parameters().size(); i++) {
                         var p = mpa.parameters().get(i);
                         n.with(new MapNodeImpl(FLOW, i + 1).with(
-                                leaf("name", p.name().map(Utf8Entry::stringValue).orElse("null")),
+                                leaf("name", Optional.ofNullable(p.name()).map(Utf8Entry::stringValue).orElse("null")),
                                 list("flags", "flag", p.flags().stream().map(AccessFlag::name))));
                     }
                 }
@@ -961,14 +963,14 @@ public final class ClassPrinterImpl {
                     nodes.add(new MapNodeImpl(BLOCK, "module")
                             .with(leaf("name", ma.moduleName().name().stringValue()),
                                   list("flags","flag", ma.moduleFlags().stream().map(AccessFlag::name)),
-                                  leaf("version", ma.moduleVersion().map(Utf8Entry::stringValue).orElse("null")),
+                                  leaf("version", Optional.ofNullable(ma.moduleVersion()).map(Utf8Entry::stringValue).orElse("null")),
                                   list("uses", "class", ma.uses().stream().map(ce -> ce.name().stringValue())),
                                   new ListNodeImpl(BLOCK, "requires", ma.requires().stream().map(req ->
                                     new MapNodeImpl(FLOW, "req").with(
                                             leaf("name", req.requires().name().stringValue()),
                                             list("flags", "flag", req.requiresFlags().stream()
                                                     .map(AccessFlag::name)),
-                                            leaf("version", req.requiresVersion()
+                                            leaf("version", Optional.ofNullable(req.requiresVersion())
                                                     .map(Utf8Entry::stringValue).orElse(null))))),
                                   new ListNodeImpl(BLOCK, "exports", ma.exports().stream().map(exp ->
                                     new MapNodeImpl(FLOW, "exp").with(

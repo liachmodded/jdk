@@ -183,10 +183,10 @@ public class EnclosingMethodTest extends TestResult {
                 String expectedMethodName = enclosingMethod.enclosingMethod();
                 if (expectedMethodName.isEmpty()) {
                     // class does not have an enclosing method
-                    checkEquals(attr.enclosingMethod().isPresent()? attr.enclosingMethod().get().index(): 0, 0, String.format(
+                    checkEquals(attr.enclosingMethod() != null ? attr.enclosingMethod().index(): 0, 0, String.format(
                             "enclosing method of EnclosingMethod attribute in the class %s is null", className));
                 } else {
-                    String methodName = attr.enclosingMethodName().get().stringValue() + attr.enclosingMethodType().get().stringValue();
+                    String methodName = attr.enclosingMethodName().stringValue() + attr.enclosingMethodType().stringValue();
                     checkTrue(methodName.startsWith(expectedMethodName), String.format(
                             "enclosing method of EnclosingMethod attribute in the class %s" +
                                     " is method name %s" +

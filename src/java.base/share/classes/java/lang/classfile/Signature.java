@@ -126,7 +126,7 @@ public sealed interface Signature {
             permits SignaturesImpl.ClassTypeSigImpl {
 
         /** {@return the signature of the outer type, if any} */
-        Optional<ClassTypeSig> outerType();
+        ClassTypeSig outerType();
 
         /** {@return the class name} */
         String className();
@@ -134,8 +134,8 @@ public sealed interface Signature {
         /** {@return the class name, as a symbolic descriptor} */
         default ClassDesc classDesc() {
             var outer = outerType();
-            return outer.isEmpty() ? ClassDesc.ofInternalName(className())
-                    : outer.get().classDesc().nested(className());
+            return outer == null ? ClassDesc.ofInternalName(className())
+                    : outer.classDesc().nested(className());
         }
 
         /** {@return the type arguments of the class} */
@@ -178,7 +178,7 @@ public sealed interface Signature {
          */
         public static ClassTypeSig of(ClassTypeSig outerType, String className, TypeArg... typeArgs) {
             requireNonNull(className);
-            return new SignaturesImpl.ClassTypeSigImpl(Optional.ofNullable(outerType), className.replace(".", "/"), List.of(typeArgs));
+            return new SignaturesImpl.ClassTypeSigImpl(outerType, className.replace(".", "/"), List.of(typeArgs));
         }
     }
 
@@ -360,8 +360,8 @@ public sealed interface Signature {
         /** {@return the name of the type parameter} */
         String identifier();
 
-        /** {@return the class bound of the type parameter} */
-        Optional<RefTypeSig> classBound();
+        /** {@return the class bound of the type parameter, may be {@code null}} */
+        RefTypeSig classBound();
 
         /** {@return the interface bounds of the type parameter} */
         List<RefTypeSig> interfaceBounds();
@@ -375,20 +375,7 @@ public sealed interface Signature {
         public static TypeParam of(String identifier, RefTypeSig classBound, RefTypeSig... interfaceBounds) {
             return new SignaturesImpl.TypeParamImpl(
                     requireNonNull(identifier),
-                    Optional.ofNullable(classBound),
-                    List.of(interfaceBounds));
-        }
-
-        /**
-         * {@return a signature for a type parameter}
-         * @param identifier the name of the type parameter
-         * @param classBound the class bound of the type parameter
-         * @param interfaceBounds the interface bounds of the type parameter
-         */
-        public static TypeParam of(String identifier, Optional<RefTypeSig> classBound, RefTypeSig... interfaceBounds) {
-            return new SignaturesImpl.TypeParamImpl(
-                    requireNonNull(identifier),
-                    requireNonNull(classBound),
+                    classBound,
                     List.of(interfaceBounds));
         }
     }

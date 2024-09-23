@@ -176,7 +176,7 @@ public class T7093325 extends ComboInstance<T7093325> {
 
             int actualGapsCount = 0;
             for (int i = 0; i < code.exceptionHandlers().size() ; i++) {
-                ClassEntry catchType = code.exceptionHandlers().get(i).catchType().orElse(null);
+                ClassEntry catchType = code.exceptionHandlers().get(i).catchType();
                 if (catchType == null) { //any
                     actualGapsCount++;
                 }

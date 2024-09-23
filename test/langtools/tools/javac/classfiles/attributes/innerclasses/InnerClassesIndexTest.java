@@ -81,11 +81,11 @@ public class InnerClassesIndexTest extends TestResult {
                     continue;
                 }
                 foundClasses.add(innerName);
-                ClassEntry out = info.outerClass().orElse(null);
+                ClassEntry out = info.outerClass();
                 checkEquals(out == null? 0: out.index(), 0,
                         "outer_class_info_index of " + innerName);
                 if (innerName.matches("\\$\\d+")) {
-                    checkEquals(Objects.requireNonNull(info.innerName().orElse(null)).index(), 0,
+                    checkEquals(Objects.requireNonNull(info.innerName()).index(), 0,
                             "inner_name_index of anonymous class");
                 }
             }

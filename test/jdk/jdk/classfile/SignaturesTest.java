@@ -99,7 +99,7 @@ class SignaturesTest {
         assertEqualsDeep(
                 MethodSignature.of(
                         List.of(
-                                TypeParam.of("T", Optional.empty(), ClassTypeSig.of(ClassDesc.of("java.lang.annotation.Annotation")))),
+                                TypeParam.of("T", null, ClassTypeSig.of(ClassDesc.of("java.lang.annotation.Annotation")))),
                         List.of(
                                 ClassTypeSig.of(ClassDesc.of("java.lang.IOException")),
                                 ClassTypeSig.of(ClassDesc.of("java.lang.IllegalAccessError"))),

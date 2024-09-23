@@ -41,14 +41,14 @@ import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.attribute.MethodParameterInfo;
 import java.lang.classfile.attribute.MethodParametersAttribute;
 import java.lang.classfile.constantpool.ConstantPoolException;
+import java.lang.classfile.constantpool.Utf8Entry;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.MethodTypeDesc;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class BoundAttributeTest {
 
@@ -61,7 +61,7 @@ class BoundAttributeTest {
             builder.withMethod("method", methodTypeDesc, 0, mb -> {
                 mb.withCode(CodeBuilder::return_);
                 // add a MethodParameters attribute without name for the parameter
-                mb.with(MethodParametersAttribute.of(MethodParameterInfo.ofParameter(Optional.empty(), 0)));
+                mb.with(MethodParametersAttribute.of(MethodParameterInfo.of((Utf8Entry) null, 0)));
             });
         });
         ClassModel model = cc.parse(raw);
@@ -70,7 +70,7 @@ class BoundAttributeTest {
                 .orElseThrow(() -> new AssertionFailedError("Attribute not present"));
         // MethodParametersAttribute#parameters() materializes the parameters
         List<MethodParameterInfo> parameters = assertDoesNotThrow(methodParametersAttribute::parameters);
-        assertTrue(parameters.get(0).name().isEmpty());
+        assertNull(parameters.get(0).name());
     }
 
     @Test

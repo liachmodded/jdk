@@ -188,7 +188,7 @@ public class MethodParametersTest {
             if (methodElement instanceof MethodParametersAttribute a) {
                 List<MethodParameterInfo> newParameterInfos = new ArrayList<>();
                 for (MethodParameterInfo info : a.parameters()) {
-                    newParameterInfos.add(MethodParameterInfo.ofParameter("baz".describeConstable(), info.flagsMask()));
+                    newParameterInfos.add(MethodParameterInfo.of("baz".describeConstable().orElse(null), info.flagsMask()));
                 }
                 a = MethodParametersAttribute.of(newParameterInfos);
                 methodBuilder.with(a);
@@ -226,13 +226,13 @@ public class MethodParametersTest {
                         if (2 != mp.parameters().size())
                             error("expected 2 method parameter entries in foo2, got " +
                                   mp.parameters().size());
-                        else if (!mp.parameters().get(0).name().orElseThrow().equalsString("j"))
+                        else if (!mp.parameters().get(0).name().equalsString("j"))
                             error("expected first parameter to foo2 to be \"j\", got \"" +
-                                  mp.parameters().get(0).name().orElseThrow().stringValue() +
+                                  mp.parameters().get(0).name().stringValue() +
                                   "\" instead");
-                        else if  (!mp.parameters().get(1).name().orElseThrow().equalsString("k"))
+                        else if  (!mp.parameters().get(1).name().equalsString("k"))
                             error("expected first parameter to foo2 to be \"k\", got \"" +
-                                 mp.parameters().get(1).name().orElseThrow() +
+                                 mp.parameters().get(1).name() +
                                   "\" instead");
                     }
             }
@@ -268,9 +268,9 @@ public class MethodParametersTest {
                         if (1 != mp.parameters().size())
                             error("expected 1 method parameter entries in constructor, got " +
                                   mp.parameters().size());
-                        else if (!mp.parameters().get(0).name().orElseThrow().equalsString("i"))
+                        else if (!mp.parameters().get(0).name().equalsString("i"))
                             error("expected first parameter to foo2 to be \"i\", got \"" +
-                                  mp.parameters().get(0).name().orElseThrow() +
+                                  mp.parameters().get(0).name() +
                                   "\" instead");
                     }
             }

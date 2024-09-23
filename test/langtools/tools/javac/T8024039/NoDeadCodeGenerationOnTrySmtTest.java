@@ -114,7 +114,7 @@ public class NoDeadCodeGenerationOnTrySmtTest {
                         Assert.check(code.labelToBci(entry.tryStart()) == expectedExceptionTable[i][0] &&
                                      code.labelToBci(entry.tryEnd()) == expectedExceptionTable[i][1] &&
                                      code.labelToBci(entry.handler()) == expectedExceptionTable[i][2] &&
-                                     (entry.catchType().isPresent()? entry.catchType().get().index(): 0)== expectedExceptionTable[i][3],
+                                     (entry.catchType() != null ? entry.catchType().index(): 0)== expectedExceptionTable[i][3],
                                 "Exception table entry at pos " + i + " differ from expected.");
                         i++;
                     }

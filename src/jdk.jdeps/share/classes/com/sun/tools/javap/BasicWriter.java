@@ -27,6 +27,7 @@ package com.sun.tools.javap;
 
 import java.io.PrintWriter;
 import java.lang.classfile.AccessFlags;
+import java.lang.classfile.constantpool.PoolEntry;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Modifier;
 import java.util.EnumMap;
@@ -100,6 +101,13 @@ public class BasicWriter {
         } catch (IllegalArgumentException e) {
             print(report(e));
         }
+    }
+
+    protected void printPoolIndex(Supplier<? extends PoolEntry> cpGetter) {
+        print(() -> {
+            var p = cpGetter.get();
+            return "#" + (p == null ? 0 : p.index());
+        });
     }
 
     protected void println() {

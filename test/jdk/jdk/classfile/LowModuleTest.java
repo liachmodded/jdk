@@ -88,12 +88,12 @@ class LowModuleTest {
                     ModuleAttribute mal = (ModuleAttribute) attr;
                     ModuleEntry mni = mal.moduleName();
                     int mf = mal.moduleFlagsMask();
-                    Utf8Entry mv = mal.moduleVersion().orElse(null);
+                    Utf8Entry mv = mal.moduleVersion();
                     printf("Module %s [%d] %s%n", mni, mf, mv);
                     for (ModuleRequireInfo r : mal.requires()) {
                         ModuleEntry rm = r.requires();
                         int ri = r.requiresFlagsMask();
-                        Utf8Entry rv = r.requiresVersion().orElse(null);
+                        Utf8Entry rv = r.requiresVersion();
                         printf("  Requires %s [%d] %s%n", rm, ri, rv);
                     }
                     for (ModuleExportInfo e : mal.exports()) {

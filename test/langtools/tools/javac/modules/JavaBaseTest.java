@@ -219,7 +219,7 @@ public class JavaBaseTest {
                         case "transitive" -> flags |= ClassFile.ACC_TRANSITIVE;
                     }
                 }
-                e2 = ModuleRequireInfo.of(e1.requires(), flags, e1.requiresVersion().orElse(null));
+                e2 = ModuleRequireInfo.of(e1.requires(), flags, e1.requiresVersion());
             } else {
                 e2 = e1;
             }
@@ -229,7 +229,7 @@ public class JavaBaseTest {
         ModuleAttribute modAttr2 = ModuleAttribute.of(
                 modAttr1.moduleName(),
                 modAttr1.moduleFlagsMask(),
-                modAttr1.moduleVersion().orElse(null),
+                modAttr1.moduleVersion(),
                 requires,
                 modAttr1.exports(),
                 modAttr1.opens(),

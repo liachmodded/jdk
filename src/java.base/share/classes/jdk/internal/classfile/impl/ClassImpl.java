@@ -125,7 +125,7 @@ public final class ClassImpl
     }
 
     @Override
-    public Optional<ClassEntry> superclass() {
+    public ClassEntry superclass() {
         return reader.superclassEntry();
     }
 
@@ -159,12 +159,9 @@ public final class ClassImpl
     public void forEach(Consumer<? super ClassElement> consumer) {
         consumer.accept(flags());
         consumer.accept(ClassFileVersion.of(majorVersion(), minorVersion()));
-        superclass().ifPresent(new Consumer<ClassEntry>() {
-            @Override
-            public void accept(ClassEntry entry) {
-                consumer.accept(Superclass.of(entry));
-            }
-        });
+        var superclass = superclass();
+        if (superclass != null)
+            consumer.accept(Superclass.of(superclass));
         consumer.accept(Interfaces.of(interfaces()));
         fields().forEach(consumer);
         methods().forEach(consumer);
@@ -191,7 +188,7 @@ public final class ClassImpl
         return flags.has(AccessFlag.MODULE)
                && majorVersion() >= ClassFile.JAVA_9_VERSION
                && thisClass().asInternalName().equals("module-info")
-               && (superclass().isEmpty())
+               && superclass() == null
                && interfaces().isEmpty()
                && fields().isEmpty()
                && methods().isEmpty()

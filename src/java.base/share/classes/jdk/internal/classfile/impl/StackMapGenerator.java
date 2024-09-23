@@ -300,8 +300,8 @@ public final class StackMapGenerator {
                 if (end_pc > exMax) exMax = end_pc;
                 var catchType = exhandler.catchType();
                 rawHandlers.add(new RawExceptionCatch(start_pc, end_pc, handler_pc,
-                        catchType.isPresent() ? cpIndexToType(catchType.get().index(), cp)
-                                              : Type.THROWABLE_TYPE));
+                        catchType != null ? cpIndexToType(catchType.index(), cp)
+                                          : Type.THROWABLE_TYPE));
             }
         }
         BitSet frameOffsets = detectFrameOffsets();

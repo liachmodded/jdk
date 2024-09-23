@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -91,7 +92,7 @@ public record ClassRecord(
                 cl.majorVersion(),
                 cl.minorVersion(),
                 cl.thisClass().asInternalName(),
-                cl.superclass().map(ClassEntry::asInternalName).orElse(null),
+                Optional.ofNullable(cl.superclass()).map(ClassEntry::asInternalName).orElse(null),
                 cl.interfaces().stream().map(ClassEntry::asInternalName).collect(toSet()),
                 cl.flags().flagsMask(),
                 cl.constantPool(),
@@ -119,7 +120,7 @@ public record ClassRecord(
                 cl.majorVersion(),
                 cl.minorVersion(),
                 cl.thisClass().asInternalName(),
-                cl.superclass().map(ClassEntry::asInternalName).orElse(null),
+                Optional.ofNullable(cl.superclass()).map(ClassEntry::asInternalName).orElse(null),
                 cl.interfaces().stream().map(ci -> ci.asInternalName()).collect(toSet()),
                 Flags.toString(cl.flags().flagsMask(), false),
                 cl.fields().stream().collect(toMap(f -> f.fieldName().stringValue() + f.fieldType().stringValue(), f -> FieldRecord.ofFieldModel(f, compatibilityFilter))),
@@ -598,7 +599,7 @@ public record ClassRecord(
                         code.targetIndex(labelContext.labelToBci(et.tryStart())),
                         code.targetIndex(labelContext.labelToBci(et.tryEnd())),
                         code.targetIndex(labelContext.labelToBci(et.handler())),
-                        et.catchType().map(ct -> ConstantPoolEntryRecord.ofCPEntry(ct)).orElse(null));
+                        et.catchType() == null ? null : ConstantPoolEntryRecord.ofCPEntry(et.catchType()));
             }
         }
     }
@@ -610,7 +611,7 @@ public record ClassRecord(
         public static EnclosingMethodRecord ofEnclosingMethodAttribute(EnclosingMethodAttribute ema) {
             return new EnclosingMethodRecord(
                     ema.enclosingClass().asInternalName(),
-                    ema.enclosingMethod().map(m -> ConstantPoolEntryRecord.ofCPEntry(m)).orElse(null));
+                    ema.enclosingMethod() == null ? null : ConstantPoolEntryRecord.ofCPEntry(ema.enclosingMethod()));
         }
     }
 
@@ -623,8 +624,8 @@ public record ClassRecord(
         public static InnerClassRecord ofInnerClassInfo(InnerClassInfo ic) {
             return new InnerClassRecord(
                     ic.innerClass().asInternalName(),
-                    ic.innerName().map(Utf8Entry::stringValue).orElse(null),
-                    ic.outerClass().map(ClassEntry::asInternalName).orElse(null),
+                    ic.innerName() == null ? null : ic.innerName().stringValue(),
+                    ic.outerClass() == null ? null : ic.outerClass().asInternalName(),
                     Flags.toString(ic.flagsMask(), false));
         }
     }
@@ -690,7 +691,7 @@ public record ClassRecord(
             int accessFlags) {
 
         public static MethodParameterRecord ofMethodParameter(MethodParameterInfo mp) {
-            return new MethodParameterRecord(mp.name().map(Utf8Entry::stringValue).orElse(null), mp.flagsMask());
+            return new MethodParameterRecord(mp.name() == null ? null : mp.name().stringValue(), mp.flagsMask());
         }
     }
 
@@ -708,7 +709,7 @@ public record ClassRecord(
             return new ModuleRecord(
                     m.moduleName().name().stringValue(),
                     m.moduleFlagsMask(),
-                    m.moduleVersion().map(mv -> mv.stringValue()).orElse(null),
+                    m.moduleVersion() == null ? null : m.moduleVersion().stringValue(),
                     m.requires().stream().map(r -> RequiresRecord.ofRequire(r)).collect(toSet()),
                     m.exports().stream().map(e -> ExportsRecord.ofExport(e)).collect(toSet()),
                     m.opens().stream().map(o -> OpensRecord.ofOpen(o)).collect(toSet()),
@@ -722,7 +723,7 @@ public record ClassRecord(
                 String requiresVersion) {
 
             public static RequiresRecord ofRequire(ModuleRequireInfo r) {
-                return new RequiresRecord(r.requires().name().stringValue(), r.requiresFlagsMask(), r.requiresVersion().map(v -> v.stringValue()).orElse(null));
+                return new RequiresRecord(r.requires().name().stringValue(), r.requiresFlagsMask(), r.requiresVersion() == null ? null : r.requiresVersion().stringValue());
             }
         }
 

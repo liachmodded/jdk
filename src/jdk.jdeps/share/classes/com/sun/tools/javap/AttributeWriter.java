@@ -176,12 +176,13 @@ public class AttributeWriter extends BasicWriter {
             }
             case DeprecatedAttribute attr -> println("Deprecated: true");
             case EnclosingMethodAttribute attr -> {
-                print("EnclosingMethod: #" + attr.enclosingClass().index() + ".#"
-                        +  attr.enclosingMethod().map(PoolEntry::index).orElse(0));
+                print("EnclosingMethod: #" + attr.enclosingClass().index() + ".");
+                printPoolIndex(attr::enclosingMethod);
                 tab();
                 print("// " + getJavaName(attr.enclosingClass().asInternalName()));
-                if (attr.enclosingMethod().isPresent())
-                    print("." + attr.enclosingMethod().get().name().stringValue());
+                var em = attr.enclosingMethod();
+                if (em != null)
+                    print("." + em.name().stringValue());
                 println();
             }
             case ExceptionsAttribute attr -> {
@@ -214,23 +215,23 @@ public class AttributeWriter extends BasicWriter {
                                 print(Modifier.toString(flag.mask()) + " ");
                             }
                         }
-                        if (info.innerName().isPresent()) {
-                            print("#" + info.innerName().get().index() + "= ");
+                        if (info.innerName() != null) {
+                            print("#" + info.innerName().index() + "= ");
                         }
                         print("#" + info.innerClass().index());
-                        if (info.outerClass().isPresent()) {
-                            print(" of #" + info.outerClass().get().index());
+                        if (info.outerClass() != null) {
+                            print(" of #" + info.outerClass().index());
                         }
                         print(";");
                         tab();
                         print("// ");
-                        if (info.innerName().isPresent()) {
-                            print(info.innerName().get().stringValue() + "=");
+                        if (info.innerName() != null) {
+                            print(info.innerName().stringValue() + "=");
                         }
                         constantWriter.write(info.innerClass().index());
-                        if (info.outerClass().isPresent()) {
+                        if (info.outerClass() != null) {
                             print(" of ");
-                            constantWriter.write(info.outerClass().get().index());
+                            constantWriter.write(info.outerClass().index());
                         }
                         println();
                     }
@@ -281,9 +282,8 @@ public class AttributeWriter extends BasicWriter {
                 indent(+1);
                 println(header);
                 for (var entry : attr.parameters()) {
-                    String namestr =
-                        entry.name().isPresent() ?
-                        constantWriter.stringValue(entry.name().get()) : "<no name>";
+                    var name = entry.name();
+                    String namestr = name == null ? "<no name>" : constantWriter.stringValue(entry.name());
                     String flagstr =
                         (entry.has(AccessFlag.FINAL) ? "final " : "") +
                         (entry.has(AccessFlag.MANDATED) ? "mandated " : "") +
@@ -309,10 +309,10 @@ public class AttributeWriter extends BasicWriter {
                     print(" ACC_SYNTHETIC");
                 println();
                 var ver = attr.moduleVersion();
-                print("#" + ver.map(Utf8Entry::index).orElse(0));
-                if (ver.isPresent()) {
+                printPoolIndex(attr::moduleVersion);
+                if (ver != null) {
                     tab();
-                    print("// " + constantWriter.stringValue(ver.get()));
+                    print("// " + constantWriter.stringValue(ver));
                 }
                 println();
                 {
@@ -336,10 +336,10 @@ public class AttributeWriter extends BasicWriter {
                             print(" ACC_MANDATED");
                         println();
                         var reqVer = e.requiresVersion();
-                        print("#" + reqVer.map(Utf8Entry::index).orElse(0));
-                        if (reqVer.isPresent()) {
+                        printPoolIndex(e::requiresVersion);
+                        if (reqVer != null) {
                             tab();
-                            print("// " + constantWriter.stringValue(reqVer.get()));
+                            print("// " + constantWriter.stringValue(reqVer));
                         }
                         println();
                     }

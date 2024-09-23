@@ -29,6 +29,7 @@
  * @run junit VerifierSelfTest
  */
 import java.io.IOException;
+import java.lang.classfile.constantpool.Utf8Entry;
 import java.lang.constant.ClassDesc;
 import static java.lang.constant.ConstantDescs.*;
 import java.lang.invoke.MethodHandleInfo;
@@ -145,8 +146,8 @@ class VerifierSelfTest {
             patch(clb,
                 CompilationIDAttribute.of("12345"),
                 DeprecatedAttribute.of(),
-                EnclosingMethodAttribute.of(cd_test, Optional.empty(), Optional.empty()),
-                InnerClassesAttribute.of(InnerClassInfo.of(cd_test, Optional.of(cd_test), Optional.of("inner"), 0)),
+                EnclosingMethodAttribute.of(cd_test, null, null),
+                InnerClassesAttribute.of(InnerClassInfo.of(cd_test, cd_test, "inner", 0)),
                 ModuleAttribute.of(ModuleDesc.of("m"), mab -> {}),
                 ModuleHashesAttribute.of("alg", List.of()),
                 ModuleMainClassAttribute.of(cd_test),
@@ -187,7 +188,7 @@ class VerifierSelfTest {
                             AnnotationDefaultAttribute.of(AnnotationValue.ofInt(0)),
                             DeprecatedAttribute.of(),
                             ExceptionsAttribute.ofSymbols(CD_Exception),
-                            MethodParametersAttribute.of(MethodParameterInfo.ofParameter(Optional.empty(), 0)),
+                            MethodParametersAttribute.of(MethodParameterInfo.of((Utf8Entry) null, 0)),
                             RuntimeVisibleAnnotationsAttribute.of(),
                             RuntimeInvisibleAnnotationsAttribute.of(),
                             RuntimeVisibleParameterAnnotationsAttribute.of(List.of()),

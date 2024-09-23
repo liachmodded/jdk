@@ -91,9 +91,9 @@ public sealed interface ModuleAttribute
     }
 
     /**
-     * {@return the version of the module, if present}
+     * {@return the version of the module, may be {@code null}}
      */
-    Optional<Utf8Entry> moduleVersion();
+    Utf8Entry moduleVersion();
 
     /**
      * {@return the modules required by this module}

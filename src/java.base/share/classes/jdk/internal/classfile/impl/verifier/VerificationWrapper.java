@@ -34,6 +34,7 @@ import java.lang.classfile.constantpool.DynamicConstantPoolEntry;
 import java.lang.classfile.constantpool.MemberRefEntry;
 import java.lang.classfile.constantpool.NameAndTypeEntry;
 import java.lang.reflect.AccessFlag;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.lang.classfile.ClassModel;
 import java.lang.classfile.constantpool.ConstantPool;
@@ -62,7 +63,7 @@ public final class VerificationWrapper {
     }
 
     String superclassName() {
-        return clm.superclass().map(ClassEntry::asInternalName).orElse(null);
+        return Optional.ofNullable(clm.superclass()).map(ClassEntry::asInternalName).orElse(null);
     }
 
     Iterable<String> interfaceNames() {

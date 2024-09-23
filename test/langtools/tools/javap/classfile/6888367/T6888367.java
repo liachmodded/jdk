@@ -88,7 +88,7 @@ public class T6888367 {
                 cm.findAttribute(Attributes.innerClasses()).orElse(null);
         assert ic != null;
         for (InnerClassInfo info: ic.classes()) {
-            ClassEntry outerClass = info.outerClass().orElse(null);
+            ClassEntry outerClass = info.outerClass();
             if (outerClass == null || !outerClass.name().equalsString(cm.getClass().getName())) {
                 continue;
             }
@@ -286,8 +286,8 @@ public class T6888367 {
         public String visitClassType(Signature.ClassTypeSig type) {
             StringBuilder sb = new StringBuilder();
             sb.append("C{");
-            if (type.outerType().isPresent()) {
-                sb.append(print(type.outerType().get()));
+            if (type.outerType() != null) {
+                sb.append(print(type.outerType()));
                 sb.append(".");
             }
             sb.append(type.className());
@@ -301,9 +301,9 @@ public class T6888367 {
             StringBuilder sb = new StringBuilder();
             sb.append("TA{");
             sb.append(type.identifier());
-            if (type.classBound().isPresent()) {
+            if (type.classBound() != null) {
                 sb.append(":c");
-                sb.append(print(type.classBound().get()));
+                sb.append(print(type.classBound()));
             }
             if (!type.interfaceBounds().isEmpty())
                 sb.append(print(":i", type.interfaceBounds(), ""));

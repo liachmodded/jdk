@@ -156,7 +156,7 @@ public class GetSimpleNameTest {
         void makeCtxk(ClassBuilder clb, boolean isInner) {
             if (isInner) {
                 clb.with(EnclosingMethodAttribute.of(outerName,
-                        Optional.of("f"), Optional.of(MTD_void)));
+                        "f", MTD_void));
             } else {
                 clb.withMethodBody("f", MTD_void, ACC_PUBLIC | ACC_STATIC,
                         CodeBuilder::return_);
@@ -170,8 +170,8 @@ public class GetSimpleNameTest {
                 clb.withFlags(AccessFlag.PUBLIC, AccessFlag.SUPER);
                 clb.with(InnerClassesAttribute.of(
                         InnerClassInfo.of(innerName,
-                                Optional.of(outerName),
-                                Optional.of(simpleName))));
+                                outerName,
+                                simpleName)));
                 makeDefaultCtor(clb);
             });
         }
@@ -183,8 +183,8 @@ public class GetSimpleNameTest {
                 clb.withFlags(AccessFlag.PUBLIC, AccessFlag.SUPER);
                 clb.with(InnerClassesAttribute.of(
                         InnerClassInfo.of(innerName,
-                                Optional.of(outerName),
-                                Optional.of(simpleName),
+                                outerName,
+                                simpleName,
                                 AccessFlag.PUBLIC)));
                 makeDefaultCtor(clb);
             });
@@ -197,8 +197,8 @@ public class GetSimpleNameTest {
                 clb.withFlags(AccessFlag.PUBLIC, AccessFlag.SUPER);
                 clb.with(InnerClassesAttribute.of(
                         InnerClassInfo.of(innerName,
-                                Optional.empty(),
-                                Optional.of(simpleName),
+                                null,
+                                simpleName,
                                 AccessFlag.PUBLIC, AccessFlag.STATIC)));
                 makeDefaultCtor(clb);
                 makeCtxk(clb, isInner);
@@ -212,8 +212,8 @@ public class GetSimpleNameTest {
                 clb.withFlags(AccessFlag.PUBLIC, AccessFlag.SUPER);
                 clb.with(InnerClassesAttribute.of(
                         InnerClassInfo.of(innerName,
-                                Optional.empty(),
-                                Optional.empty(),
+                                null,
+                                null,
                                 AccessFlag.PUBLIC, AccessFlag.STATIC)));
                 makeDefaultCtor(clb);
                 makeCtxk(clb, isInner);

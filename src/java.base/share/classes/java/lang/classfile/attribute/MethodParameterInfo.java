@@ -44,11 +44,9 @@ import jdk.internal.javac.PreviewFeature;
 public sealed interface MethodParameterInfo
         permits UnboundAttribute.UnboundMethodParameterInfo {
     /**
-     * The name of the method parameter, if there is one.
-     *
-     * @return the parameter name, if it has one
+     * {@return the name of the method parameter, or {@code null} if the name is absent}
      */
-    Optional<Utf8Entry> name();
+    Utf8Entry name();
 
     /**
      * Parameter access flags for this parameter, as a bit mask.  Valid
@@ -81,7 +79,7 @@ public sealed interface MethodParameterInfo
      * @param name the method parameter name
      * @param flags the method parameter access flags
      */
-    static MethodParameterInfo of(Optional<Utf8Entry> name, int flags) {
+    static MethodParameterInfo of(Utf8Entry name, int flags) {
         return new UnboundAttribute.UnboundMethodParameterInfo(name, flags);
     }
 
@@ -90,8 +88,8 @@ public sealed interface MethodParameterInfo
      * @param name the method parameter name
      * @param flags the method parameter access flags
      */
-    static MethodParameterInfo of(Optional<String> name, AccessFlag... flags) {
-        return of(name.map(TemporaryConstantPool.INSTANCE::utf8Entry), Util.flagsToBits(AccessFlag.Location.METHOD_PARAMETER, flags));
+    static MethodParameterInfo of(String name, AccessFlag... flags) {
+        return of(name == null ? null : TemporaryConstantPool.INSTANCE.utf8Entry(name), Util.flagsToBits(AccessFlag.Location.METHOD_PARAMETER, flags));
     }
 
     /**
@@ -99,7 +97,7 @@ public sealed interface MethodParameterInfo
      * @param name the method parameter name
      * @param flags the method parameter access flags
      */
-    static MethodParameterInfo ofParameter(Optional<String> name, int flags) {
-        return of(name.map(TemporaryConstantPool.INSTANCE::utf8Entry), flags);
+    static MethodParameterInfo of(String name, int flags) {
+        return of(name == null ? null : TemporaryConstantPool.INSTANCE.utf8Entry(name), flags);
     }
 }

@@ -106,7 +106,7 @@ class ModuleBuilderTest {
         var attr =cm.findAttribute(Attributes.module()).get();
         assertEquals(attr.moduleName().name().stringValue(), modName.name());
         assertEquals(attr.moduleFlagsMask(), 0);
-        assertEquals(attr.moduleVersion().get().stringValue(), modVsn);
+        assertEquals(attr.moduleVersion().stringValue(), modVsn);
     }
 
     @Test
@@ -119,12 +119,12 @@ class ModuleBuilderTest {
         assertEquals(attr.requires().size(), 2);
         ModuleRequireInfo r = attr.requires().get(0);
         assertEquals(r.requires().name().stringValue(), require1.name());
-        assertEquals(r.requiresVersion().get().stringValue(), vsn1);
+        assertEquals(r.requiresVersion().stringValue(), vsn1);
         assertEquals(r.requiresFlagsMask(), 77);
 
         r = attr.requires().get(1);
         assertEquals(r.requires().name().stringValue(), require2.name());
-        assertEquals(r.requiresVersion().get().stringValue(), vsn2);
+        assertEquals(r.requiresVersion().stringValue(), vsn2);
         assertEquals(r.requiresFlagsMask(), 99);
     }
 

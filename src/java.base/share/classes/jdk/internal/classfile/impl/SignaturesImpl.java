@@ -115,7 +115,7 @@ public final class SignaturesImpl {
                         interfaceBounds = new ArrayList<>();
                     interfaceBounds.add(referenceTypeSig());
                 }
-                typeParamTypes.add(new TypeParamImpl(name, Optional.ofNullable(classBound), null2Empty(interfaceBounds)));
+                typeParamTypes.add(new TypeParamImpl(name, classBound, null2Empty(interfaceBounds)));
             } while (!match('>'));
         }
         return null2Empty(typeParamTypes);
@@ -187,7 +187,7 @@ public final class SignaturesImpl {
 
             boolean end = match(';');
             if (end || match('.')) {
-                t = new ClassTypeSigImpl(Optional.ofNullable(t), className, null2Empty(argTypes));
+                t = new ClassTypeSigImpl(t, className, null2Empty(argTypes));
                 if (end)
                     return t;
             } else {
@@ -265,14 +265,14 @@ public final class SignaturesImpl {
         }
     }
 
-    public static record ClassTypeSigImpl(Optional<ClassTypeSig> outerType, String className, List<Signature.TypeArg> typeArgs)
+    public static record ClassTypeSigImpl(ClassTypeSig outerType, String className, List<Signature.TypeArg> typeArgs)
             implements Signature.ClassTypeSig {
 
         @Override
         public String signatureString() {
             String prefix = "L";
-            if (outerType.isPresent()) {
-                prefix = outerType.get().signatureString();
+            if (outerType != null) {
+                prefix = outerType.signatureString();
                 assert prefix.charAt(prefix.length() - 1) == ';';
                 prefix = prefix.substring(0, prefix.length() - 1) + '.';
             }
@@ -305,7 +305,7 @@ public final class SignaturesImpl {
     public static record TypeArgImpl(WildcardIndicator wildcardIndicator, RefTypeSig boundType) implements Signature.TypeArg.Bounded {
     }
 
-    public static record TypeParamImpl(String identifier, Optional<RefTypeSig> classBound, List<RefTypeSig> interfaceBounds)
+    public static record TypeParamImpl(String identifier, RefTypeSig classBound, List<RefTypeSig> interfaceBounds)
             implements TypeParam {
     }
 
@@ -315,8 +315,9 @@ public final class SignaturesImpl {
             sb.append('<');
             for (var tp : typeParameters) {
                 sb.append(tp.identifier()).append(':');
-                if (tp.classBound().isPresent())
-                    sb.append(tp.classBound().get().signatureString());
+                var cb = tp.classBound();
+                if (cb != null)
+                    sb.append(cb.signatureString());
                 if (tp.interfaceBounds() != null) for (var is : tp.interfaceBounds())
                     sb.append(':').append(is.signatureString());
             }

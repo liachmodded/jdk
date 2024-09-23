@@ -88,6 +88,7 @@ import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodHandleDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 public record ClassRemapperImpl(Function<ClassDesc, ClassDesc> mapFunction) implements ClassRemapper {
@@ -111,19 +112,19 @@ public record ClassRemapperImpl(Function<ClassDesc, ClassDesc> mapFunction) impl
             case InnerClassesAttribute ica ->
                 clb.with(InnerClassesAttribute.of(ica.classes().stream().map(ici ->
                         InnerClassInfo.of(map(ici.innerClass().asSymbol()),
-                                ici.outerClass().map(oc -> map(oc.asSymbol())),
-                                ici.innerName().map(Utf8Entry::stringValue),
+                                Optional.ofNullable(ici.outerClass()).map(oc -> map(oc.asSymbol())).orElse(null),
+                                Optional.ofNullable(ici.innerName()).map(Utf8Entry::stringValue).orElse(null),
                                 ici.flagsMask())).toList()));
             case EnclosingMethodAttribute ema ->
                 clb.with(EnclosingMethodAttribute.of(map(ema.enclosingClass().asSymbol()),
-                        ema.enclosingMethodName().map(Utf8Entry::stringValue),
-                        ema.enclosingMethodTypeSymbol().map(this::mapMethodDesc)));
+                        Optional.ofNullable(ema.enclosingMethodName()).map(Utf8Entry::stringValue).orElse(null),
+                        Optional.ofNullable(ema.enclosingMethodTypeSymbol()).map(this::mapMethodDesc).orElse(null)));
             case RecordAttribute ra ->
                 clb.with(RecordAttribute.of(ra.components().stream()
                         .map(this::mapRecordComponent).toList()));
             case ModuleAttribute ma ->
                 clb.with(ModuleAttribute.of(ma.moduleName(), ma.moduleFlagsMask(),
-                        ma.moduleVersion().orElse(null),
+                        ma.moduleVersion(),
                         ma.requires(), ma.exports(), ma.opens(),
                         ma.uses().stream().map(ce ->
                                 clb.constantPool().classEntry(map(ce.asSymbol()))).toList(),
@@ -249,8 +250,8 @@ public record ClassRemapperImpl(Function<ClassDesc, ClassDesc> mapFunction) impl
                 case TypeCheckInstruction c ->
                     cob.with(TypeCheckInstruction.of(c.opcode(), map(c.type().asSymbol())));
                 case ExceptionCatch c ->
-                    cob.exceptionCatch(c.tryStart(), c.tryEnd(), c.handler(),c.catchType()
-                            .map(d -> TemporaryConstantPool.INSTANCE.classEntry(map(d.asSymbol()))));
+                    cob.exceptionCatch(c.tryStart(), c.tryEnd(), c.handler(), Optional.ofNullable(c.catchType())
+                            .map(d -> map(d.asSymbol())).orElse(null));
                 case LocalVariable c ->
                     cob.localVariable(c.slot(), c.name().stringValue(), map(c.typeSymbol()),
                             c.startScope(), c.endScope());
@@ -364,7 +365,7 @@ public record ClassRemapperImpl(Function<ClassDesc, ClassDesc> mapFunction) impl
                 Signature.ArrayTypeSig.of(mapSignature(ats.componentSignature()));
             case Signature.ClassTypeSig cts ->
                 Signature.ClassTypeSig.of(
-                        cts.outerType().map(this::mapSignature).orElse(null),
+                        Optional.ofNullable(cts.outerType()).map(this::mapSignature).orElse(null),
                         map(cts.classDesc()),
                         cts.typeArgs().stream().map(ta -> switch (ta) {
                             case Signature.TypeArg.Unbounded u -> u;
@@ -405,7 +406,7 @@ public record ClassRemapperImpl(Function<ClassDesc, ClassDesc> mapFunction) impl
 
     List<Signature.TypeParam> mapTypeParams(List<Signature.TypeParam> typeParams) {
         return typeParams.stream().map(tp -> Signature.TypeParam.of(tp.identifier(),
-                tp.classBound().map(this::mapSignature),
+                Optional.ofNullable(tp.classBound()).map(this::mapSignature).orElse(null),
                 tp.interfaceBounds().stream()
                         .map(this::mapSignature).toArray(Signature.RefTypeSig[]::new))).toList();
     }

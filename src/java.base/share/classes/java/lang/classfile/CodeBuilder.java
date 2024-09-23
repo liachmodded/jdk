@@ -733,18 +733,6 @@ public sealed interface CodeBuilder
      * @return this builder
      */
     default CodeBuilder exceptionCatch(Label start, Label end, Label handler, ClassEntry catchType) {
-        return with(ExceptionCatch.of(handler, start, end, Optional.ofNullable(catchType)));
-    }
-
-    /**
-     * Declare an exception table entry
-     * @param start the try block start
-     * @param end the try block end
-     * @param handler the exception handler start
-     * @param catchType the optional catch type, empty to catch all exceptions and errors
-     * @return this builder
-     */
-    default CodeBuilder exceptionCatch(Label start, Label end, Label handler, Optional<ClassEntry> catchType) {
         return with(ExceptionCatch.of(handler, start, end, catchType));
     }
 
@@ -757,8 +745,7 @@ public sealed interface CodeBuilder
      * @return this builder
      */
     default CodeBuilder exceptionCatch(Label start, Label end, Label handler, ClassDesc catchType) {
-        requireNonNull(catchType);
-        return exceptionCatch(start, end, handler, constantPool().classEntry(catchType));
+        return exceptionCatch(start, end, handler, catchType == null ? null : constantPool().classEntry(catchType));
     }
 
     /**

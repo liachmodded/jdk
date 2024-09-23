@@ -26,13 +26,10 @@
 package java.lang.classfile;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
 
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.constantpool.ConstantPool;
 import jdk.internal.classfile.impl.ClassImpl;
-import jdk.internal.classfile.impl.verifier.VerifierImpl;
 import jdk.internal.javac.PreviewFeature;
 
 /**
@@ -70,8 +67,14 @@ public sealed interface ClassModel
     /** {@return the methods of this class} */
     List<MethodModel> methods();
 
-    /** {@return the superclass of this class, if there is one} */
-    Optional<ClassEntry> superclass();
+    /**
+     * {@return the superclass of this class, if there is one, or {@code null}}
+     *
+     * @apiNote
+     * The {@link Object} class and {@code module-info} classes do not have a
+     * superclass; interfaces always have {@link Object} as their superclasses.
+     */
+    ClassEntry superclass();
 
     /** {@return the interfaces implemented by this class} */
     List<ClassEntry> interfaces();

@@ -26,7 +26,6 @@ package jdk.internal.classfile.impl;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 import java.lang.classfile.Annotation;
 import java.lang.classfile.AnnotationValue;
@@ -304,8 +303,8 @@ public abstract sealed class UnboundAttribute<T extends Attribute<T>>
         }
 
         @Override
-        public Optional<NameAndTypeEntry> enclosingMethod() {
-            return Optional.ofNullable(method);
+        public NameAndTypeEntry enclosingMethod() {
+            return method;
         }
     }
 
@@ -681,8 +680,8 @@ public abstract sealed class UnboundAttribute<T extends Attribute<T>>
             implements CharacterRangeInfo { }
 
     public record UnboundInnerClassInfo(ClassEntry innerClass,
-                                        Optional<ClassEntry> outerClass,
-                                        Optional<Utf8Entry> innerName,
+                                        ClassEntry outerClass,
+                                        Utf8Entry innerName,
                                         int flagsMask)
             implements InnerClassInfo {}
 
@@ -701,7 +700,7 @@ public abstract sealed class UnboundAttribute<T extends Attribute<T>>
                                                int slot)
             implements LocalVariableTypeInfo { }
 
-    public record UnboundMethodParameterInfo(Optional<Utf8Entry> name, int flagsMask)
+    public record UnboundMethodParameterInfo(Utf8Entry name, int flagsMask)
             implements MethodParameterInfo {}
 
     public record UnboundModuleExportInfo(PackageEntry exportedPackage,
@@ -740,7 +739,7 @@ public abstract sealed class UnboundAttribute<T extends Attribute<T>>
     }
 
     public record UnboundModuleRequiresInfo(ModuleEntry requires, int requiresFlagsMask,
-                                            Optional<Utf8Entry> requiresVersion)
+                                            Utf8Entry requiresVersion)
             implements ModuleRequireInfo {}
 
     public record UnboundRecordComponentInfo(Utf8Entry name,
@@ -807,8 +806,8 @@ public abstract sealed class UnboundAttribute<T extends Attribute<T>>
         }
 
         @Override
-        public Optional<Utf8Entry> moduleVersion() {
-            return Optional.ofNullable(moduleVersion);
+        public Utf8Entry moduleVersion() {
+            return moduleVersion;
         }
 
         @Override

@@ -92,7 +92,7 @@ public class LegacyOutputTest {
         }
         List<String> parameterNames = new ArrayList<>();
         for (MethodParameterInfo e : attribute.parameters()) {
-            parameterNames.add(e.name().orElseThrow().stringValue());
+            parameterNames.add(e.name().stringValue());
         }
         return parameterNames;
     }

@@ -120,7 +120,7 @@ public class ModuleVersion extends ModuleTestBase {
             throw new AssertionError("Version attribute missing!");
         }
 
-        String actualVersion = moduleAttribute.moduleVersion().orElseThrow().stringValue();
+        String actualVersion = moduleAttribute.moduleVersion().stringValue();
 
         if (!version.equals(actualVersion)) {
             throw new AssertionError("Incorrect version in the classfile: " + actualVersion);

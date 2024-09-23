@@ -153,7 +153,7 @@ public class SealedDiffConfigurationsTest extends TestRunner {
             Assert.check((subCF1.flags().flagsMask() & ClassFile.ACC_FINAL) != 0, String.format("class at file %s must be final", cfName));
         }
         Assert.checkNull(subCF1.findAttribute(Attributes.permittedSubclasses()).orElse(null));
-        Assert.check(subCF1.superclass().orElseThrow().name().equalsString(superClassName));
+        Assert.check(subCF1.superclass().name().equalsString(superClassName));
     }
 
     @Test

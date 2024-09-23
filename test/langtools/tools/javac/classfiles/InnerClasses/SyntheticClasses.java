@@ -49,9 +49,9 @@ public class SyntheticClasses {
             if (cf.thisClass().asInternalName().matches(".*\\$[0-9]+")) {
                 EnclosingMethodAttribute encl = cf.findAttribute(Attributes.enclosingMethod()).orElse(null);
                 if (encl != null) {
-                    if (encl.enclosingMethodName().isPresent())
+                    if (encl.enclosingMethodName() != null)
                         throw new IllegalStateException("Invalid EnclosingMethod.method: " +
-                                                        encl.enclosingMethodName().get().stringValue() + ".");
+                                                        encl.enclosingMethodName().stringValue() + ".");
                 }
             }
             InnerClassesAttribute attr = cf.findAttribute(Attributes.innerClasses()).orElse(null);
@@ -59,9 +59,9 @@ public class SyntheticClasses {
                 for (InnerClassInfo info : attr.classes()) {
                     if (cf.majorVersion() < 51)
                         throw new IllegalStateException();
-                    if (info.innerName().isEmpty() && info.outerClass().isPresent() )
+                    if (info.innerName() != null && info.outerClass() != null)
                         throw new IllegalStateException("Invalid outer_class_info: " +
-                                                        info.outerClass().get().asInternalName() +
+                                                        info.outerClass().asInternalName() +
                                                         "; inner_name is empty");
                 }
             }

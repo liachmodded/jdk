@@ -38,6 +38,7 @@ import java.lang.classfile.constantpool.Utf8Entry;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Optional;
 
 import static java.lang.classfile.ClassFile.ACC_PRIVATE;
 import static java.lang.classfile.ClassFile.ACC_PROTECTED;
@@ -58,8 +59,8 @@ public class Test {
                     // AccessFlags doesn't support inner class flags yet
                     var flags = (ACC_PROTECTED | ici.flagsMask()) & ~(ACC_PRIVATE | ACC_PUBLIC);
                     System.out.println("visitInnerClass: name = " + ici.innerClass().asInternalName()
-                            + ", outerName = " + ici.outerClass().map(ClassEntry::asInternalName).orElse("null")
-                            + ", innerName = " + ici.innerName().map(Utf8Entry::stringValue).orElse("null")
+                            + ", outerName = " + Optional.ofNullable(ici.outerClass()).map(ClassEntry::asInternalName).orElse("null")
+                            + ", innerName = " + Optional.ofNullable(ici.innerName()).map(Utf8Entry::stringValue).orElse("null")
                             + ", access original = 0x" + Integer.toHexString(ici.flagsMask())
                             + ", access modified to 0x" + Integer.toHexString(flags));
                     return InnerClassInfo.of(ici.innerClass(), ici.outerClass(), ici.innerName(), flags);

@@ -63,10 +63,10 @@ public sealed interface ExceptionCatch extends PseudoInstruction
     Label tryEnd();
 
     /**
-     * {@return the type of the exception to catch, or empty if this handler is
+     * {@return the type of the exception to catch, or {@code null} if this handler is
      * unconditional}
      */
-    Optional<ClassEntry> catchType();
+    ClassEntry catchType();
 
     /**
      * {@return an exception table pseudo-instruction}
@@ -77,8 +77,8 @@ public sealed interface ExceptionCatch extends PseudoInstruction
      *                       handler is unconditional
      */
     static ExceptionCatch of(Label handler, Label tryStart, Label tryEnd,
-                             Optional<ClassEntry> catchTypeEntry) {
-        return new AbstractPseudoInstruction.ExceptionCatchImpl(handler, tryStart, tryEnd, catchTypeEntry.orElse(null));
+                             ClassEntry catchTypeEntry) {
+        return new AbstractPseudoInstruction.ExceptionCatchImpl(handler, tryStart, tryEnd, catchTypeEntry);
     }
 
     /**
@@ -88,6 +88,6 @@ public sealed interface ExceptionCatch extends PseudoInstruction
      * @param tryEnd the end of the instruction range for the gaurded instructions
      */
     static ExceptionCatch of(Label handler, Label tryStart, Label tryEnd) {
-        return new AbstractPseudoInstruction.ExceptionCatchImpl(handler, tryStart, tryEnd, (ClassEntry) null);
+        return new AbstractPseudoInstruction.ExceptionCatchImpl(handler, tryStart, tryEnd, null);
     }
 }

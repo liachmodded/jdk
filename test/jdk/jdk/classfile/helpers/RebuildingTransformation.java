@@ -82,7 +82,7 @@ class RebuildingTransformation {
                                     case DeprecatedAttribute a -> mb.with(DeprecatedAttribute.of());
                                     case ExceptionsAttribute a -> mb.with(ExceptionsAttribute.ofSymbols(a.exceptions().stream().map(ClassEntry::asSymbol).toArray(ClassDesc[]::new)));
                                     case MethodParametersAttribute a -> mb.with(MethodParametersAttribute.of(a.parameters().stream().map(mp ->
-                                            MethodParameterInfo.ofParameter(mp.name().map(Utf8Entry::stringValue), mp.flagsMask())).toArray(MethodParameterInfo[]::new)));
+                                            MethodParameterInfo.of(mp.name() == null ? null : mp.name().stringValue(), mp.flagsMask())).toArray(MethodParameterInfo[]::new)));
                                     case RuntimeInvisibleAnnotationsAttribute a -> mb.with(RuntimeInvisibleAnnotationsAttribute.of(transformAnnotations(a.annotations())));
                                     case RuntimeInvisibleParameterAnnotationsAttribute a -> mb.with(RuntimeInvisibleParameterAnnotationsAttribute.of(a.parameterAnnotations().stream().map(pas -> List.of(transformAnnotations(pas))).toList()));
                                     case RuntimeInvisibleTypeAnnotationsAttribute a -> mb.with(RuntimeInvisibleTypeAnnotationsAttribute.of(transformTypeAnnotations(a.annotations(), null, null)));
@@ -99,16 +99,18 @@ class RebuildingTransformation {
                     }
                     case CompilationIDAttribute a -> clb.with(CompilationIDAttribute.of(a.compilationId().stringValue()));
                     case DeprecatedAttribute a -> clb.with(DeprecatedAttribute.of());
-                    case EnclosingMethodAttribute a -> clb.with(EnclosingMethodAttribute.of(a.enclosingClass().asSymbol(), a.enclosingMethodName().map(Utf8Entry::stringValue), a.enclosingMethodTypeSymbol()));
+                    case EnclosingMethodAttribute a -> clb.with(EnclosingMethodAttribute.of(a.enclosingClass().asSymbol(), a.enclosingMethodName() == null ? null : a.enclosingMethodName().stringValue(), a.enclosingMethodTypeSymbol()));
                     case InnerClassesAttribute a -> clb.with(InnerClassesAttribute.of(a.classes().stream().map(ici -> InnerClassInfo.of(
                             ici.innerClass().asSymbol(),
-                            ici.outerClass().map(ClassEntry::asSymbol),
-                            ici.innerName().map(Utf8Entry::stringValue),
+                            ici.outerClass() == null ? null : ici.outerClass().asSymbol(),
+                            ici.innerName() == null ? null : ici.innerName().stringValue(),
                             ici.flagsMask())).toArray(InnerClassInfo[]::new)));
                     case ModuleAttribute a -> clb.with(ModuleAttribute.of(a.moduleName().asSymbol(), mob -> {
                         mob.moduleFlags(a.moduleFlagsMask());
-                        a.moduleVersion().ifPresent(v -> mob.moduleVersion(v.stringValue()));
-                        for (var req : a.requires()) mob.requires(req.requires().asSymbol(), req.requiresFlagsMask(), req.requiresVersion().map(Utf8Entry::stringValue).orElse(null));
+                        var mv = a.moduleVersion();
+                        if (mv != null)
+                            mob.moduleVersion(mv.stringValue());
+                        for (var req : a.requires()) mob.requires(req.requires().asSymbol(), req.requiresFlagsMask(), req.requiresVersion() == null ? null : req.requiresVersion().stringValue());
                         for (var exp : a.exports()) mob.exports(exp.exportedPackage().asSymbol(), exp.exportsFlagsMask(), exp.exportsTo().stream().map(ModuleEntry::asSymbol).toArray(ModuleDesc[]::new));
                         for (var opn : a.opens()) mob.opens(opn.openedPackage().asSymbol(), opn.opensFlagsMask(), opn.opensTo().stream().map(ModuleEntry::asSymbol).toArray(ModuleDesc[]::new));
                         for (var use : a.uses()) mob.uses(use.asSymbol());
@@ -563,15 +565,19 @@ class RebuildingTransformation {
                     cob.characterRange(labels.computeIfAbsent(pi.startScope(), l -> cob.newLabel()),
                                        labels.computeIfAbsent(pi.endScope(), l -> cob.newLabel()),
                                        pi.characterRangeStart(), pi.characterRangeEnd(), pi.flags());
-                case ExceptionCatch pi ->
-                    pi.catchType().ifPresentOrElse(
-                            catchType -> cob.exceptionCatch(labels.computeIfAbsent(pi.tryStart(), l -> cob.newLabel()),
-                                                            labels.computeIfAbsent(pi.tryEnd(), l -> cob.newLabel()),
-                                                            labels.computeIfAbsent(pi.handler(), l -> cob.newLabel()),
-                                                            catchType.asSymbol()),
-                            () -> cob.exceptionCatchAll(labels.computeIfAbsent(pi.tryStart(), l -> cob.newLabel()),
-                                                        labels.computeIfAbsent(pi.tryEnd(), l -> cob.newLabel()),
-                                                        labels.computeIfAbsent(pi.handler(), l -> cob.newLabel())));
+                case ExceptionCatch pi -> {
+                    var catchType = pi.catchType();
+                    if (catchType != null){
+                        cob.exceptionCatch(labels.computeIfAbsent(pi.tryStart(), l -> cob.newLabel()),
+                                labels.computeIfAbsent(pi.tryEnd(), l -> cob.newLabel()),
+                                labels.computeIfAbsent(pi.handler(), l -> cob.newLabel()),
+                                catchType.asSymbol());
+                    } else {
+                        cob.exceptionCatchAll(labels.computeIfAbsent(pi.tryStart(), l -> cob.newLabel()),
+                                labels.computeIfAbsent(pi.tryEnd(), l -> cob.newLabel()),
+                                labels.computeIfAbsent(pi.handler(), l -> cob.newLabel()));
+                    }
+                }
                 case LabelTarget pi ->
                     cob.labelBinding(labels.computeIfAbsent(pi.label(), l -> cob.newLabel()));
                 case LineNumber pi ->

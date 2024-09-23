@@ -106,7 +106,7 @@ public class ModuleVersionTest {
         ModuleAttribute module = clazz.findAttribute(Attributes.module()).get();
         ModuleRequireInfo req = module.requires().get(0);
         assertEquals("java.base", req.requires().name().stringValue());
-        assertEquals(expectedVersion, req.requiresVersion().get().stringValue());
+        assertEquals(expectedVersion, req.requiresVersion().stringValue());
     }
 
 }

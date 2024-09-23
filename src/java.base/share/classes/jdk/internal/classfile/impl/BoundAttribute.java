@@ -358,7 +358,7 @@ public abstract sealed class BoundAttribute<T extends Attribute<T>>
                 for (int i = 0; p < pEnd; p += 4, i++) {
                     Utf8Entry name = classReader.readEntryOrNull(p, Utf8Entry.class);
                     int accessFlags = classReader.readU2(p + 2);
-                    elements[i] = MethodParameterInfo.of(Optional.ofNullable(name), accessFlags);
+                    elements[i] = MethodParameterInfo.of(name, accessFlags);
                 }
                 parameters = List.of(elements);
             }
@@ -587,8 +587,8 @@ public abstract sealed class BoundAttribute<T extends Attribute<T>>
         }
 
         @Override
-        public Optional<Utf8Entry> moduleVersion() {
-            return Optional.ofNullable(classReader.readEntryOrNull(payloadStart + 4, Utf8Entry.class));
+        public Utf8Entry moduleVersion() {
+            return classReader.readEntryOrNull(payloadStart + 4, Utf8Entry.class);
         }
 
         @Override
@@ -784,7 +784,7 @@ public abstract sealed class BoundAttribute<T extends Attribute<T>>
                     var innerName = classReader.readEntryOrNull(p + 4, Utf8Entry.class);
                     int flags = classReader.readU2(p + 6);
                     p += 8;
-                    elements[i] = InnerClassInfo.of(innerClass, Optional.ofNullable(outerClass), Optional.ofNullable(innerName), flags);
+                    elements[i] = InnerClassInfo.of(innerClass, outerClass, innerName, flags);
                 }
                 classes = List.of(elements);
             }
@@ -804,8 +804,8 @@ public abstract sealed class BoundAttribute<T extends Attribute<T>>
         }
 
         @Override
-        public Optional<NameAndTypeEntry> enclosingMethod() {
-            return Optional.ofNullable(classReader.readEntryOrNull(payloadStart + 2, NameAndTypeEntry.class));
+        public NameAndTypeEntry enclosingMethod() {
+            return classReader.readEntryOrNull(payloadStart + 2, NameAndTypeEntry.class);
         }
     }
 

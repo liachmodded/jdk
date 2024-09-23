@@ -25,7 +25,6 @@
 package java.lang.classfile.attribute;
 
 import java.lang.constant.ClassDesc;
-import java.util.Optional;
 import java.util.Set;
 
 import java.lang.classfile.constantpool.ClassEntry;
@@ -53,14 +52,14 @@ public sealed interface InnerClassInfo
 
     /**
      * {@return the class or interface of which this class is a member, if it is a
-     * member of a class or interface}
+     * member of a class or interface, otherwise {@code null}}
      */
-    Optional<ClassEntry> outerClass();
+    ClassEntry outerClass();
 
     /**
-     * {@return the simple name of this class, or empty if this class is anonymous}
+     * {@return the simple name of this class, or {@code null} if this class is anonymous}
      */
-    Optional<Utf8Entry> innerName();
+    Utf8Entry innerName();
 
     /**
      * {@return a bit mask of flags denoting access permissions and properties
@@ -87,39 +86,39 @@ public sealed interface InnerClassInfo
     /**
      * {@return an inner class description}
      * @param innerClass the inner class being described
-     * @param outerClass the class containing the inner class, if any
-     * @param innerName the name of the inner class, if it is not anonymous
+     * @param outerClass the class containing the inner class, may be {@code null}
+     * @param innerName the simple name of the inner class, or {@code null} if it is anonymous
      * @param flags the inner class access flags
      */
-    static InnerClassInfo of(ClassEntry innerClass, Optional<ClassEntry> outerClass,
-                             Optional<Utf8Entry> innerName, int flags) {
+    static InnerClassInfo of(ClassEntry innerClass, ClassEntry outerClass,
+                             Utf8Entry innerName, int flags) {
         return new UnboundAttribute.UnboundInnerClassInfo(innerClass, outerClass, innerName, flags);
     }
 
     /**
      * {@return an inner class description}
      * @param innerClass the inner class being described
-     * @param outerClass the class containing the inner class, if any
-     * @param innerName the name of the inner class, if it is not anonymous
+     * @param outerClass the class containing the inner class, may be {@code null}
+     * @param innerName the simple name of the inner class, or {@code null} if it is anonymous
      * @param flags the inner class access flags
      * @throws IllegalArgumentException if {@code innerClass} or {@code outerClass} represents a primitive type
      */
-    static InnerClassInfo of(ClassDesc innerClass, Optional<ClassDesc> outerClass, Optional<String> innerName, int flags) {
+    static InnerClassInfo of(ClassDesc innerClass, ClassDesc outerClass, String innerName, int flags) {
         return new UnboundAttribute.UnboundInnerClassInfo(TemporaryConstantPool.INSTANCE.classEntry(innerClass),
-                                                          outerClass.map(TemporaryConstantPool.INSTANCE::classEntry),
-                                                          innerName.map(TemporaryConstantPool.INSTANCE::utf8Entry),
+                                                          outerClass == null ? null : TemporaryConstantPool.INSTANCE.classEntry(outerClass),
+                                                          innerName == null ? null : TemporaryConstantPool.INSTANCE.utf8Entry(innerName),
                                                           flags);
     }
 
     /**
      * {@return an inner class description}
      * @param innerClass the inner class being described
-     * @param outerClass the class containing the inner class, if any
-     * @param innerName the name of the inner class, if it is not anonymous
+     * @param outerClass the class containing the inner class, may be {@code null}
+     * @param innerName the simple name of the inner class, or {@code null} if it is anonymous
      * @param flags the inner class access flags
      * @throws IllegalArgumentException if {@code innerClass} or {@code outerClass} represents a primitive type
      */
-    static InnerClassInfo of(ClassDesc innerClass, Optional<ClassDesc> outerClass, Optional<String> innerName, AccessFlag... flags) {
+    static InnerClassInfo of(ClassDesc innerClass, ClassDesc outerClass, String innerName, AccessFlag... flags) {
         return of(innerClass, outerClass, innerName, Util.flagsToBits(AccessFlag.Location.INNER_CLASS, flags));
     }
 }

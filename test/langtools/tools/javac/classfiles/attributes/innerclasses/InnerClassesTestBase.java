@@ -218,7 +218,7 @@ public abstract class InnerClassesTestBase extends TestResult {
             for (InnerClassInfo e : innerClasses.classes()) {
                 String baseName = e.innerClass().asInternalName();
                 if (cm.majorVersion() >= 51 && e.innerClass().index() == 0) {
-                    ClassEntry out = e.outerClass().orElse(null);
+                    ClassEntry out = e.outerClass();
                     // The outer_class_info_index of sun.tools.classfile will return 0 if it is not a member of a class or interface.
                     checkEquals(out == null? 0: out.index(), 0,
                             "outer_class_info_index "
@@ -242,9 +242,9 @@ public abstract class InnerClassesTestBase extends TestResult {
                             e.innerClass().asInternalName(),
                             classToTest + "$" + className,
                             "inner_class_info_index of " + className);
-                    if (e.outerClass().orElse(null) != null && e.outerClass().get().index() > 0) {
+                    if (e.outerClass() != null && e.outerClass().index() > 0) {
                         checkEquals(
-                                e.outerClass().get().name().stringValue(),
+                                e.outerClass().name().stringValue(),
                                 classToTest,
                                 "outer_class_info_index of " + className);
                     }

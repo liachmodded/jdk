@@ -65,7 +65,8 @@ public final class ClassReaderImpl
     private final int flags;
     private final int thisClassPos;
     private ClassEntry thisClass;
-    private Optional<ClassEntry> superclass;
+    private boolean superclassRead;
+    private ClassEntry superclass;
     private final int constantPoolCount;
     private final int[] cpOffset;
 
@@ -157,11 +158,14 @@ public final class ClassReaderImpl
     }
 
     @Override
-    public Optional<ClassEntry> superclassEntry() {
-        if (superclass == null) {
-            superclass = Optional.ofNullable(readEntryOrNull(thisClassPos + 2, ClassEntry.class));
+    public ClassEntry superclassEntry() {
+        if (superclassRead) {
+            return superclass;
         }
-        return superclass;
+        var read = readEntryOrNull(thisClassPos + 2, ClassEntry.class);
+        superclass = read;
+        superclassRead = true;
+        return read;
     }
 
     public int thisClassPos() {

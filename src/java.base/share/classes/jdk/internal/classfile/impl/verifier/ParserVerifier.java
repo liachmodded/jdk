@@ -32,6 +32,7 @@ import static java.lang.constant.ConstantDescs.INIT_NAME;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.lang.classfile.Attribute;
@@ -252,7 +253,7 @@ public record ParserVerifier(ClassModel classModel) {
                 2 + 2 * ea.exceptions().size();
             case InnerClassesAttribute ica -> {
                 for (var ici : ica.classes()) {
-                    if (ici.outerClass().isPresent() && ici.outerClass().get().equals(ici.innerClass())) {
+                    if (Objects.equals(ici.outerClass(), ici.innerClass())) {
                         errors.add(new VerifyError("Class is both outer and inner class in %s".formatted(toString(ae))));
                     }
                 }

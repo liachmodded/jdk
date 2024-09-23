@@ -68,9 +68,9 @@ public sealed interface ModuleRequireInfo
     }
 
     /**
-     * {@return the required version of the required module, if present}
+     * {@return the required version of the required module, may be {@code null}}
      */
-    Optional<Utf8Entry> requiresVersion();
+    Utf8Entry requiresVersion();
 
     /**
      * {@return whether the specific access flag is set}
@@ -84,17 +84,17 @@ public sealed interface ModuleRequireInfo
      * {@return a module requirement description}
      * @param requires the required module
      * @param requiresFlags the require-specific flags
-     * @param requiresVersion the required version
+     * @param requiresVersion the required version, may be {@code null}
      */
     static ModuleRequireInfo of(ModuleEntry requires, int requiresFlags, Utf8Entry requiresVersion) {
-        return new UnboundAttribute.UnboundModuleRequiresInfo(requires, requiresFlags, Optional.ofNullable(requiresVersion));
+        return new UnboundAttribute.UnboundModuleRequiresInfo(requires, requiresFlags, requiresVersion);
     }
 
     /**
      * {@return a module requirement description}
      * @param requires the required module
      * @param requiresFlags the require-specific flags
-     * @param requiresVersion the required version
+     * @param requiresVersion the required version, may be {@code null}
      */
     static ModuleRequireInfo of(ModuleEntry requires, Collection<AccessFlag> requiresFlags, Utf8Entry requiresVersion) {
         return of(requires, Util.flagsToBits(AccessFlag.Location.MODULE_REQUIRES, requiresFlags), requiresVersion);
@@ -104,17 +104,18 @@ public sealed interface ModuleRequireInfo
      * {@return a module requirement description}
      * @param requires the required module
      * @param requiresFlags the require-specific flags
-     * @param requiresVersion the required version
+     * @param requiresVersion the required version, may be {@code null}
      */
     static ModuleRequireInfo of(ModuleDesc requires, int requiresFlags, String requiresVersion) {
-        return new UnboundAttribute.UnboundModuleRequiresInfo(TemporaryConstantPool.INSTANCE.moduleEntry(TemporaryConstantPool.INSTANCE.utf8Entry(requires.name())), requiresFlags, Optional.ofNullable(requiresVersion).map(s -> TemporaryConstantPool.INSTANCE.utf8Entry(s)));
+        return new UnboundAttribute.UnboundModuleRequiresInfo(TemporaryConstantPool.INSTANCE.moduleEntry(requires), requiresFlags,
+                requiresVersion == null ? null : TemporaryConstantPool.INSTANCE.utf8Entry(requiresVersion));
     }
 
     /**
      * {@return a module requirement description}
      * @param requires the required module
      * @param requiresFlags the require-specific flags
-     * @param requiresVersion the required version
+     * @param requiresVersion the required version, may be {@code null}
      */
     static ModuleRequireInfo of(ModuleDesc requires, Collection<AccessFlag> requiresFlags, String requiresVersion) {
         return of(requires, Util.flagsToBits(AccessFlag.Location.MODULE_REQUIRES, requiresFlags), requiresVersion);

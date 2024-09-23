@@ -236,7 +236,7 @@ public class OpenModulesTest extends ModuleTestBase {
         ModuleAttribute module = cm.findAttribute(Attributes.module()).orElseThrow();
         ModuleAttribute newModule = ModuleAttribute.of(module.moduleName(),
                                                           module.moduleFlagsMask() | ClassFile.ACC_OPEN,
-                                                          module.moduleVersion().orElse(null),
+                                                          module.moduleVersion(),
                                                           module.requires(),
                                                           module.exports(),
                                                           module.opens(),

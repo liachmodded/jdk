@@ -126,7 +126,7 @@ class ClassFileVisitor extends MethodParametersTester.Visitor {
                 String in = info.innerClass().name().stringValue();
                 if (!cname.equals(in)) continue;
                 isInner = true;
-                isAnon = null == info.innerName().orElse(null);
+                isAnon = null == info.innerName();
                 isStatic = (info.flagsMask() & ClassFile.ACC_STATIC) != 0;
                 break;
             }
@@ -234,7 +234,7 @@ class ClassFileVisitor extends MethodParametersTester.Visitor {
             for (int x = 0; x <  mNumParams; x++) {
                 isFinal = (mp.parameters().get(x).flagsMask() & ClassFile.ACC_FINAL) != 0;
                 // IMPL: Assume all parameters are named, something.
-                Utf8Entry paramEntry = mp.parameters().get(x).name().orElse(null);
+                Utf8Entry paramEntry = mp.parameters().get(x).name();
                 if (paramEntry == null) {
                     error(prefix + "name expected, param[" + x + "]");
                     return;
