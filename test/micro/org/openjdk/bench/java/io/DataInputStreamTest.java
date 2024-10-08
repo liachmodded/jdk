@@ -50,11 +50,28 @@ public class DataInputStreamTest {
 
     private ByteArrayInputStream utfDataAsciiSmall;
     private ByteArrayInputStream utfDataSmall;
+    private ByteArrayInputStream utfDataFarSmall;
 
     private ByteArrayInputStream utfDataAsciiLarge;
     private ByteArrayInputStream utfDataLarge;
+    private ByteArrayInputStream utfDataFarLarge;
 
     private static final int REPEATS = 20;
+
+    private static char toFullWidth(char c) {
+        if (c == ' ') {
+            return '\u3000';
+        }
+        return (char) (c - ' ' + '\uFF00');
+    }
+
+    private static String toFullWidth(String st) {
+        var arr = st.toCharArray();
+        for (int i = 0; i < arr.length; i++) {
+            arr[i] = toFullWidth(arr[i]);
+        }
+        return new String(arr);
+    }
 
     @Setup(Level.Iteration)
     public void setup() throws IOException, ClassNotFoundException, NoSuchMethodException, IllegalAccessException {
@@ -87,6 +104,24 @@ public class DataInputStreamTest {
         }
         dataOut.flush();
         utfDataAsciiSmall = new ByteArrayInputStream(baos.toByteArray());
+
+        baos = new ByteArrayOutputStream();
+        dataOut = new DataOutputStream(baos);
+        for (int i = 0; i < REPEATS; i++) {
+            dataOut.writeUTF(toFullWidth("slightly longer string that is more likely to trigger use of simd intrinsics"));
+            dataOut.writeUTF(toFullWidth("slightly longer string that is more likely to trigger use of simd intrinsics"));
+        }
+        dataOut.flush();
+        utfDataFarLarge = new ByteArrayInputStream(baos.toByteArray());
+
+        baos = new ByteArrayOutputStream();
+        dataOut = new DataOutputStream(baos);
+        for (int i = 0; i < REPEATS; i++) {
+            dataOut.writeUTF(toFullWidth("smol"));
+            dataOut.writeUTF(toFullWidth("smally"));
+        }
+        dataOut.flush();
+        utfDataFarSmall = new ByteArrayInputStream(baos.toByteArray());
 
         baos = new ByteArrayOutputStream();
         dataOut = new DataOutputStream(baos);
@@ -158,6 +193,26 @@ public class DataInputStreamTest {
     public void readUTFAsciiLarge(Blackhole bh) throws Exception {
         utfDataAsciiLarge.reset();
         DataInputStream dis = new DataInputStream(utfDataAsciiLarge);
+        for (int i = 0; i < REPEATS; i++) {
+            bh.consume(dis.readUTF());
+            bh.consume(dis.readUTF());
+        }
+    }
+
+    @Benchmark
+    public void readUTFFarSmall(Blackhole bh) throws Exception {
+        utfDataFarSmall.reset();
+        DataInputStream dis = new DataInputStream(utfDataFarSmall);
+        for (int i = 0; i < REPEATS; i++) {
+            bh.consume(dis.readUTF());
+            bh.consume(dis.readUTF());
+        }
+    }
+
+    @Benchmark
+    public void readUTFFarLarge(Blackhole bh) throws Exception {
+        utfDataFarLarge.reset();
+        DataInputStream dis = new DataInputStream(utfDataFarLarge);
         for (int i = 0; i < REPEATS; i++) {
             bh.consume(dis.readUTF());
             bh.consume(dis.readUTF());

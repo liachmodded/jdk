@@ -29,6 +29,7 @@ package java.io;
 import jdk.internal.access.JavaLangAccess;
 import jdk.internal.access.SharedSecrets;
 import jdk.internal.util.ByteArray;
+import jdk.internal.util.ModifiedUtf;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
@@ -590,7 +591,6 @@ loop:   while (true) {
             trusted = true;
         }
 
-        int c, char2, char3;
         int count = 0;
         int chararr_count=0;
 
@@ -627,46 +627,21 @@ loop:   while (true) {
         }
 
         while (count < utflen) {
-            c = (int) bytearr[count] & 0xff;
-            switch (c >> 4) {
-                case 0, 1, 2, 3, 4, 5, 6, 7 -> {
-                    /* 0xxxxxxx*/
-                    count++;
-                    chararr[chararr_count++]=(char)c;
-                }
-                case 12, 13 -> {
-                    /* 110x xxxx   10xx xxxx*/
-                    count += 2;
-                    if (count > utflen)
-                        throw new UTFDataFormatException(
-                            "malformed input: partial character at end");
-                    char2 = bytearr[count-1];
-                    if ((char2 & 0xC0) != 0x80)
-                        throw new UTFDataFormatException(
-                            "malformed input around byte " + count);
-                    chararr[chararr_count++]=(char)(((c & 0x1F) << 6) |
-                                                    (char2 & 0x3F));
-                }
-                case 14 -> {
-                    /* 1110 xxxx  10xx xxxx  10xx xxxx */
-                    count += 3;
-                    if (count > utflen)
-                        throw new UTFDataFormatException(
-                            "malformed input: partial character at end");
-                    char2 = bytearr[count-2];
-                    char3 = bytearr[count-1];
-                    if (((char2 & 0xC0) != 0x80) || ((char3 & 0xC0) != 0x80))
-                        throw new UTFDataFormatException(
-                            "malformed input around byte " + (count-1));
-                    chararr[chararr_count++]=(char)(((c     & 0x0F) << 12) |
-                                                    ((char2 & 0x3F) << 6)  |
-                                                    ((char3 & 0x3F) << 0));
-                }
-                default ->
-                    /* 10xx xxxx,  1111 xxxx */
-                    throw new UTFDataFormatException(
-                        "malformed input around byte " + count);
+            int b = bytearr[count] & 0xff;
+            char c;
+            if (ModifiedUtf.is1Byte(b)) {
+                c = (char) b;
+                count++;
+            } else if (ModifiedUtf.is2Byte(b)) {
+                c = ModifiedUtf.read2Byte(b, bytearr, count, utflen);
+                count += 2;
+            } else if (ModifiedUtf.is3Byte(b)) {
+                c = ModifiedUtf.read3Byte(b, bytearr, count, utflen);
+                count += 3;
+            } else {
+                throw ModifiedUtf.malformedAround(count);
             }
+            chararr[chararr_count++] = c;
         }
         // The number of chars produced may be less than utflen
         return new String(chararr, 0, chararr_count);
