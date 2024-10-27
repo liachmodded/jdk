@@ -35,6 +35,7 @@ import jdk.internal.misc.VM;
 import jdk.internal.util.ClassFileDumper;
 import jdk.internal.util.ReferenceKey;
 import jdk.internal.util.ReferencedKeyMap;
+import jdk.internal.util.StringConcatConstantInfo;
 import jdk.internal.vm.annotation.Stable;
 import sun.invoke.util.Wrapper;
 
@@ -47,7 +48,6 @@ import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.RuntimeVisibleAnnotationsAttribute;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
-import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.ref.SoftReference;
 import java.util.Map;
 import java.util.Objects;
@@ -153,6 +153,8 @@ public final class StringConcatFactory {
 
     private static final JavaLangAccess JLA = SharedSecrets.getJavaLangAccess();
 
+    private static final Object[] EMPTY_OBJECT_ARRAY = {};
+
     // StringConcatFactory bootstrap methods are startup sensitive, and may be
     // special cased in java.lang.invoke.BootstrapMethodInvoker to ensure
     // methods are invoked with exact type information to avoid generating
@@ -236,7 +238,7 @@ public final class StringConcatFactory {
 
         // Mock the recipe to reuse the concat generator code
         String recipe = "\u0001".repeat(concatType.parameterCount());
-        return makeConcatWithConstants(lookup, name, concatType, recipe);
+        return makeConcatWithConstants(lookup, name, concatType, recipe, EMPTY_OBJECT_ARRAY);
     }
 
     /**
@@ -372,7 +374,7 @@ public final class StringConcatFactory {
                     lookup.lookupClass().getName());
         }
 
-        String[] constantStrings = parseRecipe(concatType, recipe, constants);
+        var constantInfo = parseRecipe(concatType, recipe, constants);
 
         if (!concatType.returnType().isAssignableFrom(String.class)) {
             throw new StringConcatException(
@@ -388,13 +390,13 @@ public final class StringConcatFactory {
         }
 
         try {
-            MethodHandle mh = makeSimpleConcat(concatType, constantStrings);
+            MethodHandle mh = makeSimpleConcat(concatType, constantInfo);
             if (mh == null && concatType.parameterCount() <= HIGH_ARITY_THRESHOLD) {
-                mh = generateMHInlineCopy(concatType, constantStrings);
+                mh = generateMHInlineCopy(concatType, constantInfo);
             }
 
             if (mh == null) {
-                mh = InlineHiddenClassStrategy.generate(lookup, concatType, constantStrings);
+                mh = InlineHiddenClassStrategy.generate(concatType, constantInfo);
             }
             mh = mh.viewAsType(concatType, true);
 
@@ -407,9 +409,88 @@ public final class StringConcatFactory {
         }
     }
 
-    private static String[] parseRecipe(MethodType concatType,
-                                        String recipe,
-                                        Object[] constants)
+    private static StringConcatConstantInfo parseRecipe(MethodType concatType, String recipe) throws StringConcatException {
+        int argsSize = concatType.parameterCount();
+        int[] argTags = new int[argsSize];
+        int argIndex = 0;
+        for (int i = 0; i < recipe.length(); i++) {
+            char c = recipe.charAt(i);
+
+            if (c == TAG_CONST) {
+                throw constantMismatch(EMPTY_OBJECT_ARRAY, 0);
+            } else if (c == TAG_ARG) {
+                // Check for overflow
+                if (argIndex >= argsSize) {
+                    throw argumentMismatch(concatType, argIndex);
+                }
+
+                argTags[argIndex++] = i;
+            }
+        }
+
+        if (argIndex != argsSize)
+            throw argumentMismatch(concatType, argIndex);
+
+        return new StringConcatConstantInfo(argTags, recipe);
+    }
+
+    private static StringConcatConstantInfo parseRecipe(MethodType concatType,
+                                                        String recipe,
+                                                        Object[] constants) throws StringConcatException {
+        int constSize = constants.length;
+        if (constSize == 0)
+            return parseRecipe(concatType, recipe);
+
+        int len = recipe.length() - constSize;
+        // constants array is user-supplied, not trusted
+        String[] evaluatedConstants = new String[constSize];
+        for (int i = 0; i < constSize; i++) {
+            var s = constants[i].toString(); // no null constant
+            len += s.length();
+            evaluatedConstants[i] = s;
+        }
+
+        StringBuilder exploded = new StringBuilder(Math.max(len, 0));
+        int constIndex = 0;
+        int argsSize = concatType.parameterCount();
+        int[] argTags = new int[argsSize];
+        int argIndex = 0;
+
+        for (int i = 0; i < recipe.length(); i++) {
+            char c = recipe.charAt(i);
+
+            if (c == TAG_CONST) {
+                // Check for overflow
+                if (constIndex >= constSize) {
+                    throw constantMismatch(constants, constIndex);
+                }
+
+                exploded.append(evaluatedConstants[constIndex++]);
+            } else {
+                if (c == TAG_ARG) {
+                    // Check for overflow
+                    if (argIndex >= argsSize) {
+                        throw argumentMismatch(concatType, argIndex);
+                    }
+
+                    argTags[argIndex++] = exploded.length(); // current index
+                }
+                exploded.append(c);
+            }
+        }
+        if (argIndex != argsSize) {
+            throw argumentMismatch(concatType, argIndex);
+        }
+        if (constIndex != constSize) {
+            throw constantMismatch(constants, constIndex);
+        }
+
+        var explodedResult = exploded.toString();
+        return new StringConcatConstantInfo(argTags, explodedResult);
+    }
+    private static String[] parseRecipe0(MethodType concatType,
+                                         String recipe,
+                                         Object[] constants)
         throws StringConcatException
     {
 
@@ -486,29 +567,26 @@ public final class StringConcatFactory {
                         " are passed");
     }
 
-    private static MethodHandle makeSimpleConcat(MethodType mt, String[] constants) {
+    private static MethodHandle makeSimpleConcat(MethodType mt, StringConcatConstantInfo constants) {
         int paramCount = mt.parameterCount();
-        String suffix = constants[paramCount];
 
         // Fast-path trivial concatenations
         if (paramCount == 0) {
-            return MethodHandles.insertArguments(newStringifier(), 0, suffix == null ? "" : suffix);
+            return MethodHandles.insertArguments(newStringifier(), 0, constants.explodedRecipe());
         }
         if (paramCount == 1) {
-            String prefix = constants[0];
             // Empty constants will be
-            if (prefix.isEmpty()) {
-                if (suffix.isEmpty()) {
+            if (constants.isConstantEmpty(0)) {
+                if (constants.isConstantEmpty(1)) {
                     return unaryConcat(mt.parameterType(0));
                 } else if (!mt.hasPrimitives()) {
-                    return MethodHandles.insertArguments(simpleConcat(), 1, suffix);
+                    return MethodHandles.insertArguments(simpleConcat(), 1, constants.extractAt(1));
                 } // else fall-through
-            } else if (suffix.isEmpty() && !mt.hasPrimitives()) {
+            } else if (constants.isConstantEmpty(1) && !mt.hasPrimitives()) {
                 // Non-primitive argument
-                return MethodHandles.insertArguments(simpleConcat(), 0, prefix);
+                return MethodHandles.insertArguments(simpleConcat(), 0, constants.extractAt(0));
             } // fall-through if there's both a prefix and suffix
-        } else if (paramCount == 2 && !mt.hasPrimitives() && suffix.isEmpty()
-                && constants[0].isEmpty() && constants[1].isEmpty()) {
+        } else if (paramCount == 2 && !mt.hasPrimitives() && constants.explodedRecipe().length() == 2) {
             // Two reference arguments, no surrounding constants
             return simpleConcat();
         }
@@ -523,9 +601,9 @@ public final class StringConcatFactory {
      * most notably, the private String constructor that accepts byte[] arrays
      * without copying.
      */
-    private static MethodHandle generateMHInlineCopy(MethodType mt, String[] constants) {
+    private static MethodHandle generateMHInlineCopy(MethodType mt, StringConcatConstantInfo constants) {
         int paramCount = mt.parameterCount();
-        String suffix = constants[paramCount];
+        String suffix = constants.extractAt(paramCount);
 
 
         // else... fall-through to slow-path
@@ -578,13 +656,7 @@ public final class StringConcatFactory {
 
         // Calculate the initialLengthCoder value by looking at all constant values and summing up
         // their lengths and adjusting the encoded coder bit if needed
-        long initialLengthCoder = INITIAL_CODER;
-
-        for (String constant : constants) {
-            if (constant != null) {
-                initialLengthCoder = JLA.stringConcatMix(initialLengthCoder, constant);
-            }
-        }
+        long initialLengthCoder = JLA.stringConcatMix(INITIAL_CODER, constants.explodedRecipe());
 
         // Mix in prependers. This happens when (byte[], long) = (storage, indexCoder) is already
         // known from the combinators below. We are assembling the string backwards, so the index coded
@@ -650,7 +722,7 @@ public final class StringConcatFactory {
     // the number of unique MH combinator tree shapes we'll create in an application.
     // Additionally we do this in chunks to reduce the number of combinators bound to the root tree,
     // which simplifies the shape and makes construction of similar trees use less unique LF classes
-    private static MethodHandle filterInPrependers(MethodHandle mh, String[] constants, Class<?>[] ptypes) {
+    private static MethodHandle filterInPrependers(MethodHandle mh, StringConcatConstantInfo constants, Class<?>[] ptypes) {
         int pos;
         int[] argPositions = null;
         MethodHandle prepend;
@@ -820,13 +892,13 @@ public final class StringConcatFactory {
                 PREPEND_FILTER_SECOND_ARGS);
     }
 
-    private static MethodHandle prepender(int pos, String[] constants, Class<?>[] ptypes, int count) {
+    private static MethodHandle prepender(int pos, StringConcatConstantInfo constants, Class<?>[] ptypes, int count) {
         // build the simple cases directly
         if (count == 1) {
-            return prepender(constants[pos], ptypes[pos]);
+            return prepender(constants.extractAt(pos), ptypes[pos]);
         }
         if (count == 2) {
-            return prepender(constants[pos], ptypes[pos], constants[pos + 1], ptypes[pos + 1]);
+            return prepender(constants.extractAt(pos), ptypes[pos], constants.extractAt(pos + 1), ptypes[pos + 1]);
         }
         // build a tree from an unbound prepender, allowing us to bind the constants in a batch as a final step
         MethodHandle prepend = prependBase();
@@ -834,19 +906,19 @@ public final class StringConcatFactory {
             prepend = MethodHandles.dropArguments(prepend, 2,
                     ptypes[pos], ptypes[pos + 1], ptypes[pos + 2]);
             prepend = MethodHandles.filterArgumentsWithCombiner(prepend, 0,
-                    prepender(constants[pos], ptypes[pos], constants[pos + 1], ptypes[pos + 1]),
+                    prepender(constants.extractAt(pos), ptypes[pos], constants.extractAt(pos + 1), ptypes[pos + 1]),
                     PREPEND_FILTER_FIRST_PAIR_ARGS);
             return MethodHandles.filterArgumentsWithCombiner(prepend, 0,
-                    prepender(constants[pos + 2], ptypes[pos + 2]),
+                    prepender(constants.extractAt(pos + 2), ptypes[pos + 2]),
                     PREPEND_FILTER_THIRD_ARGS);
         } else if (count == 4) {
             prepend = MethodHandles.dropArguments(prepend, 2,
                     ptypes[pos], ptypes[pos + 1], ptypes[pos + 2], ptypes[pos + 3]);
             prepend = MethodHandles.filterArgumentsWithCombiner(prepend, 0,
-                    prepender(constants[pos], ptypes[pos], constants[pos + 1], ptypes[pos + 1]),
+                    prepender(constants.extractAt(pos), ptypes[pos], constants.extractAt(pos + 1), ptypes[pos + 1]),
                     PREPEND_FILTER_FIRST_PAIR_ARGS);
             return MethodHandles.filterArgumentsWithCombiner(prepend, 0,
-                    prepender(constants[pos + 2], ptypes[pos + 2], constants[pos + 3], ptypes[pos + 3]),
+                    prepender(constants.extractAt(pos + 2), ptypes[pos + 2], constants.extractAt(pos + 3), ptypes[pos + 3]),
                     PREPEND_FILTER_SECOND_PAIR_ARGS);
         } else {
             throw new IllegalArgumentException("Unexpected count: " + count);
@@ -1250,13 +1322,13 @@ public final class StringConcatFactory {
             return MethodTypeDescImpl.ofValidated(CD_int, paramTypes);
         }
 
-        private static MethodHandle generate(Lookup lookup, MethodType args, String[] constants) throws Exception {
-            lookup = STR_LOOKUP;
+        private static MethodHandle generate(MethodType args, StringConcatConstantInfo constants) throws Exception {
+            var lookup = STR_LOOKUP;
             final MethodType concatArgs = erasedArgs(args);
 
             // 1 argument use built-in method
             if (args.parameterCount() == 1) {
-                Object concat1 = JLA.stringConcat1(constants);
+                Object concat1 = JLA.stringConcat1(new String[] {constants.extractAt(0), constants.extractAt(1)});
                 var handle = lookup.findVirtual(concat1.getClass(), METHOD_NAME, concatArgs);
                 return handle.bindTo(concat1);
             }
@@ -1435,7 +1507,7 @@ public final class StringConcatFactory {
          */
         private static Consumer<CodeBuilder> generateConcatMethod(
                 boolean        staticConcat,
-                String[]       constants,
+                StringConcatConstantInfo constants,
                 ClassDesc      concatClass,
                 MethodType     concatArgs,
                 MethodTypeDesc lengthArgs,
@@ -1486,10 +1558,8 @@ public final class StringConcatFactory {
                     int coder  = JLA.stringInitCoder(),
                         length = 0;
                     if (staticConcat) {
-                        for (var constant : constants) {
-                            coder |= JLA.stringCoder(constant);
-                            length += constant.length();
-                        }
+                        coder = JLA.stringCoder(constants.explodedRecipe());
+                        length = constants.length();
                     }
 
                     /*
@@ -1549,7 +1619,7 @@ public final class StringConcatFactory {
                      * length -= suffix.length();
                      */
                     if (staticConcat) {
-                        cb.loadConstant(constants[paramCount].length())
+                        cb.loadConstant(constants.endOf(paramCount) - constants.startOf(paramCount))
                           .isub()
                           .istore(lengthSlot);
                     } else {
@@ -1572,7 +1642,7 @@ public final class StringConcatFactory {
                      *  buf = newArrayWithSuffix(suffix, length, coder)
                      */
                     if (staticConcat) {
-                        cb.loadConstant(constants[paramCount]);
+                        cb.loadConstant(constants.extractAt(paramCount));
                     } else {
                         cb.aload(suffixSlot);
                     }
@@ -1715,7 +1785,7 @@ public final class StringConcatFactory {
          */
         private static Consumer<CodeBuilder> generatePrependMethod(
                 MethodTypeDesc prependArgs,
-                boolean staticConcat, String[] constants
+                boolean staticConcat, StringConcatConstantInfo constants
         ) {
             return new Consumer<CodeBuilder>() {
                 @Override
@@ -1759,7 +1829,7 @@ public final class StringConcatFactory {
                           .loadLocal(kind, cb.parameterSlot(i));
 
                         if (staticConcat) {
-                            cb.loadConstant(constants[i - 3]);
+                            cb.loadConstant(constants.extractAt(i - 3));
                         } else {
                             cb.aload(constantsSlot)
                               .loadConstant(i - 4)
