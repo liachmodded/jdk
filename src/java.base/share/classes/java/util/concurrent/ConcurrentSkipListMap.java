@@ -1689,10 +1689,6 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
             new SubMap<K,V>(this, null, false, null, false, true);
     }
 
-    public NavigableSet<K> descendingKeySet() {
-        return descendingMap().navigableKeySet();
-    }
-
     /* ---------------- AbstractMap Overrides -------------- */
 
     /**
@@ -2237,9 +2233,6 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
         }
         public Object[] toArray()     { return toList(this).toArray();  }
         public <T> T[] toArray(T[] a) { return toList(this).toArray(a); }
-        public Iterator<K> descendingIterator() {
-            return descendingSet().iterator();
-        }
         public NavigableSet<K> subSet(K fromElement,
                                       boolean fromInclusive,
                                       K toElement,
@@ -2794,18 +2787,6 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
             return newSubMap(fromKey, inclusive, null, false);
         }
 
-        public SubMap<K,V> subMap(K fromKey, K toKey) {
-            return subMap(fromKey, true, toKey, false);
-        }
-
-        public SubMap<K,V> headMap(K toKey) {
-            return headMap(toKey, false);
-        }
-
-        public SubMap<K,V> tailMap(K fromKey) {
-            return tailMap(fromKey, true);
-        }
-
         public SubMap<K,V> descendingMap() {
             return new SubMap<K,V>(m, lo, loInclusive,
                                    hi, hiInclusive, !isDescending);
@@ -2872,9 +2853,7 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
         /* ---------------- Submap Views -------------- */
 
         public NavigableSet<K> keySet() {
-            KeySet<K,V> ks;
-            if ((ks = keySetView) != null) return ks;
-            return keySetView = new KeySet<>(this);
+            return navigableKeySet();
         }
 
         public NavigableSet<K> navigableKeySet() {
@@ -2893,10 +2872,6 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
             EntrySet<K,V> es;
             if ((es = entrySetView) != null) return es;
             return entrySetView = new EntrySet<K,V>(this);
-        }
-
-        public NavigableSet<K> descendingKeySet() {
-            return descendingMap().navigableKeySet();
         }
 
         /**

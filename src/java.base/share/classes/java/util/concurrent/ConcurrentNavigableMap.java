@@ -77,25 +77,37 @@ public interface ConcurrentNavigableMap<K,V>
     ConcurrentNavigableMap<K,V> tailMap(K fromKey, boolean inclusive);
 
     /**
+     * @implSpec {@inheritDoc}
      * @throws ClassCastException       {@inheritDoc}
      * @throws NullPointerException     {@inheritDoc}
      * @throws IllegalArgumentException {@inheritDoc}
      */
-    ConcurrentNavigableMap<K,V> subMap(K fromKey, K toKey);
+    @Override
+    default ConcurrentNavigableMap<K,V> subMap(K fromKey, K toKey) {
+        return subMap(fromKey, true, toKey, false);
+    }
 
     /**
+     * @implSpec {@inheritDoc}
      * @throws ClassCastException       {@inheritDoc}
      * @throws NullPointerException     {@inheritDoc}
      * @throws IllegalArgumentException {@inheritDoc}
      */
-    ConcurrentNavigableMap<K,V> headMap(K toKey);
+    @Override
+    default ConcurrentNavigableMap<K,V> headMap(K toKey) {
+        return headMap(toKey, false);
+    }
 
     /**
+     * @implSpec {@inheritDoc}
      * @throws ClassCastException       {@inheritDoc}
      * @throws NullPointerException     {@inheritDoc}
      * @throws IllegalArgumentException {@inheritDoc}
      */
-    ConcurrentNavigableMap<K,V> tailMap(K fromKey);
+    @Override
+    default ConcurrentNavigableMap<K,V> tailMap(K fromKey) {
+        return tailMap(fromKey, true);
+    }
 
     /**
      * Returns a reverse order view of the mappings contained in this map.
@@ -145,9 +157,13 @@ public interface ConcurrentNavigableMap<K,V>
      *
      * <p>This method is equivalent to method {@code navigableKeySet}.
      *
+     * @implSpec {@inheritDoc}
      * @return a navigable set view of the keys in this map
      */
-    NavigableSet<K> keySet();
+    @Override
+    default NavigableSet<K> keySet() {
+        return navigableKeySet();
+    }
 
     /**
      * Returns a reverse order {@link NavigableSet} view of the keys contained in this map.
@@ -163,7 +179,11 @@ public interface ConcurrentNavigableMap<K,V>
      * <p>The view's iterators and spliterators are
      * <a href="package-summary.html#Weakly"><i>weakly consistent</i></a>.
      *
+     * @implSpec {@inheritDoc}
      * @return a reverse order navigable set view of the keys in this map
      */
-    NavigableSet<K> descendingKeySet();
+    @Override
+    default NavigableSet<K> descendingKeySet() {
+        return descendingMap().keySet();
+    }
 }

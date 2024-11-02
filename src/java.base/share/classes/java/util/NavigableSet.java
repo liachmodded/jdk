@@ -191,12 +191,16 @@ public interface NavigableSet<E> extends SortedSet<E> {
     NavigableSet<E> descendingSet();
 
     /**
-     * Returns an iterator over the elements in this set, in descending order.
+     * {@return an iterator over the elements in this set, in descending order}
      * Equivalent in effect to {@code descendingSet().iterator()}.
      *
-     * @return an iterator over the elements in this set, in descending order
+     * @implSpec
+     * This implementation calls {@code descendingSet().iterator()} and returns
+     * its result.
      */
-    Iterator<E> descendingIterator();
+    default Iterator<E> descendingIterator() {
+        return descendingSet().iterator();
+    }
 
     /**
      * Returns a view of the portion of this set whose elements range from
@@ -299,33 +303,51 @@ public interface NavigableSet<E> extends SortedSet<E> {
      *
      * <p>Equivalent to {@code subSet(fromElement, true, toElement, false)}.
      *
+     * @implSpec
+     * This implementation calls {@code
+     * subSet(fromElement, true, toElement, false)} and returns its result.
+     *
      * @throws ClassCastException       {@inheritDoc}
      * @throws NullPointerException     {@inheritDoc}
      * @throws IllegalArgumentException {@inheritDoc}
      */
-    SortedSet<E> subSet(E fromElement, E toElement);
+    default SortedSet<E> subSet(E fromElement, E toElement) {
+        return subSet(fromElement, true, toElement, false);
+    }
 
     /**
      * {@inheritDoc}
      *
      * <p>Equivalent to {@code headSet(toElement, false)}.
      *
+     * @implSpec
+     * This implementation calls {@code headSet(toElement, false)} and returns
+     * its result.
+     *
      * @throws ClassCastException       {@inheritDoc}
      * @throws NullPointerException     {@inheritDoc}
      * @throws IllegalArgumentException {@inheritDoc}
      */
-    SortedSet<E> headSet(E toElement);
+    default SortedSet<E> headSet(E toElement) {
+        return headSet(toElement, false);
+    }
 
     /**
      * {@inheritDoc}
      *
      * <p>Equivalent to {@code tailSet(fromElement, true)}.
      *
+     * @implSpec
+     * This implementation calls {@code tailSet(fromElement, true)} and returns
+     * its result.
+     *
      * @throws ClassCastException       {@inheritDoc}
      * @throws NullPointerException     {@inheritDoc}
      * @throws IllegalArgumentException {@inheritDoc}
      */
-    SortedSet<E> tailSet(E fromElement);
+    default SortedSet<E> tailSet(E fromElement) {
+        return tailSet(fromElement, true);
+    }
 
     /**
      * {@inheritDoc}

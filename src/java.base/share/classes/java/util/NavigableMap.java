@@ -306,9 +306,15 @@ public interface NavigableMap<K,V> extends SortedMap<K,V> {
      * {@code removeAll}, {@code retainAll}, and {@code clear} operations.
      * It does not support the {@code add} or {@code addAll} operations.
      *
+     * @implSpec
+     * This implementation calls {@code descendingMap().navigableKeySet()} and
+     * returns its result.
+     *
      * @return a reverse order navigable set view of the keys in this map
      */
-    NavigableSet<K> descendingKeySet();
+    default NavigableSet<K> descendingKeySet() {
+        return descendingMap().navigableKeySet();
+    }
 
     /**
      * Returns a view of the portion of this map whose keys range from
@@ -410,33 +416,54 @@ public interface NavigableMap<K,V> extends SortedMap<K,V> {
      *
      * <p>Equivalent to {@code subMap(fromKey, true, toKey, false)}.
      *
+     * @implSpec
+     * This default implementation calls {@code
+     * subMap(fromKey, true, toKey, false)} and returns its result.
+     *
      * @throws ClassCastException       {@inheritDoc}
      * @throws NullPointerException     {@inheritDoc}
      * @throws IllegalArgumentException {@inheritDoc}
      */
-    SortedMap<K,V> subMap(K fromKey, K toKey);
+    @Override
+    default SortedMap<K,V> subMap(K fromKey, K toKey) {
+        return subMap(fromKey, true, toKey, false);
+    }
 
     /**
      * {@inheritDoc}
      *
      * <p>Equivalent to {@code headMap(toKey, false)}.
      *
+     * @implSpec
+     * This default implementation calls {@code
+     * headMap(toKey, false)} and returns its result.
+     *
      * @throws ClassCastException       {@inheritDoc}
      * @throws NullPointerException     {@inheritDoc}
      * @throws IllegalArgumentException {@inheritDoc}
      */
-    SortedMap<K,V> headMap(K toKey);
+    @Override
+    default SortedMap<K,V> headMap(K toKey) {
+        return headMap(toKey, false);
+    }
 
     /**
      * {@inheritDoc}
      *
      * <p>Equivalent to {@code tailMap(fromKey, true)}.
      *
+     * @implSpec
+     * This default implementation calls {@code
+     * tailMap(fromKey, true)} and returns its result.
+     *
      * @throws ClassCastException       {@inheritDoc}
      * @throws NullPointerException     {@inheritDoc}
      * @throws IllegalArgumentException {@inheritDoc}
      */
-    SortedMap<K,V> tailMap(K fromKey);
+    @Override
+    default SortedMap<K,V> tailMap(K fromKey) {
+        return tailMap(fromKey, true);
+    }
 
     /**
      * {@inheritDoc}
@@ -452,5 +479,34 @@ public interface NavigableMap<K,V> extends SortedMap<K,V> {
      */
     default NavigableMap<K, V> reversed() {
         return this.descendingMap();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @implSpec
+     * The implementation in this interface returns the result of calling the
+     * {@code navigableKeySet} method.
+     *
+     * @return {@inheritDoc}
+     * @since 21
+     */
+    @Override
+    default SequencedSet<K> sequencedKeySet() {
+        return navigableKeySet();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @implSpec
+     * The implementation in this interface returns the result of calling the
+     * {@code navigableKeySet} method.
+     *
+     * @return {@inheritDoc}
+     */
+    @Override
+    default Set<K> keySet() {
+        return navigableKeySet();
     }
 }

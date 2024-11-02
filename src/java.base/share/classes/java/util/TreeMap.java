@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1480,15 +1480,6 @@ public class TreeMap<K,V>
         public NavigableSet<E> tailSet(E fromElement, boolean inclusive) {
             return new KeySet<>(m.tailMap(fromElement, inclusive));
         }
-        public SortedSet<E> subSet(E fromElement, E toElement) {
-            return subSet(fromElement, true, toElement, false);
-        }
-        public SortedSet<E> headSet(E toElement) {
-            return headSet(toElement, false);
-        }
-        public SortedSet<E> tailSet(E fromElement) {
-            return tailSet(fromElement, true);
-        }
         public NavigableSet<E> descendingSet() {
             return new KeySet<>(m.descendingMap());
         }
@@ -1955,22 +1946,6 @@ public class TreeMap<K,V>
 
         public final Set<K> keySet() {
             return navigableKeySet();
-        }
-
-        public NavigableSet<K> descendingKeySet() {
-            return descendingMap().navigableKeySet();
-        }
-
-        public final SortedMap<K,V> subMap(K fromKey, K toKey) {
-            return subMap(fromKey, true, toKey, false);
-        }
-
-        public final SortedMap<K,V> headMap(K toKey) {
-            return headMap(toKey, false);
-        }
-
-        public final SortedMap<K,V> tailMap(K fromKey) {
-            return tailMap(fromKey, true);
         }
 
         // View classes
