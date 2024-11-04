@@ -349,4 +349,34 @@ public interface SequencedMap<K, V> extends Map<K, V> {
         }
         return new SeqEntrySet();
     }
+
+    /**
+     * @apiNote
+     * Implementations should almost always implement {@link #sequencedKeySet
+     * sequencedKeySet} together with {@code keySet}.  The implementation of
+     * {@code keySet} can be as simple as calling {@link #sequencedKeySet
+     * sequencedKeySet} and returning the result.
+     */
+    @Override
+    Set<K> keySet();
+
+    /**
+     * @apiNote
+     * Implementations should almost always implement {@link #sequencedValues
+     * sequencedValues} together with {@code values}.  The implementation of
+     * {@code values} can be as simple as calling {@link #sequencedValues
+     * sequencedValues} and returning the result.
+     */
+    @Override
+    Collection<V> values();
+
+    /**
+     * @apiNote
+     * Implementations should almost always implement {@link #sequencedEntrySet
+     * sequencedEntrySet} together with {@code entrySet}.  The implementation of
+     * {@code entrySet} can be as simple as calling {@link #sequencedEntrySet
+     * sequencedEntrySet} and returning the result.
+     */
+    @Override
+    Set<Entry<K, V>> entrySet();
 }
