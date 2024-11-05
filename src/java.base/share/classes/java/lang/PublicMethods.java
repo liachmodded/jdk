@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,6 @@ package java.lang;
 import jdk.internal.reflect.ReflectionFactory;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.security.AccessController;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -101,16 +100,6 @@ final class PublicMethods {
             ptypes = reflectionFactory.getExecutableSharedParameterTypes(method);
         }
 
-        static boolean matches(Method method,
-                               String name, // may not be interned
-                               Class<?>[] ptypes) {
-            return method.getName().equals(name) &&
-                   Arrays.equals(
-                       reflectionFactory.getExecutableSharedParameterTypes(method),
-                       ptypes
-                   );
-        }
-
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -131,52 +120,12 @@ final class PublicMethods {
      * Node of a inked list containing Method(s) sharing the same
      * (name, parameter types) tuple.
      */
-    static final class MethodList {
+    private static final class MethodList {
         Method method;
         MethodList next;
 
         private MethodList(Method method) {
             this.method = method;
-        }
-
-        /**
-         * @return the head of a linked list containing given {@code methods}
-         *         filtered by given method {@code name}, parameter types
-         *         {@code ptypes} and including or excluding static methods as
-         *         requested by {@code includeStatic} flag.
-         */
-        static MethodList filter(Method[] methods, String name,
-                                 Class<?>[] ptypes, boolean includeStatic) {
-            MethodList head = null, tail = null;
-            for (Method method : methods) {
-                if ((includeStatic || !Modifier.isStatic(method.getModifiers())) &&
-                    Key.matches(method, name, ptypes)) {
-                    if (tail == null) {
-                        head = tail = new MethodList(method);
-                    } else {
-                        tail = tail.next = new MethodList(method);
-                    }
-                }
-            }
-            return head;
-        }
-
-        /**
-         * This method should only be called with the {@code head} (possibly null)
-         * of a list of Method(s) that share the same (method name, parameter types)
-         * and another {@code methodList} that also contains Method(s) with the
-         * same and equal (method name, parameter types) as the 1st list.
-         * It modifies the 1st list and returns the head of merged list
-         * containing only the most specific methods for each signature
-         * (i.e. return type). The returned head of the merged list may or
-         * may not be the same as the {@code head} of the given list.
-         * The given {@code methodList} is not modified.
-         */
-        static MethodList merge(MethodList head, MethodList methodList) {
-            for (MethodList ml = methodList; ml != null; ml = ml.next) {
-                head = merge(head, ml.method);
-            }
-            return head;
         }
 
         private static MethodList merge(MethodList head, Method method) {
@@ -251,24 +200,6 @@ final class PublicMethods {
                 len++;
             }
             return len;
-        }
-
-        /**
-         * @return 1st method in list with most specific return type
-         */
-        Method getMostSpecific() {
-            Method m = method;
-            Class<?> rt = m.getReturnType();
-            for (MethodList ml = next; ml != null; ml = ml.next) {
-                Method m2 = ml.method;
-                Class<?> rt2 = m2.getReturnType();
-                if (rt2 != rt && rt.isAssignableFrom(rt2)) {
-                    // found more specific return type
-                    m = m2;
-                    rt = rt2;
-                }
-            }
-            return m;
         }
     }
 }

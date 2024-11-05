@@ -73,10 +73,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import jdk.internal.constant.ConstantUtils;
-import jdk.internal.javac.PreviewFeature;
 import jdk.internal.loader.BootLoader;
 import jdk.internal.loader.BuiltinClassLoader;
-import jdk.internal.misc.PreviewFeatures;
 import jdk.internal.misc.Unsafe;
 import jdk.internal.module.Resources;
 import jdk.internal.reflect.CallerSensitive;
@@ -2458,7 +2456,10 @@ public final class Class<T> implements java.io.Serializable,
         if (sm != null) {
             checkMemberAccess(sm, Member.PUBLIC, Reflection.getCallerClass(), true);
         }
-        Method method = getMethod0(name, parameterTypes);
+        Method method = getMethodsRecursive(
+                name,
+                parameterTypes == null ? EMPTY_CLASS_ARRAY : parameterTypes,
+                /* includeStatic */ true, /* publicOnly */ true);
         if (method == null) {
             throw new NoSuchMethodException(methodToString(name, parameterTypes));
         }
@@ -2911,7 +2912,7 @@ public final class Class<T> implements java.io.Serializable,
         if (sm != null) {
             checkMemberAccess(sm, Member.DECLARED, Reflection.getCallerClass(), true);
         }
-        Method method = searchMethods(privateGetDeclaredMethods(false), name, parameterTypes);
+        Method method = searchMethods(privateGetDeclaredMethods(false), name, parameterTypes, true);
         if (method == null) {
             throw new NoSuchMethodException(methodToString(name, parameterTypes));
         }
@@ -2954,8 +2955,8 @@ public final class Class<T> implements java.io.Serializable,
      * the specified name and parameters, or null if not found
      */
     Method findMethod(boolean publicOnly, String name, Class<?>... parameterTypes) {
-        PublicMethods.MethodList res = getMethodsRecursive(name, parameterTypes, true, publicOnly);
-        return res == null ? null : getReflectionFactory().copyMethod(res.getMostSpecific());
+        var res = getMethodsRecursive(name, parameterTypes, true, publicOnly);
+        return res == null ? null : getReflectionFactory().copyMethod(res);
     }
 
     /**
@@ -3761,12 +3762,14 @@ public final class Class<T> implements java.io.Serializable,
     // This method does not copy the returned Method object!
     private static Method searchMethods(Method[] methods,
                                         String name,
-                                        Class<?>[] parameterTypes)
+                                        Class<?>[] parameterTypes,
+                                        boolean includeStatic)
     {
         ReflectionFactory fact = getReflectionFactory();
         Method res = null;
         for (Method m : methods) {
-            if (m.getName().equals(name)
+            if ((includeStatic || !Modifier.isStatic(m.getModifiers()))
+                && m.getName().equals(name)
                 && arrayContentsEq(parameterTypes,
                                    fact.getExecutableSharedParameterTypes(m))
                 && (res == null
@@ -3782,25 +3785,14 @@ public final class Class<T> implements java.io.Serializable,
     // Returns a "root" Method object. This Method object must NOT
     // be propagated to the outside world, but must instead be copied
     // via ReflectionFactory.copyMethod.
-    private Method getMethod0(String name, Class<?>[] parameterTypes) {
-        PublicMethods.MethodList res = getMethodsRecursive(
-            name,
-            parameterTypes == null ? EMPTY_CLASS_ARRAY : parameterTypes,
-            /* includeStatic */ true, /* publicOnly */ true);
-        return res == null ? null : res.getMostSpecific();
-    }
-
-    // Returns a list of "root" Method objects. These Method objects must NOT
-    // be propagated to the outside world, but must instead be copied
-    // via ReflectionFactory.copyMethod.
-    private PublicMethods.MethodList getMethodsRecursive(String name,
-                                                         Class<?>[] parameterTypes,
-                                                         boolean includeStatic,
-                                                         boolean publicOnly) {
+    // includeStatic == false means we are recursing superinterfaces
+    private Method getMethodsRecursive(String name,
+                                       Class<?>[] parameterTypes,
+                                       boolean includeStatic,
+                                       boolean publicOnly) {
         // 1st check declared methods
         Method[] methods = privateGetDeclaredMethods(publicOnly);
-        PublicMethods.MethodList res = PublicMethods.MethodList
-            .filter(methods, name, parameterTypes, includeStatic);
+        var res = searchMethods(methods, name, parameterTypes, includeStatic);
         // if there is at least one match among declared methods, we need not
         // search any further as such match surely overrides matching methods
         // declared in superclass(es) or interface(s).
@@ -3809,20 +3801,43 @@ public final class Class<T> implements java.io.Serializable,
         }
 
         // if there was no match among declared methods,
-        // we must consult the superclass (if any) recursively...
-        Class<?> sc = getSuperclass();
-        if (sc != null) {
-            res = sc.getMethodsRecursive(name, parameterTypes, includeStatic, publicOnly);
+        // we must consult the superclass (if any) recursively... if we are not recursing an interface
+        Class<?> sc;
+        if (includeStatic && (sc = getSuperclass()) != null) {
+            res = sc.getMethodsRecursive(name, parameterTypes, true, publicOnly);
         }
 
         // ...and coalesce the superclass methods with methods obtained
         // from directly implemented interfaces excluding static methods...
         for (Class<?> intf : getInterfaces(/* cloneArray */ false)) {
-            res = PublicMethods.MethodList.merge(
-                res, intf.getMethodsRecursive(name, parameterTypes, /* includeStatic */ false, publicOnly));
+            res = selectSingleMethod(res, intf.getMethodsRecursive(name, parameterTypes, /* includeStatic */ false, publicOnly));
         }
 
         return res;
+    }
+
+    private static Method selectSingleMethod(Method existing, Method candidate) {
+        // name and param types already match if non-null
+        if (candidate == null) return existing;
+        if (existing == null) return candidate;
+        // 1. More specific return type
+        var exRet = existing.getReturnType();
+        var canRet = candidate.getReturnType();
+        if (exRet != canRet)
+            return exRet.isAssignableFrom(canRet) ? candidate : existing;
+        // Return types must be the same by this point
+        // 2. Class first, then more specific declaring interface
+        var exOwner = existing.getDeclaringClass();
+        var canOwner = candidate.getDeclaringClass();
+        assert exOwner != canOwner;
+        // Class over interface
+        var exInterface = exOwner.isInterface();
+        if (exInterface != canOwner.isInterface()) // One class, one interface
+            return exInterface ? candidate : existing;
+        // More specific or first appearing interface (class already short-circuits)
+        if (exOwner.isAssignableFrom(canOwner))
+            return candidate;
+        return existing;
     }
 
     // Returns a "root" Constructor object. This Constructor object must NOT
