@@ -687,8 +687,8 @@ final class VarHandles {
 //                    if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
 //                        <RESULT_ERASED>MethodHandle.linkToStatic(<LINK_TO_STATIC_ARGS>);<RETURN_ERASED>
 //                    } else {
-//                        MethodHandle mh = handle.getMethodHandle(ad.mode);
-//                        <RETURN>mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(<LINK_TO_INVOKER_ARGS>);
+//                        MethodHandle mh = handle.getSpecificHandle(ad);
+//                        <RETURN>mh.invokeBasic(<LINK_TO_INVOKER_ARGS>);
 //                    }
 //                }""";
 //
@@ -704,8 +704,8 @@ final class VarHandles {
 //                    } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
 //                        MethodHandle.linkToStatic(<LINK_TO_STATIC_ARGS>);
 //                    } else {
-//                        MethodHandle mh = handle.getMethodHandle(ad.mode);
-//                        mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(<LINK_TO_INVOKER_ARGS>);
+//                        MethodHandle mh = handle.getSpecificHandle(ad);
+//                        <RETURN>mh.invokeBasic(<LINK_TO_INVOKER_ARGS>);
 //                    }
 //                }""";
 //

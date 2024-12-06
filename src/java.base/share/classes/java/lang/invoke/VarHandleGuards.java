@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,8 +39,8 @@ final class VarHandleGuards {
             Object r = MethodHandle.linkToStatic(handle, arg0, handle.vform.getMemberName(ad.mode));
             return ad.returnType.cast(r);
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return mh.invokeBasic(handle.asDirect(), arg0);
         }
     }
 
@@ -54,8 +54,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -67,8 +67,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -81,8 +81,8 @@ final class VarHandleGuards {
             Object r = MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
             return ad.returnType.cast(r);
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -95,8 +95,8 @@ final class VarHandleGuards {
             Object r = MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
             return ad.returnType.cast(r);
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -108,8 +108,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (int) MethodHandle.linkToStatic(handle, arg0, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (int) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (int) mh.invokeBasic(handle.asDirect(), arg0);
         }
     }
 
@@ -123,8 +123,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -136,8 +136,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -149,8 +149,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (int) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (int) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (int) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -162,8 +162,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (int) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (int) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (int) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -175,8 +175,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (long) MethodHandle.linkToStatic(handle, arg0, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (long) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (long) mh.invokeBasic(handle.asDirect(), arg0);
         }
     }
 
@@ -190,8 +190,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -203,8 +203,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -216,8 +216,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (long) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (long) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (long) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -229,8 +229,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (long) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (long) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (long) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -242,8 +242,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (float) MethodHandle.linkToStatic(handle, arg0, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (float) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (float) mh.invokeBasic(handle.asDirect(), arg0);
         }
     }
 
@@ -257,8 +257,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -270,8 +270,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -283,8 +283,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (float) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (float) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (float) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -296,8 +296,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (float) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (float) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (float) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -309,8 +309,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (double) MethodHandle.linkToStatic(handle, arg0, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (double) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (double) mh.invokeBasic(handle.asDirect(), arg0);
         }
     }
 
@@ -324,8 +324,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -337,8 +337,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -350,8 +350,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (double) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (double) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (double) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -363,8 +363,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (double) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (double) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (double) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -377,8 +377,8 @@ final class VarHandleGuards {
             Object r = MethodHandle.linkToStatic(handle, handle.vform.getMemberName(ad.mode));
             return ad.returnType.cast(r);
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect());
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return mh.invokeBasic(handle.asDirect());
         }
     }
 
@@ -392,8 +392,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0);
         }
     }
 
@@ -405,8 +405,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -418,8 +418,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (int) MethodHandle.linkToStatic(handle, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (int) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect());
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (int) mh.invokeBasic(handle.asDirect());
         }
     }
 
@@ -433,8 +433,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0);
         }
     }
 
@@ -446,8 +446,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -459,8 +459,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (int) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (int) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (int) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -472,8 +472,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (int) MethodHandle.linkToStatic(handle, arg0, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (int) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (int) mh.invokeBasic(handle.asDirect(), arg0);
         }
     }
 
@@ -485,8 +485,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (long) MethodHandle.linkToStatic(handle, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (long) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect());
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (long) mh.invokeBasic(handle.asDirect());
         }
     }
 
@@ -500,8 +500,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0);
         }
     }
 
@@ -513,8 +513,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -526,8 +526,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (long) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (long) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (long) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -539,8 +539,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (long) MethodHandle.linkToStatic(handle, arg0, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (long) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (long) mh.invokeBasic(handle.asDirect(), arg0);
         }
     }
 
@@ -552,8 +552,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (float) MethodHandle.linkToStatic(handle, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (float) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect());
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (float) mh.invokeBasic(handle.asDirect());
         }
     }
 
@@ -567,8 +567,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0);
         }
     }
 
@@ -580,8 +580,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -593,8 +593,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (float) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (float) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (float) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -606,8 +606,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (float) MethodHandle.linkToStatic(handle, arg0, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (float) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (float) mh.invokeBasic(handle.asDirect(), arg0);
         }
     }
 
@@ -619,8 +619,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (double) MethodHandle.linkToStatic(handle, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (double) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect());
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (double) mh.invokeBasic(handle.asDirect());
         }
     }
 
@@ -634,8 +634,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0);
         }
     }
 
@@ -647,8 +647,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -660,8 +660,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (double) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (double) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (double) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -673,8 +673,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (double) MethodHandle.linkToStatic(handle, arg0, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (double) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (double) mh.invokeBasic(handle.asDirect(), arg0);
         }
     }
 
@@ -687,8 +687,8 @@ final class VarHandleGuards {
             Object r = MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
             return ad.returnType.cast(r);
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -702,8 +702,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -715,8 +715,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, arg3, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
         }
     }
 
@@ -729,8 +729,8 @@ final class VarHandleGuards {
             Object r = MethodHandle.linkToStatic(handle, arg0, arg1, arg2, arg3, handle.vform.getMemberName(ad.mode));
             return ad.returnType.cast(r);
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
         }
     }
 
@@ -743,8 +743,8 @@ final class VarHandleGuards {
             Object r = MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
             return ad.returnType.cast(r);
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -758,8 +758,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -771,8 +771,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, arg3, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
         }
     }
 
@@ -784,8 +784,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (int) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, arg3, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (int) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (int) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
         }
     }
 
@@ -797,8 +797,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (long) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (long) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (long) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -812,8 +812,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -825,8 +825,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, arg3, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
         }
     }
 
@@ -838,8 +838,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (long) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, arg3, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (long) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (long) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
         }
     }
 
@@ -851,8 +851,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (long) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (long) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (long) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -864,8 +864,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (float) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (float) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (float) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -879,8 +879,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -892,8 +892,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, arg3, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
         }
     }
 
@@ -905,8 +905,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (float) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, arg3, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (float) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (float) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
         }
     }
 
@@ -918,8 +918,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (float) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (float) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (float) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -931,8 +931,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (double) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (double) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (double) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -946,8 +946,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -959,8 +959,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, arg3, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
         }
     }
 
@@ -972,8 +972,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (double) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, arg3, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (double) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (double) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
         }
     }
 
@@ -985,8 +985,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (double) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (double) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (double) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -998,8 +998,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (int) MethodHandle.linkToStatic(handle, arg0, arg1, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (int) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (int) mh.invokeBasic(handle.asDirect(), arg0, arg1);
         }
     }
 
@@ -1013,8 +1013,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -1026,8 +1026,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, arg3, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
         }
     }
 
@@ -1039,8 +1039,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (int) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, arg3, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (int) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (int) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
         }
     }
 
@@ -1052,8 +1052,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (int) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (int) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (int) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -1067,8 +1067,8 @@ final class VarHandleGuards {
         } else if (direct && handle.vform.getMethodType_V(ad.type) == ad.symbolicMethodTypeErased) {
             MethodHandle.linkToStatic(handle, arg0, arg1, arg2, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2);
         }
     }
 
@@ -1080,8 +1080,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (boolean) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, arg3, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (boolean) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (boolean) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
         }
     }
 
@@ -1093,8 +1093,8 @@ final class VarHandleGuards {
         if (direct && handle.vform.methodType_table[ad.type] == ad.symbolicMethodTypeErased) {
             return (long) MethodHandle.linkToStatic(handle, arg0, arg1, arg2, arg3, handle.vform.getMemberName(ad.mode));
         } else {
-            MethodHandle mh = handle.getMethodHandle(ad.mode);
-            return (long) mh.asType(ad.symbolicMethodTypeInvoker).invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
+            MethodHandle mh = handle.getSpecificHandle(ad);
+            return (long) mh.invokeBasic(handle.asDirect(), arg0, arg1, arg2, arg3);
         }
     }
 

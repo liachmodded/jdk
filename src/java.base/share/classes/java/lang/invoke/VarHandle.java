@@ -2011,20 +2011,28 @@ public abstract sealed class VarHandle implements Constable
     }
 
     static final class AccessDescriptor {
+        private static final int TAG_SMEAR = 0x13C4B2D1;
+        static final int NON_ZERO = 0x40000000;
         final MethodType symbolicMethodTypeExact;
         final MethodType symbolicMethodTypeErased;
         final MethodType symbolicMethodTypeInvoker;
         final Class<?> returnType;
         final int type;
         final int mode;
+        final int specificSlot;
 
-        public AccessDescriptor(MethodType symbolicMethodType, int type, int mode) {
+        AccessDescriptor(MethodType symbolicMethodType, int type, int mode) {
             this.symbolicMethodTypeExact = symbolicMethodType;
             this.symbolicMethodTypeErased = symbolicMethodType.erase();
             this.symbolicMethodTypeInvoker = symbolicMethodType.insertParameterTypes(0, VarHandle.class);
             this.returnType = symbolicMethodType.returnType();
             this.type = type;
             this.mode = mode;
+            this.specificSlot = Integer.remainderUnsigned(System.identityHashCode(symbolicMethodType) + TAG_SMEAR * mode, SPECIFIC_CAPACITY);
+        }
+
+        boolean equals(AccessDescriptor o) {
+            return symbolicMethodTypeExact == o.symbolicMethodTypeExact && mode == o.mode;
         }
     }
 
@@ -2232,6 +2240,71 @@ public abstract sealed class VarHandle implements Constable
         return mh;
     }
 
+    // Object ensures the pair won't tear
+    record SpecificEntry(AccessDescriptor ad, MethodHandle mh) {}
+
+    private static final int PROBE_LIMIT = 5;
+    private static final int SPECIFIC_CAPACITY = 41;
+    private int specificSize; // approximate number, not always accurate
+    private @Stable SpecificEntry[] specificEntries;
+
+    private MethodHandle makeAndCacheSpecific(AccessDescriptor ad, MethodHandle baseMh) {
+        MethodHandle result = baseMh.asType(ad.symbolicMethodTypeInvoker); // throws WMTE
+
+        if (specificSize * 3 >= SPECIFIC_CAPACITY * 2) {
+            // table is close to full, give up
+            return result;
+        }
+
+        return cacheSpecific(ad, result);
+    }
+
+    @DontInline
+    private MethodHandle cacheSpecific(AccessDescriptor ad, MethodHandle result) {
+        var table = specificEntries;
+        if (table == null) {
+            specificEntries = table = new SpecificEntry[SPECIFIC_CAPACITY];
+        }
+
+        int p = ad.specificSlot;
+        int count = 0;
+        do {
+            var e = table[p];
+            if (e == null) {
+                table[p] = new SpecificEntry(ad, result);
+                specificSize++;
+                break;
+            }
+            if (ad.equals(e.ad)) return e.mh;
+            if (++p >= SPECIFIC_CAPACITY) p = 0;
+            count++;
+        } while (count < PROBE_LIMIT);
+        return result;
+    }
+
+    @ForceInline
+    final MethodHandle getSpecificHandle(AccessDescriptor ad) {
+        var baseMh = getMethodHandle(ad.mode); // throws UOE
+        if (ad.symbolicMethodTypeInvoker == baseMh.type())
+            return baseMh;
+
+        var table = specificEntries;
+        looking:
+        if (table != null) {
+            int p = ad.specificSlot;
+            int count = 0;
+            do {
+                var e = table[p];
+                if (e == null) break looking;
+                if (ad.equals(e.ad)) return e.mh;
+                if (++p >= SPECIFIC_CAPACITY) p = 0;
+                count++;
+            } while (count < PROBE_LIMIT);
+            // no cache, not in limit
+            return baseMh.asType(ad.symbolicMethodTypeInvoker);
+        }
+        return makeAndCacheSpecific(ad, baseMh);
+    }
 
     /*non-public*/
     final void updateVarForm(VarForm newVForm) {
