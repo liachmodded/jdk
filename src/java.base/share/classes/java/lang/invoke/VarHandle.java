@@ -2243,7 +2243,7 @@ public abstract sealed class VarHandle implements Constable
     // Object ensures the pair won't tear
     record SpecificEntry(AccessDescriptor ad, MethodHandle mh) {}
 
-    private static final int PROBE_LIMIT = 5;
+    private static final int PROBE_LIMIT = 3;
     private static final int SPECIFIC_CAPACITY = 41;
     private int specificSize; // approximate number, not always accurate
     private @Stable SpecificEntry[] specificEntries;
