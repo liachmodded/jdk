@@ -61,7 +61,7 @@ public final class SegmentBulkOperations {
 
     @ForceInline
     public static MemorySegment fill(AbstractMemorySegmentImpl dst, byte value) {
-        dst.checkReadOnly(false);
+        dst.ensureWriteable();
         if (dst.length == 0) {
             // Implicit state check
             dst.sessionImpl().checkValidState();
@@ -110,8 +110,8 @@ public final class SegmentBulkOperations {
 
         Utils.checkNonNegativeIndex(size, "size");
         // Implicit null check for src and dst
-        src.checkAccess(srcOffset, size, true);
-        dst.checkAccess(dstOffset, size, false);
+        src.checkBounds(srcOffset, size);
+        dst.checkWrite(dstOffset, size);
 
         if (size <= 0) {
             // Do nothing
@@ -251,8 +251,8 @@ public final class SegmentBulkOperations {
                                 AbstractMemorySegmentImpl dst, long dstFromOffset, long dstToOffset) {
         final long srcBytes = srcToOffset - srcFromOffset;
         final long dstBytes = dstToOffset - dstFromOffset;
-        src.checkAccess(srcFromOffset, srcBytes, true);
-        dst.checkAccess(dstFromOffset, dstBytes, true);
+        src.checkBounds(srcFromOffset, srcBytes);
+        dst.checkBounds(dstFromOffset, dstBytes);
 
         final long length = Math.min(srcBytes, dstBytes);
         final boolean srcAndDstBytesDiffer = srcBytes != dstBytes;

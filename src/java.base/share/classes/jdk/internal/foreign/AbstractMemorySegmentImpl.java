@@ -32,7 +32,7 @@ import jdk.internal.misc.ScopedMemoryAccess;
 import jdk.internal.reflect.CallerSensitive;
 import jdk.internal.reflect.Reflection;
 import jdk.internal.util.ArraysSupport;
-import jdk.internal.util.Preconditions;
+import jdk.internal.vm.annotation.DontInline;
 import jdk.internal.vm.annotation.ForceInline;
 import sun.nio.ch.DirectBuffer;
 
@@ -68,7 +68,7 @@ import java.util.stream.StreamSupport;
  * {@link MappedMemorySegmentImpl}.
  */
 public abstract sealed class AbstractMemorySegmentImpl
-        implements MemorySegment, SegmentAllocator, BiFunction<String, List<Number>, RuntimeException>
+        implements MemorySegment, SegmentAllocator
         permits HeapMemorySegmentImpl, NativeMemorySegmentImpl {
 
     static final JavaNioAccess NIO_ACCESS = SharedSecrets.getJavaNioAccess();
@@ -331,26 +331,42 @@ public abstract sealed class AbstractMemorySegmentImpl
         return arr;
     }
 
+    @DontInline
+    private static IllegalArgumentException readOnlyException() {
+        return new IllegalArgumentException("Attempt to write a read-only segment");
+    }
+
+    @DontInline
+    private IllegalArgumentException nonAlignedElement(long offset, MemoryLayout enclosing) {
+        return new IllegalArgumentException(String.format(
+                "Target offset %d is incompatible with alignment constraint %d (of %s) for segment %s",
+                offset, enclosing.byteAlignment(), enclosing, this));
+    }
+
+    @DontInline
+    private IndexOutOfBoundsException outOfBoundException(long offset, long length) {
+        return new IndexOutOfBoundsException(String.format("Out of bound access on segment %s; new offset = %d; new length = %d",
+                this, offset, length));
+    }
+
     @ForceInline
-    public void checkReadOnly(boolean readOnly) {
-        if (!readOnly && this.readOnly) {
-            throw new IllegalArgumentException("Attempt to write a read-only segment");
+    public void ensureWriteable() {
+        if (this.readOnly) {
+            throw readOnlyException();
         }
     }
 
     @ForceInline
-    public void checkAccess(long offset, long length, boolean readOnly) {
-        checkReadOnly(readOnly);
+    public void checkWrite(long offset, long length) {
+        ensureWriteable();
         checkBounds(offset, length);
     }
 
     @ForceInline
-    public final void checkEnclosingLayout(long offset, MemoryLayout enclosing, boolean readOnly) {
-        checkAccess(offset, enclosing.byteSize(), readOnly);
+    public final void checkEnclosingLayout(long offset, MemoryLayout enclosing) {
+        checkBounds(offset, enclosing.byteSize());
         if (!isAlignedForElement(offset, enclosing)) {
-            throw new IllegalArgumentException(String.format(
-                    "Target offset %d is incompatible with alignment constraint %d (of %s) for segment %s"
-                    , offset, enclosing.byteAlignment(), enclosing, this));
+            throw nonAlignedElement(offset, enclosing);
         }
     }
 
@@ -386,19 +402,10 @@ public abstract sealed class AbstractMemorySegmentImpl
 
     @ForceInline
     void checkBounds(long offset, long length) {
-        if (length > 0) {
-            Preconditions.checkIndex(offset, this.length - length + 1, this);
-        } else if (length < 0 || offset < 0 ||
+        if (length < 0 || offset < 0 ||
                 offset > this.length - length) {
             throw outOfBoundException(offset, length);
         }
-    }
-
-    @Override
-    public RuntimeException apply(String s, List<Number> numbers) {
-        long offset = numbers.get(0).longValue();
-        long length = byteSize() - numbers.get(1).longValue() + 1;
-        return outOfBoundException(offset, length);
     }
 
     @Override
@@ -414,11 +421,6 @@ public abstract sealed class AbstractMemorySegmentImpl
     @ForceInline
     public final MemorySessionImpl sessionImpl() {
         return scope;
-    }
-
-    private IndexOutOfBoundsException outOfBoundException(long offset, long length) {
-        return new IndexOutOfBoundsException(String.format("Out of bound access on segment %s; new offset = %d; new length = %d",
-                        this, offset, length));
     }
 
     static class SegmentSplitter implements Spliterator<MemorySegment> {
@@ -607,8 +609,8 @@ public abstract sealed class AbstractMemorySegmentImpl
             throw new IllegalArgumentException("Destination segment incompatible with alignment constraints");
         }
         long size = elementCount * srcElementLayout.byteSize();
-        srcImpl.checkAccess(srcOffset, size, true);
-        dstImpl.checkAccess(dstOffset, size, false);
+        srcImpl.checkBounds(srcOffset, size);
+        dstImpl.checkWrite(dstOffset, size);
         if (srcElementLayout.byteSize() == 1 || srcElementLayout.order() == dstElementLayout.order()) {
             ScopedMemoryAccess.getScopedMemoryAccess().copyMemory(srcImpl.sessionImpl(), dstImpl.sessionImpl(),
                     srcImpl.unsafeGetBase(), srcImpl.unsafeGetOffset() + srcOffset,
@@ -634,7 +636,7 @@ public abstract sealed class AbstractMemorySegmentImpl
         if (!srcImpl.isAlignedForElement(srcOffset, srcLayout)) {
             throw new IllegalArgumentException("Source segment incompatible with alignment constraints");
         }
-        srcImpl.checkAccess(srcOffset, elementCount * dstInfo.scale(), true);
+        srcImpl.checkBounds(srcOffset, elementCount * dstInfo.scale());
         Objects.checkFromIndexSize(dstIndex, elementCount, Array.getLength(dstArray));
         if (dstInfo.scale() == 1 || srcLayout.order() == ByteOrder.nativeOrder()) {
             ScopedMemoryAccess.getScopedMemoryAccess().copyMemory(srcImpl.sessionImpl(), null,
@@ -661,7 +663,7 @@ public abstract sealed class AbstractMemorySegmentImpl
         if (!destImpl.isAlignedForElement(dstOffset, dstLayout)) {
             throw new IllegalArgumentException("Destination segment incompatible with alignment constraints");
         }
-        destImpl.checkAccess(dstOffset, elementCount * srcInfo.scale(), false);
+        destImpl.checkWrite(dstOffset, elementCount * srcInfo.scale());
         if (srcInfo.scale() == 1 || dstLayout.order() == ByteOrder.nativeOrder()) {
             ScopedMemoryAccess.getScopedMemoryAccess().copyMemory(null, destImpl.sessionImpl(),
                     srcArray, srcInfo.base() + (srcIndex * srcInfo.scale()),

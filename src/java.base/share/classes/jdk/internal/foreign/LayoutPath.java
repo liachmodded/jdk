@@ -286,7 +286,7 @@ public class LayoutPath {
     }
 
     private static void checkEnclosingLayout(MemorySegment segment, long offset, MemoryLayout enclosing) {
-        ((AbstractMemorySegmentImpl)segment).checkEnclosingLayout(offset, enclosing, true);
+        ((AbstractMemorySegmentImpl)segment).checkEnclosingLayout(offset, enclosing);
     }
 
     public MemoryLayout layout() {
