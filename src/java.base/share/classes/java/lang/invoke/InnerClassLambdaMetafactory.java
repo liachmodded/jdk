@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -86,15 +86,6 @@ import sun.invoke.util.Wrapper;
     }
 
     // See context values in AbstractValidatingLambdaMetafactory
-    private final ClassDesc implMethodClassDesc;     // Name of type containing implementation "CC"
-    private final String implMethodName;             // Name of implementation method "impl"
-    private final MethodTypeDesc implMethodDesc;     // Type descriptor for implementation methods "(I)Ljava/lang/String;"
-    private final MethodType constructorType;        // Generated class constructor type "(CC)void"
-    private final MethodTypeDesc constructorTypeDesc;// Type descriptor for the generated class constructor type "(CC)void"
-    private final ClassDesc[] argDescs;              // Type descriptors for the constructor arguments
-    private final String lambdaClassName;            // Generated name for the generated class "X$$Lambda$1"
-    private final ConstantPoolBuilder pool = ConstantPoolBuilder.of();
-    private final ClassEntry lambdaClassEntry;       // Class entry for the generated class "X$$Lambda$1"
     private final boolean useImplMethodHandle;       // use MethodHandle invocation instead of symbolic bytecode invocation
 
     /**
@@ -147,12 +138,6 @@ import sun.invoke.util.Wrapper;
         super(caller, factoryType, interfaceMethodName, interfaceMethodType,
               implementation, dynamicMethodType,
               isSerializable, altInterfaces, altMethods);
-        implMethodClassDesc = implClassDesc(implClass);
-        implMethodName = implInfo.getName();
-        implMethodDesc = methodDesc(implInfo.getMethodType());
-        constructorType = factoryType.changeReturnType(Void.TYPE);
-        lambdaClassName = lambdaClassName(targetClass);
-        lambdaClassEntry = pool.classEntry(ConstantUtils.internalNameToDesc(lambdaClassName));
         // If the target class invokes a protected method inherited from a
         // superclass in a different package, or does 'invokespecial', the
         // lambda class has no access to the resolved method, or does
@@ -164,21 +149,6 @@ import sun.invoke.util.Wrapper;
                                !VerifyAccess.isSamePackage(targetClass, implInfo.getDeclaringClass())) ||
                                implKind == MethodHandleInfo.REF_invokeSpecial ||
                                implKind == MethodHandleInfo.REF_invokeStatic && implClass.isHidden();
-        int parameterCount = factoryType.parameterCount();
-        ClassDesc[] argDescs;
-        MethodTypeDesc constructorTypeDesc;
-        if (parameterCount > 0) {
-            argDescs = new ClassDesc[parameterCount];
-            for (int i = 0; i < parameterCount; i++) {
-                argDescs[i] = classDesc(factoryType.parameterType(i));
-            }
-            constructorTypeDesc = MethodTypeDescImpl.ofValidated(CD_void, argDescs);
-        } else {
-            argDescs = EMPTY_CLASSDESC_ARRAY;
-            constructorTypeDesc = MTD_void;
-        }
-        this.argDescs = argDescs;
-        this.constructorTypeDesc = constructorTypeDesc;
     }
 
     private static String argName(int i) {
@@ -222,7 +192,7 @@ import sun.invoke.util.Wrapper;
             }
         } else {
             try {
-                MethodHandle mh = caller.findConstructor(innerClass, constructorType);
+                MethodHandle mh = caller.findConstructor(innerClass, factoryType.changeReturnType(Void.TYPE));
                 if (factoryType.parameterCount() == 0) {
                     // In the case of a non-capturing lambda, we optimize linkage by pre-computing a single instance
                     Object inst = mh.invokeBasic();
@@ -291,8 +261,30 @@ import sun.invoke.util.Wrapper;
      * is not found
      */
     private Class<?> generateInnerClass() throws LambdaConversionException {
-        List<ClassDesc> interfaces;
-        ClassDesc interfaceDesc = classDesc(interfaceClass);
+        // Initialize class-generation-specific symbols; this should not block CDS
+        final ClassDesc implMethodClassDesc = implClassDesc(implClass);
+        final String implMethodName = implInfo.getName();
+        final MethodTypeDesc implMethodDesc = methodDesc(implInfo.getMethodType());
+        final String lambdaClassName = lambdaClassName(targetClass);
+        final var pool = ConstantPoolBuilder.of();
+        final ClassEntry lambdaClassEntry = pool.classEntry(ConstantUtils.internalNameToDesc(lambdaClassName));
+        int parameterCount = factoryType.parameterCount();
+        final ClassDesc[] argDescs;
+        final MethodTypeDesc constructorTypeDesc;
+
+        if (parameterCount > 0) {
+            argDescs = new ClassDesc[parameterCount];
+            for (int i = 0; i < parameterCount; i++) {
+                argDescs[i] = classDesc(factoryType.parameterType(i));
+            }
+            constructorTypeDesc = MethodTypeDescImpl.ofValidated(CD_void, argDescs);
+        } else {
+            argDescs = EMPTY_CLASSDESC_ARRAY;
+            constructorTypeDesc = MTD_void;
+        }
+
+        final List<ClassDesc> interfaces;
+        final ClassDesc interfaceDesc = classDesc(interfaceClass);
         boolean accidentallySerializable = !isSerializable && Serializable.class.isAssignableFrom(interfaceClass);
         if (altInterfaces.length == 0) {
             interfaces = List.of(interfaceDesc);
@@ -306,8 +298,9 @@ import sun.invoke.util.Wrapper;
             }
             interfaces = List.copyOf(itfs);
         }
+
         final boolean finalAccidentallySerializable = accidentallySerializable;
-        final byte[] classBytes = ClassFile.of().build(lambdaClassEntry, pool, new Consumer<ClassBuilder>() {
+        final byte[] classBytes = ClassFile.of().build(lambdaClassEntry, pool, new Consumer<>() {
             @Override
             public void accept(ClassBuilder clb) {
                 clb.withFlags(ACC_SUPER | ACC_FINAL | ACC_SYNTHETIC)
@@ -317,17 +310,18 @@ import sun.invoke.util.Wrapper;
                     clb.withField(argName(i), argDescs[i], ACC_PRIVATE | ACC_FINAL);
                 }
 
-                generateConstructor(clb);
+                generateConstructor(clb, lambdaClassEntry, constructorTypeDesc, argDescs);
 
                 if (factoryType.parameterCount() == 0 && disableEagerInitialization) {
-                    generateClassInitializer(clb);
+                    generateClassInitializer(clb, lambdaClassEntry, constructorTypeDesc);
                 }
 
                 // Forward the SAM method
                 clb.withMethodBody(interfaceMethodName,
                         methodDesc(interfaceMethodType),
                         ACC_PUBLIC,
-                        forwardingMethod(interfaceMethodType));
+                        forwardingMethod(interfaceMethodType, lambdaClassEntry, argDescs, implMethodClassDesc,
+                                implMethodName, implMethodDesc));
 
                 // Forward the bridges
                 if (altMethods != null) {
@@ -335,12 +329,13 @@ import sun.invoke.util.Wrapper;
                         clb.withMethodBody(interfaceMethodName,
                                 methodDesc(mt),
                                 ACC_PUBLIC | ACC_BRIDGE,
-                                forwardingMethod(mt));
+                                forwardingMethod(mt, lambdaClassEntry, argDescs, implMethodClassDesc, implMethodName,
+                                        implMethodDesc));
                     }
                 }
 
                 if (isSerializable)
-                    generateSerializationFriendlyMethods(clb);
+                    generateSerializationFriendlyMethods(clb, lambdaClassEntry, argDescs);
                 else if (finalAccidentallySerializable)
                     generateSerializationHostileMethods(clb);
             }
@@ -362,7 +357,9 @@ import sun.invoke.util.Wrapper;
     /**
      * Generate a static field and a static initializer that sets this field to an instance of the lambda
      */
-    private void generateClassInitializer(ClassBuilder clb) {
+    private void generateClassInitializer(ClassBuilder clb,
+                                          ClassEntry lambdaClassEntry,
+                                          MethodTypeDesc constructorTypeDesc) {
         ClassDesc lambdaTypeDescriptor = classDesc(factoryType.returnType());
 
         // Generate the static final field that holds the lambda singleton
@@ -373,6 +370,7 @@ import sun.invoke.util.Wrapper;
             @Override
             public void accept(CodeBuilder cob) {
                 assert factoryType.parameterCount() == 0;
+                var pool = cob.constantPool();
                 cob.new_(lambdaClassEntry)
                    .dup()
                    .invokespecial(pool.methodRefEntry(lambdaClassEntry, pool.nameAndTypeEntry(INIT_NAME, constructorTypeDesc)))
@@ -385,7 +383,10 @@ import sun.invoke.util.Wrapper;
     /**
      * Generate the constructor for the class
      */
-    private void generateConstructor(ClassBuilder clb) {
+    private void generateConstructor(ClassBuilder clb,
+                                     ClassEntry lambdaClassEntry,
+                                     MethodTypeDesc constructorTypeDesc,
+                                     ClassDesc[] argDescs) {
         // Generate constructor
         clb.withMethodBody(INIT_NAME, constructorTypeDesc, ACC_PRIVATE,
                 new Consumer<>() {
@@ -393,6 +394,7 @@ import sun.invoke.util.Wrapper;
                     public void accept(CodeBuilder cob) {
                         cob.aload(0)
                            .invokespecial(CD_Object, INIT_NAME, MTD_void);
+                        var pool = cob.constantPool();
                         int parameterCount = factoryType.parameterCount();
                         for (int i = 0; i < parameterCount; i++) {
                             cob.aload(0)
@@ -427,7 +429,9 @@ import sun.invoke.util.Wrapper;
     /**
      * Generate a writeReplace method that supports serialization
      */
-    private void generateSerializationFriendlyMethods(ClassBuilder clb) {
+    private void generateSerializationFriendlyMethods(ClassBuilder clb,
+                                                      ClassEntry lambdaClassEntry,
+                                                      ClassDesc[] argDescs) {
         clb.withMethodBody(SerializationSupport.NAME_METHOD_WRITE_REPLACE, SerializationSupport.MTD_Object, ACC_PRIVATE | ACC_FINAL,
                 new Consumer<>() {
                     @Override
@@ -445,6 +449,7 @@ import sun.invoke.util.Wrapper;
                            .ldc(dynamicMethodType.toMethodDescriptorString())
                            .loadConstant(argDescs.length)
                            .anewarray(CD_Object);
+                        var pool = cob.constantPool();
                         for (int i = 0; i < argDescs.length; i++) {
                             cob.dup()
                                .loadConstant(i)
@@ -493,10 +498,16 @@ import sun.invoke.util.Wrapper;
      * This method generates a method body which calls the lambda implementation
      * method, converting arguments, as needed.
      */
-    Consumer<CodeBuilder> forwardingMethod(MethodType methodType) {
+    Consumer<CodeBuilder> forwardingMethod(MethodType methodType,
+                                           ClassEntry lambdaClassEntry,
+                                           ClassDesc[] argDescs,
+                                           ClassDesc implMethodClassDesc,
+                                           String implMethodName,
+                                           MethodTypeDesc implMethodDesc) {
         return new Consumer<>() {
             @Override
             public void accept(CodeBuilder cob) {
+                var pool = cob.constantPool();
                 if (implKind == MethodHandleInfo.REF_newInvokeSpecial) {
                     cob.new_(implMethodClassDesc)
                        .dup();
