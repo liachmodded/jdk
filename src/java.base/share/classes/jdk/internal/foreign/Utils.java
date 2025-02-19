@@ -30,6 +30,7 @@ import jdk.internal.access.SharedSecrets;
 import jdk.internal.foreign.abi.SharedUtils;
 import jdk.internal.misc.Unsafe;
 import jdk.internal.vm.annotation.ForceInline;
+import sun.invoke.util.ValueConversions;
 import sun.invoke.util.Wrapper;
 
 import java.lang.foreign.AddressLayout;
@@ -128,10 +129,15 @@ public final class Utils {
         if (layout.carrier() == boolean.class) {
             handle = MethodHandles.filterValue(handle, BOOL_TO_BYTE, BYTE_TO_BOOL);
         } else if (layout instanceof AddressLayout addressLayout) {
-            MethodHandle longToAddressAdapter = addressLayout.targetLayout().isPresent() ?
+            MethodHandle rawToAddressAdapter = addressLayout.targetLayout().isPresent() ?
                     MethodHandles.insertArguments(LONG_TO_ADDRESS_TARGET, 1, addressLayout) :
                     LONG_TO_ADDRESS_NO_TARGET;
-            handle = MethodHandles.filterValue(handle, ADDRESS_TO_LONG, longToAddressAdapter);
+            MethodHandle addressToRawAdapter = ADDRESS_TO_LONG;
+            if (baseCarrier == int.class) {
+                rawToAddressAdapter = MethodHandles.filterArguments(rawToAddressAdapter, 0, ValueConversions.convertPrimitive(Wrapper.INT, Wrapper.LONG));
+                addressToRawAdapter = MethodHandles.filterReturnValue(addressToRawAdapter, ValueConversions.convertPrimitive(Wrapper.LONG, Wrapper.INT));
+            }
+            handle = MethodHandles.filterValue(handle, addressToRawAdapter, rawToAddressAdapter);
         }
         return handle;
     }

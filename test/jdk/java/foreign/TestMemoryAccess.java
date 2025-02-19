@@ -459,4 +459,17 @@ public class TestMemoryAccess {
             assertEquals((double)(r + c), (double)handle.get(segment, 0L, r, c));
         };
     }
+
+    @Test
+    public void test32BitAddressAccess() {
+        if (ValueLayout.ADDRESS.byteSize() != 4)
+            return;
+        try (final Arena arena = Arena.ofConfined()) {
+            final MemorySegment mem = arena.allocate(16);
+            mem.set(ValueLayout.ADDRESS, 0, MemorySegment.ofAddress(0xfedcba9876543210L));
+            MemorySegment ms = mem.get(ValueLayout.ADDRESS, 0);
+            assertEquals(ms.address() & 0xffffffff00000000L, 0L, "Address not truncated to 32 bit");
+            assertEquals(ms.address(), 0x76543210L);
+        }
+    }
 }
