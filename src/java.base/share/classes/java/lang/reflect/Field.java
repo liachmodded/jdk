@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -810,12 +810,12 @@ class Field extends AccessibleObject implements Member {
      *              is enforcing Java language access control and the underlying
      *              field is inaccessible or final;
      *              or if this {@code Field} object has no write access.
-     * @throws    IllegalArgumentException  if the specified object is not an
-     *              instance of the class or interface declaring the underlying
-     *              field (or a subclass or implementor thereof),
-     *              or if an unwrapping conversion fails.
-     * @throws    NullPointerException      if the specified object is null
-     *              and the field is an instance field.
+     * @throws    IllegalArgumentException  if this field is an instance field
+     *              and the specified object is not an instance of the class or
+     *              interface (or a subclass or implementor thereof) declaring
+     *              this field, or if any of the conversions above fails
+     * @throws    NullPointerException      if the specified object is {@code null}
+     *              and this field is an instance field
      * @throws    ExceptionInInitializerError if the initialization provoked
      *              by this method fails.
      */
@@ -834,11 +834,7 @@ class Field extends AccessibleObject implements Member {
     }
 
     /**
-     * Sets the value of a field as a {@code boolean} on the specified object.
-     * This method is equivalent to
-     * {@code set(obj, zObj)},
-     * where {@code zObj} is a {@code Boolean} object and
-     * {@code zObj.booleanValue() == z}.
+     * Sets the value of this field of type {@code boolean}.
      *
      * @param obj the object whose field should be modified
      * @param z   the new value for the field of {@code obj}
@@ -848,12 +844,12 @@ class Field extends AccessibleObject implements Member {
      *              is enforcing Java language access control and the underlying
      *              field is either inaccessible or final;
      *              or if this {@code Field} object has no write access.
-     * @throws    IllegalArgumentException  if the specified object is not an
-     *              instance of the class or interface declaring the underlying
-     *              field (or a subclass or implementor thereof),
-     *              or if an unwrapping conversion fails.
+     * @throws    IllegalArgumentException  if this field is an instance field
+     *              and the specified object is not an instance of the class or
+     *              interface (or a subclass or implementor thereof) declaring
+     *              this field, or if this field is not of type {@code boolean}
      * @throws    NullPointerException      if the specified object is null
-     *              and the field is an instance field.
+     *              and this field is an instance field
      * @throws    ExceptionInInitializerError if the initialization provoked
      *              by this method fails.
      * @see       Field#set
@@ -873,11 +869,9 @@ class Field extends AccessibleObject implements Member {
     }
 
     /**
-     * Sets the value of a field as a {@code byte} on the specified object.
-     * This method is equivalent to
-     * {@code set(obj, bObj)},
-     * where {@code bObj} is a {@code Byte} object and
-     * {@code bObj.byteValue() == b}.
+     * Sets the value of this field of type {@code byte} or of another primitive
+     * type that {@code byte} can convert to via a primitive widening conversion.
+     * (JLS {@jls 5.1.2})
      *
      * @param obj the object whose field should be modified
      * @param b   the new value for the field of {@code obj}
@@ -887,12 +881,13 @@ class Field extends AccessibleObject implements Member {
      *              is enforcing Java language access control and the underlying
      *              field is either inaccessible or final;
      *              or if this {@code Field} object has no write access.
-     * @throws    IllegalArgumentException  if the specified object is not an
-     *              instance of the class or interface declaring the underlying
-     *              field (or a subclass or implementor thereof),
-     *              or if an unwrapping conversion fails.
-     * @throws    NullPointerException      if the specified object is null
-     *              and the field is an instance field.
+     * @throws    IllegalArgumentException  if this field is an instance field
+     *              and the specified object is not an instance of the class or
+     *              interface (or a subclass or implementor thereof) declaring
+     *              this field, or if no identity or primitive widening conversion
+     *              from {@code byte} to the type of this field is possible
+     * @throws    NullPointerException      if the specified object is {@code null}
+     *              and this field is an instance field
      * @throws    ExceptionInInitializerError if the initialization provoked
      *              by this method fails.
      * @see       Field#set
@@ -912,11 +907,9 @@ class Field extends AccessibleObject implements Member {
     }
 
     /**
-     * Sets the value of a field as a {@code char} on the specified object.
-     * This method is equivalent to
-     * {@code set(obj, cObj)},
-     * where {@code cObj} is a {@code Character} object and
-     * {@code cObj.charValue() == c}.
+     * Sets the value of this field of type {@code char} or of another primitive
+     * type that {@code char} can convert to via a primitive widening conversion.
+     * (JLS {@jls 5.1.2})
      *
      * @param obj the object whose field should be modified
      * @param c   the new value for the field of {@code obj}
@@ -926,12 +919,13 @@ class Field extends AccessibleObject implements Member {
      *              is enforcing Java language access control and the underlying
      *              field is either inaccessible or final;
      *              or if this {@code Field} object has no write access.
-     * @throws    IllegalArgumentException  if the specified object is not an
-     *              instance of the class or interface declaring the underlying
-     *              field (or a subclass or implementor thereof),
-     *              or if an unwrapping conversion fails.
-     * @throws    NullPointerException      if the specified object is null
-     *              and the field is an instance field.
+     * @throws    IllegalArgumentException  if this field is an instance field
+     *              and the specified object is not an instance of the class or
+     *              interface (or a subclass or implementor thereof) declaring
+     *              this field, or if no identity or primitive widening conversion
+     *              from {@code char} to the type of this field is possible
+     * @throws    NullPointerException      if the specified object is {@code null}
+     *              and this field is an instance field
      * @throws    ExceptionInInitializerError if the initialization provoked
      *              by this method fails.
      * @see       Field#set
@@ -951,11 +945,9 @@ class Field extends AccessibleObject implements Member {
     }
 
     /**
-     * Sets the value of a field as a {@code short} on the specified object.
-     * This method is equivalent to
-     * {@code set(obj, sObj)},
-     * where {@code sObj} is a {@code Short} object and
-     * {@code sObj.shortValue() == s}.
+     * Sets the value of this field of type {@code short} or of another primitive
+     * type that {@code short} can convert to via a primitive widening conversion.
+     * (JLS {@jls 5.1.2})
      *
      * @param obj the object whose field should be modified
      * @param s   the new value for the field of {@code obj}
@@ -965,12 +957,13 @@ class Field extends AccessibleObject implements Member {
      *              is enforcing Java language access control and the underlying
      *              field is either inaccessible or final;
      *              or if this {@code Field} object has no write access.
-     * @throws    IllegalArgumentException  if the specified object is not an
-     *              instance of the class or interface declaring the underlying
-     *              field (or a subclass or implementor thereof),
-     *              or if an unwrapping conversion fails.
-     * @throws    NullPointerException      if the specified object is null
-     *              and the field is an instance field.
+     * @throws    IllegalArgumentException  if this field is an instance field
+     *              and the specified object is not an instance of the class or
+     *              interface (or a subclass or implementor thereof) declaring
+     *              this field, or if no identity or primitive widening conversion
+     *              from {@code short} to the type of this field is possible
+     * @throws    NullPointerException      if the specified object is {@code null}
+     *              and this field is an instance field
      * @throws    ExceptionInInitializerError if the initialization provoked
      *              by this method fails.
      * @see       Field#set
@@ -990,11 +983,9 @@ class Field extends AccessibleObject implements Member {
     }
 
     /**
-     * Sets the value of a field as an {@code int} on the specified object.
-     * This method is equivalent to
-     * {@code set(obj, iObj)},
-     * where {@code iObj} is an {@code Integer} object and
-     * {@code iObj.intValue() == i}.
+     * Sets the value of this field of type {@code int} or of another primitive
+     * type that {@code int} can convert to via a primitive widening conversion.
+     * (JLS {@jls 5.1.2})
      *
      * @param obj the object whose field should be modified
      * @param i   the new value for the field of {@code obj}
@@ -1004,12 +995,13 @@ class Field extends AccessibleObject implements Member {
      *              is enforcing Java language access control and the underlying
      *              field is either inaccessible or final;
      *              or if this {@code Field} object has no write access.
-     * @throws    IllegalArgumentException  if the specified object is not an
-     *              instance of the class or interface declaring the underlying
-     *              field (or a subclass or implementor thereof),
-     *              or if an unwrapping conversion fails.
-     * @throws    NullPointerException      if the specified object is null
-     *              and the field is an instance field.
+     * @throws    IllegalArgumentException  if this field is an instance field
+     *              and the specified object is not an instance of the class or
+     *              interface (or a subclass or implementor thereof) declaring
+     *              this field, or if no identity or primitive widening conversion
+     *              from {@code int} to the type of this field is possible
+     * @throws    NullPointerException      if the specified object is {@code null}
+     *              and this field is an instance field
      * @throws    ExceptionInInitializerError if the initialization provoked
      *              by this method fails.
      * @see       Field#set
@@ -1029,11 +1021,9 @@ class Field extends AccessibleObject implements Member {
     }
 
     /**
-     * Sets the value of a field as a {@code long} on the specified object.
-     * This method is equivalent to
-     * {@code set(obj, lObj)},
-     * where {@code lObj} is a {@code Long} object and
-     * {@code lObj.longValue() == l}.
+     * Sets the value of this field of type {@code long} or of another primitive
+     * type that {@code long} can convert to via a primitive widening conversion.
+     * (JLS {@jls 5.1.2})
      *
      * @param obj the object whose field should be modified
      * @param l   the new value for the field of {@code obj}
@@ -1043,12 +1033,13 @@ class Field extends AccessibleObject implements Member {
      *              is enforcing Java language access control and the underlying
      *              field is either inaccessible or final;
      *              or if this {@code Field} object has no write access.
-     * @throws    IllegalArgumentException  if the specified object is not an
-     *              instance of the class or interface declaring the underlying
-     *              field (or a subclass or implementor thereof),
-     *              or if an unwrapping conversion fails.
-     * @throws    NullPointerException      if the specified object is null
-     *              and the field is an instance field.
+     * @throws    IllegalArgumentException  if this field is an instance field
+     *              and the specified object is not an instance of the class or
+     *              interface (or a subclass or implementor thereof) declaring
+     *              this field, or if no identity or primitive widening conversion
+     *              from {@code long} to the type of this field is possible
+     * @throws    NullPointerException      if the specified object is {@code null}
+     *              and this field is an instance field
      * @throws    ExceptionInInitializerError if the initialization provoked
      *              by this method fails.
      * @see       Field#set
@@ -1068,11 +1059,9 @@ class Field extends AccessibleObject implements Member {
     }
 
     /**
-     * Sets the value of a field as a {@code float} on the specified object.
-     * This method is equivalent to
-     * {@code set(obj, fObj)},
-     * where {@code fObj} is a {@code Float} object and
-     * {@code fObj.floatValue() == f}.
+     * Sets the value of this field of type {@code float} or of another primitive
+     * type that {@code float} can convert to via a primitive widening conversion.
+     * (JLS {@jls 5.1.2})
      *
      * @param obj the object whose field should be modified
      * @param f   the new value for the field of {@code obj}
@@ -1082,12 +1071,13 @@ class Field extends AccessibleObject implements Member {
      *              is enforcing Java language access control and the underlying
      *              field is either inaccessible or final;
      *              or if this {@code Field} object has no write access.
-     * @throws    IllegalArgumentException  if the specified object is not an
-     *              instance of the class or interface declaring the underlying
-     *              field (or a subclass or implementor thereof),
-     *              or if an unwrapping conversion fails.
-     * @throws    NullPointerException      if the specified object is null
-     *              and the field is an instance field.
+     * @throws    IllegalArgumentException  if this field is an instance field
+     *              and the specified object is not an instance of the class or
+     *              interface (or a subclass or implementor thereof) declaring
+     *              this field, or if no identity or primitive widening conversion
+     *              from {@code float} to the type of this field is possible
+     * @throws    NullPointerException      if the specified object is {@code null}
+     *              and this field is an instance field
      * @throws    ExceptionInInitializerError if the initialization provoked
      *              by this method fails.
      * @see       Field#set
@@ -1107,11 +1097,7 @@ class Field extends AccessibleObject implements Member {
     }
 
     /**
-     * Sets the value of a field as a {@code double} on the specified object.
-     * This method is equivalent to
-     * {@code set(obj, dObj)},
-     * where {@code dObj} is a {@code Double} object and
-     * {@code dObj.doubleValue() == d}.
+     * Sets the value of this field of type {@code double}.
      *
      * @param obj the object whose field should be modified
      * @param d   the new value for the field of {@code obj}
@@ -1121,12 +1107,12 @@ class Field extends AccessibleObject implements Member {
      *              is enforcing Java language access control and the underlying
      *              field is either inaccessible or final;
      *              or if this {@code Field} object has no write access.
-     * @throws    IllegalArgumentException  if the specified object is not an
-     *              instance of the class or interface declaring the underlying
-     *              field (or a subclass or implementor thereof),
-     *              or if an unwrapping conversion fails.
-     * @throws    NullPointerException      if the specified object is null
-     *              and the field is an instance field.
+     * @throws    IllegalArgumentException  if this field is an instance field
+     *              and the specified object is not an instance of the class or
+     *              interface (or a subclass or implementor thereof) declaring
+     *              this field, or if this field is not of type {@code double}
+     * @throws    NullPointerException      if the specified object is {@code null}
+     *              and this field is an instance field
      * @throws    ExceptionInInitializerError if the initialization provoked
      *              by this method fails.
      * @see       Field#set
