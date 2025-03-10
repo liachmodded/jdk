@@ -623,6 +623,10 @@ public abstract sealed class VarHandle implements Constable
      * {@code accessModeType(VarHandle.AccessMode.GET_VOLATILE)} on this
      * VarHandle.
      *
+     * @apiNote
+     * Ignoring the many semantic differences from C and C++, this method has
+     * memory ordering effects compatible with {@code memory_order_seq_cst}.
+     *
      * @param args the signature-polymorphic parameter list of the form
      * {@code (CT1 ct1, ..., CTn ctn)}
      * , statically represented using varargs.
@@ -683,6 +687,10 @@ public abstract sealed class VarHandle implements Constable
      * {@code accessModeType(VarHandle.AccessMode.GET_OPAQUE)} on this
      * VarHandle.
      *
+     * @apiNote
+     * Ignoring the many semantic differences from C and C++, this method has
+     * memory ordering effects compatible with {@code memory_order_relaxed}.
+     *
      * @param args the signature-polymorphic parameter list of the form
      * {@code (CT1 ct1, ..., CTn ctn)}
      * , statically represented using varargs.
@@ -712,6 +720,10 @@ public abstract sealed class VarHandle implements Constable
      * must match the access mode type that is the result of calling
      * {@code accessModeType(VarHandle.AccessMode.SET_OPAQUE)} on this
      * VarHandle.
+     *
+     * @apiNote
+     * Ignoring the many semantic differences from C and C++, this method has
+     * memory ordering effects compatible with {@code memory_order_relaxed}.
      *
      * @param args the signature-polymorphic parameter list of the form
      * {@code (CT1 ct1, ..., CTn ctn, T newValue)}
@@ -813,6 +825,10 @@ public abstract sealed class VarHandle implements Constable
      * calling {@code accessModeType(VarHandle.AccessMode.COMPARE_AND_SET)} on
      * this VarHandle.
      *
+     * @apiNote
+     * Ignoring the many semantic differences from C and C++, this method has
+     * memory ordering effects compatible with {@code memory_order_seq_cst}.
+     *
      * @param args the signature-polymorphic parameter list of the form
      * {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)}
      * , statically represented using varargs.
@@ -846,6 +862,10 @@ public abstract sealed class VarHandle implements Constable
      * must match the access mode type that is the result of calling
      * {@code accessModeType(VarHandle.AccessMode.COMPARE_AND_EXCHANGE)}
      * on this VarHandle.
+     *
+     * @apiNote
+     * Ignoring the many semantic differences from C and C++, this method has
+     * memory ordering effects compatible with {@code memory_order_seq_cst}.
      *
      * @param args the signature-polymorphic parameter list of the form
      * {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)}
