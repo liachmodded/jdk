@@ -70,8 +70,6 @@ module jdk.jdeps {
 
     uses com.sun.tools.javac.platform.PlatformProvider;
 
-    exports com.sun.tools.classfile to jdk.jlink;
-
     provides java.util.spi.ToolProvider with
         com.sun.tools.javap.Main.JavapToolProvider,
         com.sun.tools.jdeps.Main.JDepsToolProvider,
