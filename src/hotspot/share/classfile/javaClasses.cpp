@@ -194,8 +194,8 @@ void JavaClasses::compute_offset(int& dest_offset, InstanceKlass* ik,
 // java_lang_String
 
 int java_lang_String::_value_offset;
-int java_lang_String::_hash_offset;
-int java_lang_String::_hashIsZero_offset;
+int java_lang_String::_hashCache_offset;
+int java_lang_String::_hashState_offset;
 int java_lang_String::_coder_offset;
 int java_lang_String::_flags_offset;
 
@@ -216,8 +216,8 @@ bool java_lang_String::test_and_set_flag(oop java_string, uint8_t flag_mask) {
 
 #define STRING_FIELDS_DO(macro) \
   macro(_value_offset, k, vmSymbols::value_name(), byte_array_signature, false); \
-  macro(_hash_offset,  k, "hash",                  int_signature,        false); \
-  macro(_hashIsZero_offset, k, "hashIsZero",       bool_signature,       false); \
+  macro(_hashCache_offset, k, "hashCache",         int_signature,        false); \
+  macro(_hashState_offset, k, "hashState",         byte_signature,       false); \
   macro(_coder_offset, k, "coder",                 byte_signature,       false);
 
 void java_lang_String::compute_offsets() {
@@ -497,17 +497,9 @@ jchar* java_lang_String::as_unicode_string_or_null(oop java_string, int& length)
 }
 
 inline unsigned int java_lang_String::hash_code_impl(oop java_string, bool update) {
-  // The hash and hashIsZero fields are subject to a benign data race,
-  // making it crucial to ensure that any observable result of the
-  // calculation in this method stays correct under any possible read of
-  // these fields. Necessary restrictions to allow this to be correct
-  // without explicit memory fences or similar concurrency primitives is
-  // that we can ever only write to one of these two fields for a given
-  // String instance, and that the computation is idempotent and derived
-  // from immutable state
-  assert(_initialized && (_hash_offset > 0) && (_hashIsZero_offset > 0), "Must be initialized");
-  if (java_lang_String::hash_is_set(java_string)) {
-    return java_string->int_field(_hash_offset);
+  assert(_initialized && (_hashCache_offset > 0) && (_hashState_offset > 0), "Must be initialized");
+  if (java_lang_String::hash_is_set(java_string)) { // acquire semantics
+    return java_string->int_field(_hashCache_offset);
   }
 
   typeArrayOop value = java_lang_String::value(java_string);
@@ -525,9 +517,10 @@ inline unsigned int java_lang_String::hash_code_impl(oop java_string, bool updat
 
   if (update) {
     if (hash != 0) {
-      java_string->int_field_put(_hash_offset, hash);
+      java_string->int_field_put(_hashCache_offset, hash);
+      java_string->release_byte_field_put(_hashState_offset, 1);
     } else {
-      java_string->bool_field_put(_hashIsZero_offset, true);
+      java_string->release_byte_field_put(_hashState_offset, 2);
     }
   }
   return hash;

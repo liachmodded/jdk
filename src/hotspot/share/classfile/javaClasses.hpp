@@ -60,8 +60,8 @@ class java_lang_Object : AllStatic {
 class java_lang_String : AllStatic {
  private:
   static int _value_offset;
-  static int _hash_offset;
-  static int _hashIsZero_offset;
+  static int _hashCache_offset;
+  static int _hashState_offset;
   static int _coder_offset;
   static int _flags_offset;
 

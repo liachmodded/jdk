@@ -172,14 +172,26 @@ public final class String
      */
     private final byte coder;
 
-    /** Cache the hash code for the string */
-    private int hash; // Default to 0
+    /**
+     * Cache the hash code for the string, guarded by hashState != 0.
+     * However, avoid reading this field when hashState == ZERO_HASH
+     * as such a read cannot constant fold.
+     */
+    private @Stable int hashCache;
 
     /**
-     * Cache if the hash has been calculated as actually being zero, enabling
-     * us to avoid recalculating this.
+     * Cache the state of hash. The zero hash state is necessary for constant
+     * folding, as otherwise compiler cannot eliminate a load to hashCache field
+     * that observes a default value of 0. Volatile for acquire/release semantics
+     * with hashCache.
      */
-    private boolean hashIsZero; // Default to false;
+    private volatile @Stable byte hashState; // Default to 0;
+
+    // values also shared in javaClasses.cpp
+    private static final byte
+            NOT_HASHED = 0,
+            CACHED_HASH = 1,
+            ZERO_HASH = 2;
 
     /** use serialVersionUID from JDK 1.0.2 for interoperability */
     @java.io.Serial
@@ -263,8 +275,8 @@ public final class String
     public String(String original) {
         this.value = original.value;
         this.coder = original.coder;
-        this.hash = original.hash;
-        this.hashIsZero = original.hashIsZero;
+        this.hashCache = original.hashCache;
+        this.hashState = original.hashState;
     }
 
     /**
@@ -2432,25 +2444,22 @@ public final class String
      * @return  a hash code value for this object.
      */
     public int hashCode() {
-        // The hash or hashIsZero fields are subject to a benign data race,
-        // making it crucial to ensure that any observable result of the
-        // calculation in this method stays correct under any possible read of
-        // these fields. Necessary restrictions to allow this to be correct
-        // without explicit memory fences or similar concurrency primitives is
-        // that we can ever only write to one of these two fields for a given
-        // String instance, and that the computation is idempotent and derived
-        // from immutable state
-        int h = hash;
-        if (h == 0 && !hashIsZero) {
-            h = isLatin1() ? StringLatin1.hashCode(value)
-                           : StringUTF16.hashCode(value);
-            if (h == 0) {
-                hashIsZero = true;
-            } else {
-                hash = h;
-            }
+        byte state = hashState; // non-zero read of hashState can constant-fold
+        // acquire read
+        if (state == NOT_HASHED) {
+            state = computeHashAndReturnState();
         }
-        return h;
+        return state == ZERO_HASH ? 0 : hashCache; // non-zero read of hashCache can constant-fold
+    }
+
+    private byte computeHashAndReturnState() {
+        int hash = isLatin1() ? StringLatin1.hashCode(value)
+                              : StringUTF16.hashCode(value);
+        byte state = hash == 0 ? ZERO_HASH : CACHED_HASH;
+        hashCache = hash;
+        // release store
+        hashState = state;
+        return state;
     }
 
     /**
