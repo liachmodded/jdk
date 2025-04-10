@@ -166,7 +166,7 @@ public class CallerSensitiveAccess {
 
     Field inaccessibleField() {
         try {
-            return String.class.getDeclaredField("hash");
+            return String.class.getDeclaredField("hashCache");
         } catch (NoSuchFieldException e) {
             fail();
             return null;
