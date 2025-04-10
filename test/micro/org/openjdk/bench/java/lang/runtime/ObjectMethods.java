@@ -33,9 +33,6 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -44,13 +41,21 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
-@Warmup(iterations = 15, time = 1, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 4, time = 3, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 2, timeUnit = TimeUnit.SECONDS)
-@Fork(3)
+@Fork(1)
 public class ObjectMethods {
     record R0() {}
-    record R1(int i) {}
-    record R10(int i1,int i2,int i3,int i4,int i5,int i6,int i7,int i8,int i9,int i10) {}
+    record R1(int i) {
+        R1 copy() {
+            return new R1(i);
+        }
+    }
+    record R10(int i1,int i2,int i3,int i4,int i5,int i6,int i7,int i8,int i9,int i10) {
+        R10 copy() {
+            return new R10(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10);
+        }
+    }
     record R100(int i1,int i2,int i3,int i4,int i5,int i6,int i7,int i8,int i9,int i10,
                 int i11,int i12,int i13,int i14,int i15,int i16,int i17,int i18,int i19,int i20,
                 int i21,int i22,int i23,int i24,int i25,int i26,int i27,int i28,int i29,int i30,
@@ -87,12 +92,21 @@ public class ObjectMethods {
                 int i231,int i232,int i233,int i234,int i235,int i236,int i237,int i238,int i239,int i240,
                 int i241,int i242,int i243,int i244,int i245,int i246,int i247,int i248,int i249,int i250,
                 int i251,int i252,int i253,int i254) {}
+    record RSmallFirst(int i, R1 r1, R10 r10) {}
+    record RLargeFirst(R10 r10, R1 r1, int i) {}
 
     R0 r0;
     R1 r1;
     R10 r10;
     R100 r100;
     R254 r254;
+
+    RSmallFirst smallFirst0;
+    RSmallFirst smallFirst1;
+    RSmallFirst smallFirst2;
+    RLargeFirst largeFirst0;
+    RLargeFirst largeFirst1;
+    RLargeFirst largeFirst2;
 
     @Setup
     public void prepare() {
@@ -135,6 +149,13 @@ public class ObjectMethods {
                         231,232,233,234,235,236,237,238,239,240,
                         241,242,243,244,245,246,247,248,249,250,
                         251,252,253,254);
+        // Assumption: putting larger/different item first is faster for equals
+        largeFirst0 = new RLargeFirst(r10, r1, 1);
+        largeFirst1 = new RLargeFirst(r10.copy(), r1.copy(), 1);
+        largeFirst2 = new RLargeFirst(new R10(-5, 2, 3, 4, 5, 6, 7, 8, 9, 10), r1.copy(), 1);
+        smallFirst0 = new RSmallFirst(largeFirst0.i, largeFirst0.r1, largeFirst0.r10);
+        smallFirst1 = new RSmallFirst(largeFirst1.i, largeFirst1.r1, largeFirst1.r10);
+        smallFirst2 = new RSmallFirst(largeFirst2.i, largeFirst2.r1, largeFirst2.r10);
     }
 
     @Benchmark
@@ -160,5 +181,25 @@ public class ObjectMethods {
     @Benchmark
     public String toString254() {
         return r254.toString();
+    }
+
+    @Benchmark
+    public boolean equalsLargeFirstMatch() {
+        return largeFirst0.equals(largeFirst1);
+    }
+
+    @Benchmark
+    public boolean equalsLargeFirstMismatch() {
+        return largeFirst0.equals(largeFirst2);
+    }
+
+    @Benchmark
+    public boolean equalsSmallFirstMatch() {
+        return smallFirst0.equals(smallFirst1);
+    }
+
+    @Benchmark
+    public boolean equalsSmallFirstMismatch() {
+        return smallFirst0.equals(smallFirst2);
     }
 }
