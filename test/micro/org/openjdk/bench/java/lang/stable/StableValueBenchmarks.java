@@ -22,26 +22,26 @@ import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
 @State(Scope.Benchmark)
 public class StableValueBenchmarks {
   private static final MemoryLayout LAYOUT = MemoryLayout.structLayout(
-      ValueLayout.JAVA_INT.withName(""),
+      ValueLayout.JAVA_INT.withName("x"),
       ValueLayout.JAVA_INT.withName("y")
   );
 
   private static final long SIZEOF = LAYOUT.byteSize();
-  private static final long OFFSET_X = LAYOUT.byteOffset(groupElement(""));
+  private static final long OFFSET_X = LAYOUT.byteOffset(groupElement("x"));
   private static final long OFFSET_Y = LAYOUT.byteOffset(groupElement("y"));
 
-  private static final VarHandle VH_X = LAYOUT.arrayElementVarHandle(groupElement(""))
+  private static final VarHandle VH_X = LAYOUT.arrayElementVarHandle(groupElement("x"))
       .withInvokeExactBehavior();
   private static final VarHandle VH_Y = LAYOUT.arrayElementVarHandle(groupElement("y"))
       .withInvokeExactBehavior();
 
   private static final Supplier<VarHandle> SV_X = StableValue.supplier(
-      () -> LAYOUT.arrayElementVarHandle(groupElement("")).withInvokeExactBehavior());
+      () -> LAYOUT.arrayElementVarHandle(groupElement("x")).withInvokeExactBehavior());
   private static final Supplier<VarHandle> SV_Y = StableValue.supplier(
       () -> LAYOUT.arrayElementVarHandle(groupElement("y")).withInvokeExactBehavior());
 
   private static final Map<String, VarHandle> SMAP = StableValue.map(
-      Set.of("", "y"),
+      Set.of("x", "y"),
       name -> LAYOUT.arrayElementVarHandle(groupElement(name)).withInvokeExactBehavior());
 
   private final MemorySegment confined;
@@ -82,7 +82,7 @@ public class StableValueBenchmarks {
   public int confinedStableMapLoop() {
     var sum = 0;
     for(var i = 0; i < 512; i++) {
-      var x = (int) SMAP.get("").get(confined, 0L, (long) i);
+      var x = (int) SMAP.get("x").get(confined, 0L, (long) i);
       var y = (int) SMAP.get("y").get(confined, 0L, (long) i);
       sum += x +y;
     }

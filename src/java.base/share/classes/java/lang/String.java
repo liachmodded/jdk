@@ -172,14 +172,28 @@ public final class String
      */
     private final byte coder;
 
-    /** Cache the hash code for the string */
-    private int hash; // Default to 0
+    /**
+     * Cache the hash code for the string. Only non-zero values are written as
+     * 0 is indistinguishable from the default value observable under race.
+     * Always written with hashIsZero = 2.
+     */
+    private @Stable int hash; // Default to 0
 
     /**
      * Cache if the hash has been calculated as actually being zero, enabling
-     * us to avoid recalculating this.
+     * us to avoid recalculating this. Also enables constant folding and
+     * propagation.
+     *
+     * 0 - not computed
+     * 1 - use zero; written as (1, 0)
+     * 2 - not zero; written as (2, *)
+     *
+     * The possible combinations of (hashIsZero, hash) are:
+     * (0, 0) - initial; (0, *) - tear, but non-zero hash usable
+     * (1, 0) - zero hash; (1, *) - impossible on one string object
+     * (2, 0) - tear, recompute; (2, *) - non-zero hash
      */
-    private boolean hashIsZero; // Default to false;
+    private @Stable byte hashIsZero; // Default to 0;
 
     /** use serialVersionUID from JDK 1.0.2 for interoperability */
     @java.io.Serial
@@ -2437,18 +2451,30 @@ public final class String
         // calculation in this method stays correct under any possible read of
         // these fields. Necessary restrictions to allow this to be correct
         // without explicit memory fences or similar concurrency primitives is
-        // that we can ever only write to one of these two fields for a given
-        // String instance, and that the computation is idempotent and derived
-        // from immutable state
+        // that the computation is idempotent and derived from immutable state.
+        // See table in hashIsZero for possible observation outcomes.
+        var z = hashIsZero;
+        if (z == 1) {
+            // (1, 0)
+            return 0;
+        }
         int h = hash;
-        if (h == 0 && !hashIsZero) {
-            h = isLatin1() ? StringLatin1.hashCode(value)
+        if (h != 0) {
+            // (0, *) or (2, *)
+            return h;
+        }
+        // (0, 0) or (2, 0)
+        return computeAndInstallHash();
+    }
+
+    private int computeAndInstallHash() {
+        int h = isLatin1() ? StringLatin1.hashCode(value)
                            : StringUTF16.hashCode(value);
-            if (h == 0) {
-                hashIsZero = true;
-            } else {
-                hash = h;
-            }
+        if (h == 0) {
+            hashIsZero = 1;
+        } else {
+            hashIsZero = 2;
+            hash = h;
         }
         return h;
     }
