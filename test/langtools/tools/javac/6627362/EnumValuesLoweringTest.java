@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,6 +28,7 @@
  *          which is not available on JavaCard
  * @modules jdk.compiler
  *          jdk.jdeps/com.sun.tools.javap
+ * @run junit EnumValuesLoweringTest
  */
 
 import java.io.*;
@@ -35,25 +36,37 @@ import java.lang.reflect.*;
 import java.net.*;
 import java.util.*;
 
-public class T6627362 {
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+public class EnumValuesLoweringTest {
     static String testSrc = System.getProperty("test.src", ".");
 
-    public static void main(String... args) throws Exception {
-        new T6627362().run();
-    }
-
-    public void run() throws Exception {
-        testStandard();
-        testNoClone();
-        if (errors > 0)
-            throw new Error(errors + " test cases failed");
-    }
-
+    // Standard translation
+    @Test
     void testStandard() throws Exception {
-        // compile and disassemble E.java, check for reference to Object.clone()
+        // compile and disassemble E.java, check for reference to List.toArray()
         File x = new File(testSrc, "x");
         String[] jcArgs = { "-d", ".",
                             new File(x, "E.java").getPath() };
+        compile(jcArgs);
+
+        String[] jpArgs = { "-classpath", ".", "-c", "E" };
+
+        StringWriter sw = new StringWriter();
+        javap(new PrintWriter(sw, true), jpArgs);
+        check(sw.toString(), "InterfaceMethod java/util/List.of:([Ljava/lang/Object;)");
+        callValues();
+    }
+
+    // Java 8 has no List.of
+    @Test
+    void testNoListOf() throws Exception {
+        // compile and disassemble E.java, check for reference to Object.clone()
+        File x = new File(testSrc, "x");
+        String[] jcArgs = { "-d", ".", "--release", "8",
+                new File(x, "E.java").getPath() };
         compile(jcArgs);
 
         String[] jpArgs = { "-classpath", ".", "-c", "E" };
@@ -64,6 +77,8 @@ public class T6627362 {
         callValues();
     }
 
+    // JavaCard has no clone
+    @Test
     void testNoClone() throws Exception {
         // compile and disassemble E.java, using modified Object.java,
         // check for reference to System.arraycopy
@@ -95,10 +110,7 @@ public class T6627362 {
 
     void check(String s, String require) {
         System.out.println("Checking:\n" + s);
-        if (s.indexOf(require) == -1) {
-            System.err.println("Can't find " + require);
-            errors++;
-        }
+        assertTrue(s.contains(require), "Can't find '" + require + "' in:\n" + s);
     }
 
     void callValues() {
@@ -116,7 +128,5 @@ public class T6627362 {
             throw new Error(e);
         }
     }
-
-    int errors;
 }
 
