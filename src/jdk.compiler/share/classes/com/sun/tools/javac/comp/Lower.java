@@ -36,7 +36,6 @@ import com.sun.tools.javac.jvm.*;
 import com.sun.tools.javac.jvm.PoolConstant.LoadableConstant;
 import com.sun.tools.javac.main.Option.PkgInfo;
 import com.sun.tools.javac.resources.CompilerProperties.Fragments;
-import com.sun.tools.javac.resources.CompilerProperties.Notes;
 import com.sun.tools.javac.tree.*;
 import com.sun.tools.javac.util.*;
 import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
@@ -427,7 +426,7 @@ public class Lower extends TreeTranslator {
             ClassSymbol outerCacheClass = outerCacheClass();
             this.mapVar = new VarSymbol(STATIC | SYNTHETIC | FINAL,
                                         varName,
-                                        new ArrayType(syms.intType, syms.arrayClass),
+                                        useImmutableList() ? syms.listType : new ArrayType(syms.intType, syms.arrayClass),
                                         outerCacheClass);
             enterSynthetic(pos, mapVar, outerCacheClass.members());
         }
@@ -440,7 +439,7 @@ public class Lower extends TreeTranslator {
         // the enum for which this is a map
         final TypeSymbol forEnum;
 
-        // the field containing the map
+        // the field containing the map, int[] or List
         final VarSymbol mapVar;
 
         // the mapped values
@@ -448,6 +447,15 @@ public class Lower extends TreeTranslator {
 
         @Override
         public JCExpression switchValue(JCExpression ordinalExpr) {
+            if (useImmutableList()) {
+                // (int) (Integer) mapVar.get(ordinal)
+                return unbox(make.TypeCast(types.boxedClass(syms.intType).type,
+                                           make.App(make.Select(make.Ident(mapVar),
+                                                           listGetSym()),
+                                                   List.of(ordinalExpr))),
+                             syms.intType);
+            }
+            // mapVar[ordinal]
             return make.Indexed(mapVar, ordinalExpr);
         }
 
@@ -468,20 +476,51 @@ public class Lower extends TreeTranslator {
                 attrEnv.info.allowProtectedAccess = true;
                 JCClassDecl owner = classDef((ClassSymbol)mapVar.owner);
 
+                ListBuffer<JCStatement> stmts = new ListBuffer<>();
+
                 // synthetic static final int[] $SwitchMap$Color = new int[Color.values().length];
                 MethodSymbol valuesMethod = lookupMethod(pos,
                                                          names.values,
                                                          forEnum.type,
                                                          List.nil());
-                JCExpression size = make // Color.values().length
+                // Color.values().length;
+                JCExpression size = make
                     .Select(make.App(make.QualIdent(valuesMethod)),
                             syms.lengthVar);
-                JCExpression mapVarInit = make
-                    .NewArray(make.Type(syms.intType), List.of(size), null)
-                    .setType(new ArrayType(syms.intType, syms.arrayClass));
 
-                // try { $SwitchMap$Color[red.ordinal()] = 1; } catch (java.lang.NoSuchFieldError ex) {}
-                ListBuffer<JCStatement> stmts = new ListBuffer<>();
+                // var table = new Integer/int[Color.values().length];
+                Type componentType;
+                if (useImmutableList()) {
+                    componentType = types.boxedClass(syms.intType).type;
+                } else {
+                    componentType = syms.intType;
+                }
+
+                var tableType = new ArrayType(componentType, syms.arrayClass);
+                var mSym = new MethodSymbol(Flags.BLOCK,
+                        names.empty, null,
+                        mapVar.owner);
+                VarSymbol table = new VarSymbol(FINAL | SYNTHETIC,
+                        names.fromString("table"),
+                        tableType,
+                        mSym);
+
+                JCExpression tableInit = make
+                        .NewArray(make.Type(componentType), List.of(size), null)
+                        .setType(tableType);
+                stmts.append(make.VarDef(table, tableInit));
+
+                if (useImmutableList()) {
+                    // Arrays.fill(table, 0);
+                    var method = lookupMethod(pos, names.fromString("fill"), syms.arraysType,
+                            List.of(new ArrayType(syms.objectType, syms.arrayClass), syms.objectType));
+                    var invocation = make.App(make.Select(make.Type(syms.arraysType), method),
+                                              List.of(make.Ident(table), boxPrimitive(make.Literal(0)).setType(componentType)))
+                            .setType(syms.voidType);
+                    stmts.append(make.Exec(invocation));
+                }
+
+                // try { table[red.ordinal()] = 1; } catch (java.lang.NoSuchFieldError ex) {}
                 Symbol ordinalMethod = lookupMethod(pos,
                                                     names.ordinal,
                                                     forEnum.type,
@@ -495,20 +534,36 @@ public class Lower extends TreeTranslator {
                 for (Map.Entry<VarSymbol,Integer> e : values.entrySet()) {
                     VarSymbol enumerator = e.getKey();
                     Integer mappedValue = e.getValue();
+                    JCExpression assigned = make.Literal(mappedValue);
+                    if (useImmutableList()) {
+                        assigned = boxPrimitive(assigned).setType(componentType);
+                    }
                     JCExpression assign = make
-                        .Assign(make.Indexed(mapVar,
+                        .Assign(make.Indexed(table,
                                              make.App(make.Select(make.QualIdent(enumerator),
                                                                   ordinalMethod))),
-                                make.Literal(mappedValue))
-                        .setType(syms.intType);
+                                assigned)
+                        .setType(componentType);
                     JCStatement exec = make.Exec(assign);
                     JCStatement _try = make.Try(make.Block(0, List.of(exec)), catcher, null);
                     stmts.append(_try);
                 }
 
+                // $SwitchMap$Color = ...;
+                JCExpression rhs;
+                if (useImmutableList()) {
+                    // List.of(table)
+                    rhs = make.App(make.QualIdent(listOfSym()),
+                                   List.of(make.Ident(table))).setType(syms.listType);
+                } else {
+                    // table
+                    rhs = make.Ident(table);
+                }
+                stmts.append(make.Exec(make.Assign(make.Ident(mapVar), rhs).setType(mapVar.type)));
+
                 owner.defs = owner.defs
                     .prepend(make.Block(STATIC, stmts.toList()))
-                    .prepend(make.VarDef(mapVar, mapVarInit));
+                    .prepend(make.VarDef(mapVar, null));
             } finally {
                 attrEnv.info.allowProtectedAccess = prevAllowProtectedAccess;
             }
@@ -2321,9 +2376,10 @@ public class Lower extends TreeTranslator {
         // synthetic private static final T[] $VALUES = $values();
         Name valuesName = syntheticName(tree, "VALUES");
         Type arrayType = new ArrayType(types.erasure(tree.type), syms.arrayClass);
+        Type valuesFieldType = useImmutableList() ? syms.listType : arrayType;
         VarSymbol valuesVar = new VarSymbol(PRIVATE|FINAL|STATIC|SYNTHETIC,
                                             valuesName,
-                                            arrayType,
+                                            valuesFieldType,
                                             tree.type.tsym);
         JCNewArray newArray = make.NewArray(make.Type(types.erasure(tree.type)),
                                           List.nil(),
@@ -2337,13 +2393,34 @@ public class Lower extends TreeTranslator {
         enumDefs.append(make.MethodDef(valuesMethod, make.Block(0, List.of(make.Return(newArray)))));
         tree.sym.members().enter(valuesMethod);
 
-        enumDefs.append(make.VarDef(valuesVar, make.App(make.QualIdent(valuesMethod))));
+        // private static final T[] $VALUES = ...
+        var callValues = make.App(make.QualIdent(valuesMethod));
+        JCExpression valuesInitializer;
+        if (useImmutableList()) {
+            // List.of($values());
+            valuesInitializer = make.App(make.QualIdent(listOfSym()), List.of(callValues));
+        } else {
+            // $values()
+            valuesInitializer = callValues;
+        }
+        enumDefs.append(make.VarDef(valuesVar, valuesInitializer));
         tree.sym.members().enter(valuesVar);
 
         MethodSymbol valuesSym = lookupMethod(tree.pos(), names.values,
                                         tree.type, List.nil());
         List<JCStatement> valuesBody;
-        if (useClone()) {
+        if (useImmutableList()) {
+            // is the arrayType equal to return type?
+            // return (T[]) $VALUES.toArray(new T[0]);
+            JCTypeCast toArrayResult =
+                make.TypeCast(valuesSym.type.getReturnType(),
+                              make.App(make.Select(make.Ident(valuesVar),
+                                                   toArraySym()),
+                                       List.of(make.NewArray(make.Type(types.erasure(tree.type)),
+                                                             List.of(make.Literal(0)),
+                                                             List.nil()).setType(arrayType))));
+            valuesBody = List.of(make.Return(toArrayResult));
+        } else if (useClone()) {
             // return (T[]) $VALUES.clone();
             JCTypeCast valuesResult =
                 make.TypeCast(valuesSym.type.getReturnType(),
@@ -2444,6 +2521,47 @@ public class Lower extends TreeTranslator {
             while (tree.sym.members().findFirst(valuesName) != null) // avoid name clash
                 valuesName = names.fromString(valuesName + "" + target.syntheticNameChar());
             return valuesName;
+        }
+
+        private boolean useImmutableList() {
+            var cache = useImmutableListCache;
+            if (cache != null)
+                return cache;
+            boolean result = useClone() && findListOfMethod();
+            useImmutableListCache = result;
+            return result;
+        }
+        private Boolean useImmutableListCache;
+        private boolean findListOfMethod() {
+            try {
+                return syms.listType.tsym.members().findFirst(names.of) != null;
+            } catch (CompletionFailure e){
+                return false;
+            }
+        }
+
+        private MethodSymbol listOfSym() {
+            return new MethodSymbol(PUBLIC | STATIC,
+                    names.of,
+                    new MethodType(List.of(new ArrayType(syms.objectType, syms.arrayClass)),
+                            syms.listType, List.nil(), syms.methodClass),
+                    syms.listType.tsym);
+        }
+
+        private MethodSymbol listGetSym() {
+            return new MethodSymbol(PUBLIC,
+                    names.fromString("get"),
+                    new MethodType(List.of(syms.intType), syms.objectType, List.nil(), syms.methodClass),
+                    syms.listType.tsym);
+        }
+
+        private MethodSymbol toArraySym() {
+            var objArrayType = new ArrayType(syms.objectType, syms.arrayClass);
+            return new MethodSymbol(PUBLIC,
+                    names.fromString("toArray"),
+                    new MethodType(List.of(objArrayType),
+                            objArrayType, List.nil(), syms.methodClass),
+                    syms.listType.tsym);
         }
 
     /** Translate an enumeration constant and its initializer. */
