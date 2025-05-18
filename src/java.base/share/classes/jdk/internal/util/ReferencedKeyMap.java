@@ -36,6 +36,7 @@ import java.util.Objects;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -314,6 +315,19 @@ public final class ReferencedKeyMap<K, V> implements Map<K, V> {
         // If replace is successful then the older key will be used and the
         // lookup key will suffice.
         return map.replace(lookupKey(key), value);
+    }
+
+    @Override
+    public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+        removeStaleReferences();
+        record Remapper<K, V>(BiFunction<? super K, ? super V, ? extends V> func)
+                implements BiFunction<ReferenceKey<K>, V, V> {
+            @Override
+            public V apply(ReferenceKey<K> ref, V v) {
+                return func.apply(ref.get(), v);
+            }
+        }
+        return map.compute(entryKey(key), new Remapper<>(remappingFunction));
     }
 
     @Override

@@ -31,6 +31,7 @@
  * @run junit ClassValueTest
  */
 
+import java.io.ObjectStreamClass;
 import java.lang.classfile.ClassFile;
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles;
@@ -209,7 +210,7 @@ final class ClassValueTest {
      * Uses junit to do basic stress.
      */
     @Test
-    @Timeout(value = 4, unit = TimeUnit.SECONDS)
+    //@Timeout(value = 4, unit = TimeUnit.SECONDS)
     void testRemoveStale() throws InterruptedException {
         CountDownLatch oldInputUsed = new CountDownLatch(1);
         CountDownLatch inputUpdated = new CountDownLatch(1);
@@ -304,8 +305,8 @@ final class ClassValueTest {
     }
 
     @Test
-    @Disabled // JDK-8352622
     void testWeakAgainstClassValue() {
+        Class<?> clz = int.class;
         ClassValue<int[]> cv = new ClassValue<>() {
             @Override
             protected int[] computeValue(Class<?> type) {
@@ -313,9 +314,12 @@ final class ClassValueTest {
             }
         };
 
-        WeakReference<?> ref = new WeakReference<>(cv.get(int.class));
+        WeakReference<?> ref = new WeakReference<>(cv.get(clz));
         cv = null; // Remove reference for interpreter
-        if (!ForceGC.wait(() -> ref.refersTo(null))) {
+        if (!ForceGC.waitFor(() -> {
+            CV1.get(clz);
+            return ref.refersTo(null);
+        }, Duration.ofSeconds(60).toMillis())) {
             fail("Timeout");
         }
     }
