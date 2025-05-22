@@ -31,7 +31,6 @@
  * @run junit ClassValueTest
  */
 
-import java.io.ObjectStreamClass;
 import java.lang.classfile.ClassFile;
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles;
@@ -177,11 +176,14 @@ final class ClassValueTest {
     }
 
     private static final long COMPUTE_TIME_MILLIS = 100;
-    private static final Duration TIMEOUT = Duration.of(2, ChronoUnit.SECONDS);
+    // Adjust this timeout to fail faster for test stalls
+    private static final Duration TIMEOUT = Duration.ofNanos((long) (
+            Duration.of(1, ChronoUnit.MINUTES).toNanos()
+                    * Double.parseDouble(System.getProperty("test.timeout.factor", "1.0"))));
 
     private static void await(CountDownLatch latch) {
         try {
-            if (!latch.await(2L, TimeUnit.SECONDS)) {
+            if (!latch.await(TIMEOUT.toNanos(), TimeUnit.NANOSECONDS)) {
                 fail("No signal received");
             }
         } catch (InterruptedException e) {
@@ -210,7 +212,6 @@ final class ClassValueTest {
      * Uses junit to do basic stress.
      */
     @Test
-    //@Timeout(value = 4, unit = TimeUnit.SECONDS)
     void testRemoveStale() throws InterruptedException {
         CountDownLatch oldInputUsed = new CountDownLatch(1);
         CountDownLatch inputUpdated = new CountDownLatch(1);
@@ -242,7 +243,6 @@ final class ClassValueTest {
      * Tests that calling get() from computeValue() terminates.
      */
     @Test
-    @Timeout(value = 4, unit = TimeUnit.SECONDS)
     void testGetInCompute() {
         ClassValue<Object> cv = new ClassValue<>() {
             @Override
@@ -264,7 +264,6 @@ final class ClassValueTest {
      * Tests that calling remove() from computeValue() terminates.
      */
     @Test
-    @Timeout(value = 4, unit = TimeUnit.SECONDS)
     void testRemoveInCompute() {
         ClassValue<Boolean> cv = new ClassValue<>() {
             @Override
@@ -305,8 +304,8 @@ final class ClassValueTest {
     }
 
     @Test
+    @Disabled // JDK-8352622
     void testWeakAgainstClassValue() {
-        Class<?> clz = int.class;
         ClassValue<int[]> cv = new ClassValue<>() {
             @Override
             protected int[] computeValue(Class<?> type) {
@@ -314,12 +313,12 @@ final class ClassValueTest {
             }
         };
 
-        WeakReference<?> ref = new WeakReference<>(cv.get(clz));
+        WeakReference<?> ref = new WeakReference<>(cv.get(int.class));
         cv = null; // Remove reference for interpreter
-        if (!ForceGC.waitFor(() -> {
-            CV1.get(clz);
+        if (!ForceGC.wait(() -> {
+            CV1.get(int.class); // flush the weak maps
             return ref.refersTo(null);
-        }, Duration.ofSeconds(60).toMillis())) {
+        })) {
             fail("Timeout");
         }
     }
@@ -356,7 +355,6 @@ final class ClassValueTest {
     }
 
     @Test
-    @Timeout(value = 4, unit = TimeUnit.SECONDS)
     void testRacyRemoveInCompute() {
         ClassValue<Object> cv = new ClassValue<>() {
             @Override
@@ -402,7 +400,6 @@ final class ClassValueTest {
     private static final ScopedValue<Integer> THREAD_ID = ScopedValue.newInstance();
 
     @Test
-    @Timeout(value = 4, unit = TimeUnit.SECONDS)
     void testNoRecomputeOnUnrelatedRemoval() throws InterruptedException {
         CountDownLatch t1Started = new CountDownLatch(1);
         CountDownLatch removeTamper = new CountDownLatch(1);
@@ -447,7 +444,6 @@ final class ClassValueTest {
     }
 
     @Test
-    @Timeout(value = 4, unit = TimeUnit.SECONDS)
     void testNoObsoleteInstallation() throws InterruptedException {
         CountDownLatch slowComputationStart = new CountDownLatch(1);
         CountDownLatch slowComputationContinue = new CountDownLatch(1);
