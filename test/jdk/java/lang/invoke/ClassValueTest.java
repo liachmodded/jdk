@@ -23,7 +23,7 @@
 
 /*
  * @test
- * @bug 8351045 8351996
+ * @bug 8351045 8351996 8352622
  * @enablePreview
  * @comment Remove preview if ScopedValue is finalized
  * @summary tests for class-specific values
@@ -39,7 +39,6 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
@@ -47,11 +46,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import jdk.test.lib.Utils;
 import jdk.test.lib.util.ForceGC;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -179,7 +176,7 @@ final class ClassValueTest {
     // Adjust this timeout to fail faster for test stalls
     private static final Duration TIMEOUT = Duration.ofNanos((long) (
             Duration.of(1, ChronoUnit.MINUTES).toNanos()
-                    * Double.parseDouble(System.getProperty("test.timeout.factor", "1.0"))));
+                    * Utils.TIMEOUT_FACTOR));
 
     private static void await(CountDownLatch latch) {
         try {
@@ -304,7 +301,6 @@ final class ClassValueTest {
     }
 
     @Test
-    @Disabled // JDK-8352622
     void testWeakAgainstClassValue() {
         ClassValue<int[]> cv = new ClassValue<>() {
             @Override
