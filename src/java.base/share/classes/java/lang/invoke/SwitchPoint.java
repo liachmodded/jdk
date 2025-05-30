@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,10 @@
  */
 
 package java.lang.invoke;
+
+import static java.lang.invoke.MethodHandleStatics.UNSAFE;
+import static java.lang.invoke.MethodHandleStatics.uncaughtException;
+import static java.lang.invoke.MethodHandles.Lookup.PUBLIC_LOOKUP;
 
 /**
  * <p>
@@ -115,15 +119,13 @@ public class SwitchPoint {
         K_true  = MethodHandles.constant(boolean.class, true),
         K_false = MethodHandles.constant(boolean.class, false);
 
-    private final MutableCallSite mcs;
-    private final MethodHandle mcsInvoker;
+    private final StableValue<Boolean> invalidated;
 
     /**
      * Creates a new switch point.
      */
     public SwitchPoint() {
-        this.mcs = new MutableCallSite(K_true);
-        this.mcsInvoker = mcs.dynamicInvoker();
+        this.invalidated = StableValue.of();
     }
 
     /**
@@ -150,7 +152,23 @@ public class SwitchPoint {
      * @return true if this switch point has been invalidated
      */
     public boolean hasBeenInvalidated() {
-        return (mcs.getTarget() != K_true);
+        return invalidated.isSet();
+    }
+
+    private static final StableValue<MethodHandle> SV_IS_SET = StableValue.of();
+
+    private static MethodHandle svIsSet() {
+        if (!SV_IS_SET.isSet()) {
+            MethodHandle mh;
+            try {
+                mh = PUBLIC_LOOKUP.findVirtual(StableValue.class,
+                        "isSet", MethodType.methodType(boolean.class));
+            } catch (ReflectiveOperationException ex) {
+                throw uncaughtException(ex);
+            }
+            SV_IS_SET.trySet(mh);
+        }
+        return SV_IS_SET.orElseThrow();
     }
 
     /**
@@ -169,9 +187,9 @@ public class SwitchPoint {
      * @see MethodHandles#guardWithTest
      */
     public MethodHandle guardWithTest(MethodHandle target, MethodHandle fallback) {
-        if (mcs.getTarget() == K_false)
+        if (invalidated.isSet())
             return fallback;  // already invalid
-        return MethodHandles.guardWithTest(mcsInvoker, target, fallback);
+        return MethodHandles.guardWithTest(svIsSet().bindTo(invalidated), target, fallback);
     }
 
     /**
@@ -217,13 +235,9 @@ public class SwitchPoint {
      */
     public static void invalidateAll(SwitchPoint[] switchPoints) {
         if (switchPoints.length == 0)  return;
-        MutableCallSite[] sites = new MutableCallSite[switchPoints.length];
-        for (int i = 0; i < switchPoints.length; i++) {
-            SwitchPoint spt = switchPoints[i];
-            if (spt == null)  break;  // MSC.syncAll will trigger a NPE
-            sites[i] = spt.mcs;
-            spt.mcs.setTarget(K_false);
+        for (var spt : switchPoints) {
+            spt.invalidated.trySet(Boolean.TRUE);
         }
-        MutableCallSite.syncAll(sites);
+        UNSAFE.storeFence();
     }
 }
