@@ -24,6 +24,7 @@
  */
 package java.lang.invoke;
 
+import jdk.internal.vm.annotation.AOTSafeBootstrapMethod;
 import sun.invoke.util.Wrapper;
 import jdk.internal.constant.ConstantUtils;
 
@@ -84,6 +85,7 @@ public final class ConstantBootstraps {
      * @return a {@code null} value
      * @throws IllegalArgumentException if {@code type} is not a reference type
      */
+    @AOTSafeBootstrapMethod
     public static Object nullConstant(MethodHandles.Lookup lookup, String name, Class<?> type) {
         if (requireNonNull(type).isPrimitive()) {
             throw new IllegalArgumentException(String.format("not reference: %s", type));
@@ -103,6 +105,7 @@ public final class ConstantBootstraps {
      * @throws IllegalArgumentException if the name is not a descriptor for a
      * primitive type or the type is not {@code Class.class}
      */
+    @AOTSafeBootstrapMethod
     public static Class<?> primitiveClass(MethodHandles.Lookup lookup, String name, Class<?> type) {
         requireNonNull(name);
         requireNonNull(type);
@@ -136,6 +139,7 @@ public final class ConstantBootstraps {
      * class object does not represent an enum type
      * @see Enum#valueOf(Class, String)
      */
+    @AOTSafeBootstrapMethod
     public static <E extends Enum<E>> E enumConstant(MethodHandles.Lookup lookup, String name, Class<E> type) {
         requireNonNull(lookup);
         requireNonNull(name);
@@ -278,6 +282,7 @@ public final class ConstantBootstraps {
      * @throws NoSuchFieldError if the specified field does not exist
      * @throws IllegalArgumentException if the type is not {@code VarHandle}
      */
+    @AOTSafeBootstrapMethod
     public static VarHandle fieldVarHandle(MethodHandles.Lookup lookup, String name, Class<VarHandle> type,
                                            Class<?> declaringClass, Class<?> fieldType) {
         requireNonNull(lookup);
@@ -312,6 +317,7 @@ public final class ConstantBootstraps {
      * @throws NoSuchFieldError if the specified field does not exist
      * @throws IllegalArgumentException if the type is not {@code VarHandle}
      */
+    @AOTSafeBootstrapMethod
     public static VarHandle staticFieldVarHandle(MethodHandles.Lookup lookup, String name, Class<VarHandle> type,
                                                  Class<?> declaringClass, Class<?> fieldType) {
         requireNonNull(lookup);
@@ -344,6 +350,7 @@ public final class ConstantBootstraps {
      * accessible to the class performing the operation
      * @throws IllegalArgumentException if the type is not {@code VarHandle}
      */
+    @AOTSafeBootstrapMethod
     public static VarHandle arrayVarHandle(MethodHandles.Lookup lookup, String name, Class<VarHandle> type,
                                            Class<?> arrayClass) {
         requireNonNull(lookup);
@@ -402,6 +409,7 @@ public final class ConstantBootstraps {
      *
      * @since 15
      */
+    @AOTSafeBootstrapMethod
     public static Object explicitCast(MethodHandles.Lookup lookup, String name, Class<?> dstType, Object value)
             throws ClassCastException {
         if (dstType == void.class)

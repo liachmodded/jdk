@@ -55,6 +55,7 @@ import jdk.internal.constant.ClassOrInterfaceDescImpl;
 import jdk.internal.constant.ConstantUtils;
 import jdk.internal.constant.MethodTypeDescImpl;
 import jdk.internal.misc.PreviewFeatures;
+import jdk.internal.vm.annotation.AOTSafeBootstrapMethod;
 import jdk.internal.vm.annotation.Stable;
 
 import static java.lang.constant.ConstantDescs.*;
@@ -184,6 +185,7 @@ public final class SwitchBootstraps {
      * @jvms 4.4.6 The CONSTANT_NameAndType_info Structure
      * @jvms 4.4.10 The CONSTANT_Dynamic_info and CONSTANT_InvokeDynamic_info Structures
      */
+    @AOTSafeBootstrapMethod
     public static CallSite typeSwitch(MethodHandles.Lookup lookup,
                                       String invocationName,
                                       MethodType invocationType,
@@ -281,6 +283,7 @@ public final class SwitchBootstraps {
      * @jvms 4.4.6 The CONSTANT_NameAndType_info Structure
      * @jvms 4.4.10 The CONSTANT_Dynamic_info and CONSTANT_InvokeDynamic_info Structures
      */
+    @AOTSafeBootstrapMethod
     public static CallSite enumSwitch(MethodHandles.Lookup lookup,
                                       String invocationName,
                                       MethodType invocationType,

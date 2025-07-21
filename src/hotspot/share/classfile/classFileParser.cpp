@@ -935,6 +935,7 @@ public:
     _method_Hidden,
     _method_Scoped,
     _method_IntrinsicCandidate,
+    _method_AOTSafeBootstrapMethod,
     _jdk_internal_vm_annotation_Contended,
     _field_Stable,
     _jdk_internal_vm_annotation_ReservedStackAccess,
@@ -1896,6 +1897,11 @@ AnnotationCollector::annotation_index(const ClassLoaderData* loader_data,
     case VM_SYMBOL_ENUM_NAME(java_lang_Deprecated): {
       return _java_lang_Deprecated;
     }
+    case VM_SYMBOL_ENUM_NAME(AOTSafeBootstrapMethod_signature): {
+      if (_location != _in_method) break; // Only on methods
+      if (!privileged)             break; // Only in privileged code
+      return _method_AOTSafeBootstrapMethod;
+    }
     default: {
       break;
     }
@@ -1946,6 +1952,8 @@ void MethodAnnotationCollector::apply_to(const methodHandle& m) {
     m->set_deprecated();
   if (has_annotation(_java_lang_Deprecated_for_removal))
     m->set_deprecated_for_removal();
+  if (has_annotation(_method_AOTSafeBootstrapMethod))
+    m->set_is_aot_safe_bsm();
 }
 
 void ClassFileParser::ClassAnnotationCollector::apply_to(InstanceKlass* ik) {

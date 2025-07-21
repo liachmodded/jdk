@@ -37,6 +37,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
+import jdk.internal.vm.annotation.AOTSafeBootstrapMethod;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -379,6 +381,7 @@ public final class ObjectMethods {
      *                              in the {@code getters} array is {@code null}
      * @throws Throwable if any exception is thrown during call site construction
      */
+    @AOTSafeBootstrapMethod
     public static Object bootstrap(MethodHandles.Lookup lookup, String methodName, TypeDescriptor type,
                                    Class<?> recordClass,
                                    String names,

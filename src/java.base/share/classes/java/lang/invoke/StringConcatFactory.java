@@ -35,6 +35,7 @@ import jdk.internal.misc.VM;
 import jdk.internal.util.ClassFileDumper;
 import jdk.internal.util.ReferenceKey;
 import jdk.internal.util.ReferencedKeyMap;
+import jdk.internal.vm.annotation.AOTSafeBootstrapMethod;
 import jdk.internal.vm.annotation.Stable;
 import sun.invoke.util.Wrapper;
 
@@ -228,6 +229,7 @@ public final class StringConcatFactory {
      * @jls  5.1.11 String Conversion
      * @jls 15.18.1 String Concatenation Operator +
      */
+    @AOTSafeBootstrapMethod
     public static CallSite makeConcat(MethodHandles.Lookup lookup,
                                       String name,
                                       MethodType concatType) throws StringConcatException {
@@ -350,6 +352,7 @@ public final class StringConcatFactory {
      * @jls  5.1.11 String Conversion
      * @jls 15.18.1 String Concatenation Operator +
      */
+    @AOTSafeBootstrapMethod
     public static CallSite makeConcatWithConstants(MethodHandles.Lookup lookup,
                                                    String name,
                                                    MethodType concatType,
