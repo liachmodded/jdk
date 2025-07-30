@@ -391,7 +391,7 @@ public abstract class AtomicIntegerFieldUpdater<T> {
             try {
                 field = tclass.getDeclaredField(fieldName);
                 modifiers = field.getModifiers();
-                sun.reflect.misc.ReflectUtil.ensureMemberAccess(
+                Reflection.ensureMemberAccess(
                     caller, tclass, null, modifiers);
             } catch (Exception ex) {
                 throw new RuntimeException(ex);

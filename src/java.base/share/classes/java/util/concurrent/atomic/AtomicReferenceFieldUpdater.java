@@ -348,7 +348,7 @@ public abstract class AtomicReferenceFieldUpdater<T,V> {
             try {
                 field = tclass.getDeclaredField(fieldName);
                 modifiers = field.getModifiers();
-                sun.reflect.misc.ReflectUtil.ensureMemberAccess(
+                Reflection.ensureMemberAccess(
                     caller, tclass, null, modifiers);
                 fieldClass = field.getType();
             } catch (Exception ex) {
