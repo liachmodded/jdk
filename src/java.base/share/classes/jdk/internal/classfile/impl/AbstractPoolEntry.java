@@ -35,6 +35,7 @@ import jdk.internal.access.SharedSecrets;
 import jdk.internal.constant.ClassOrInterfaceDescImpl;
 import jdk.internal.constant.PrimitiveClassDescImpl;
 import jdk.internal.util.ArraysSupport;
+import jdk.internal.util.ModifiedUtf;
 import jdk.internal.vm.annotation.Stable;
 
 import static java.util.Objects.requireNonNull;
@@ -154,6 +155,9 @@ public abstract sealed class AbstractPoolEntry {
         }
 
         Utf8EntryImpl(ConstantPool cpm, int index, String s, int contentHash) {
+            int len = ModifiedUtf.lengthForConstantPool(s);
+            if (len > ModifiedUtf.MAX_CP_UTF_LENGTH)
+                throw new IllegalArgumentException("string too long");
             super(cpm, index, 0);
             this.rawBytes = null;
             this.offset = 0;

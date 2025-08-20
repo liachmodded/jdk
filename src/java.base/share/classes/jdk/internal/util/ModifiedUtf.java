@@ -25,6 +25,7 @@
 
 package jdk.internal.util;
 
+import jdk.internal.access.SharedSecrets;
 import jdk.internal.vm.annotation.ForceInline;
 
 /**
@@ -67,5 +68,25 @@ public abstract class ModifiedUtf {
                 utflen += (c >= 0x800) ? 2 : 1;
         }
         return utflen;
+    }
+
+    public static final int MAX_CP_UTF_LENGTH = 0xFFFF;
+    private static final int MAX_BYTE_PER_CHAR = 3;
+
+    /// Returns a speculative length for this string in the constant pool.
+    /// Has these special return values:
+    /// 1. -1 indicates deferred lazy length calculation, and the length will be legal
+    /// 2. A value over MAX_CP_UTF_LENGTH consistently indicates invalid string
+    /// 3. Other values indicate a string is valid and the length is authentic
+    public static int lengthForConstantPool(String str) {
+        int len = str.length();
+        if (len <= (MAX_CP_UTF_LENGTH / MAX_BYTE_PER_CHAR)) {
+            return -1;
+        }
+        if (len > MAX_CP_UTF_LENGTH) {
+            return len;
+        }
+        int count = SharedSecrets.getJavaLangAccess().countNonZeroAscii(str);
+        return utfLen(str, count);
     }
 }
