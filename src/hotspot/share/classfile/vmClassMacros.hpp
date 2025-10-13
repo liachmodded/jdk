@@ -52,6 +52,7 @@
   do_klass(Object_klass,                                java_lang_Object                                      ) \
   do_klass(String_klass,                                java_lang_String                                      ) \
   do_klass(Class_klass,                                 java_lang_Class                                       ) \
+  do_klass(Class_EnclosingMethodInfo_klass,             java_lang_Class_EnclosingMethodInfo                   ) \
   do_klass(Cloneable_klass,                             java_lang_Cloneable                                   ) \
   do_klass(ClassLoader_klass,                           java_lang_ClassLoader                                 ) \
   do_klass(Serializable_klass,                          java_io_Serializable                                  ) \

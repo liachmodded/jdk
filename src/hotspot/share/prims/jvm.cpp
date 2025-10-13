@@ -1158,7 +1158,7 @@ JVM_ENTRY(jobjectArray, JVM_GetClassInterfaces(JNIEnv *env, jclass cls))
   // Special handling for primitive objects
   if (java_lang_Class::is_primitive(mirror)) {
     // Primitive objects does not have any interfaces
-    objArrayOop r = oopFactory::new_objArray(vmClasses::Class_klass(), 0, CHECK_NULL);
+    objArrayOop r = Universe::the_empty_class_array();
     return (jobjectArray) JNIHandles::make_local(THREAD, r);
   }
 
@@ -1256,7 +1256,7 @@ JVM_ENTRY(jobjectArray, JVM_GetDeclaredClasses(JNIEnv *env, jclass ofClass))
   oop ofMirror = JNIHandles::resolve_non_null(ofClass);
   if (java_lang_Class::is_primitive(ofMirror) ||
       ! java_lang_Class::as_Klass(ofMirror)->is_instance_klass()) {
-    oop result = oopFactory::new_objArray(vmClasses::Class_klass(), 0, CHECK_NULL);
+    oop result = Universe::the_empty_class_array();
     return (jobjectArray)JNIHandles::make_local(THREAD, result);
   }
 
@@ -1265,7 +1265,7 @@ JVM_ENTRY(jobjectArray, JVM_GetDeclaredClasses(JNIEnv *env, jclass ofClass))
 
   if (iter.length() == 0) {
     // Neither an inner nor outer class
-    oop result = oopFactory::new_objArray(vmClasses::Class_klass(), 0, CHECK_NULL);
+    oop result = Universe::the_empty_class_array();
     return (jobjectArray)JNIHandles::make_local(THREAD, result);
   }
 
@@ -1562,6 +1562,7 @@ JVM_ENTRY(jobjectArray, JVM_GetClassDeclaredFields(JNIEnv *env, jclass ofClass, 
     // Return empty array
     oop res = oopFactory::new_objArray(vmClasses::reflect_Field_klass(), 0, CHECK_NULL);
     return (jobjectArray) JNIHandles::make_local(THREAD, res);
+
   }
 
   InstanceKlass* k = java_lang_Class::as_InstanceKlass(ofMirror);
@@ -3590,7 +3591,7 @@ JVM_ENTRY(jobject, JVM_InitAgentProperties(JNIEnv *env, jobject properties))
   return properties;
 JVM_END
 
-JVM_ENTRY(jobjectArray, JVM_GetEnclosingMethodInfo(JNIEnv *env, jclass ofClass))
+JVM_ENTRY(jobject, JVM_GetEnclosingMethodInfo(JNIEnv *env, jclass ofClass))
 {
   JvmtiVMObjectAllocEventCollector oam;
 
@@ -3611,24 +3612,28 @@ JVM_ENTRY(jobjectArray, JVM_GetEnclosingMethodInfo(JNIEnv *env, jclass ofClass))
   if (encl_method_class_idx == 0) {
     return nullptr;
   }
-  objArrayOop dest_o = oopFactory::new_objArray(vmClasses::Object_klass(), 3, CHECK_NULL);
-  objArrayHandle dest(THREAD, dest_o);
   Klass* enc_k = ik->constants()->klass_at(encl_method_class_idx, CHECK_NULL);
-  dest->obj_at_put(0, enc_k->java_mirror());
+  Handle java_enclosing_class(THREAD, enc_k->java_mirror());
   int encl_method_method_idx = ik->enclosing_method_method_index();
+  Handle result;
   if (encl_method_method_idx != 0) {
     Symbol* sym = ik->constants()->symbol_at(
                         extract_low_short_from_int(
                           ik->constants()->name_and_type_at(encl_method_method_idx)));
-    Handle str = java_lang_String::create_from_symbol(sym, CHECK_NULL);
-    dest->obj_at_put(1, str());
+    Handle name = java_lang_String::create_from_symbol(sym, CHECK_NULL);
     sym = ik->constants()->symbol_at(
               extract_high_short_from_int(
                 ik->constants()->name_and_type_at(encl_method_method_idx)));
-    str = java_lang_String::create_from_symbol(sym, CHECK_NULL);
-    dest->obj_at_put(2, str());
+    Handle type = java_lang_String::create_from_symbol(sym, CHECK_NULL);
+    JavaCallArguments args;
+    args.push_oop(java_enclosing_class);
+    args.push_oop(name);
+    args.push_oop(type);
+    result = JavaCalls::construct_new_instance(vmClasses::Class_EnclosingMethodInfo_klass(), vmSymbols::class_string_string_void_signature(), &args, THREAD);
+  } else {
+    result = JavaCalls::construct_new_instance(vmClasses::Class_EnclosingMethodInfo_klass(), vmSymbols::class_void_signature(), java_enclosing_class, THREAD);
   }
-  return (jobjectArray) JNIHandles::make_local(THREAD, dest());
+  return (jobject) JNIHandles::make_local(THREAD, result());
 }
 JVM_END
 

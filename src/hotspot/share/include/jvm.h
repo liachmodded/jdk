@@ -1090,12 +1090,11 @@ JVM_GetTemporaryDirectory(JNIEnv *env);
  * attribute, if present, or null if the class had no enclosing
  * method.
  *
- * If non-null, the returned array contains three elements. Element 0
- * is the java.lang.Class of which the enclosing method is a member,
- * and elements 1 and 2 are the java.lang.Strings for the enclosing
- * method's name and descriptor, respectively.
+ * If non-null, the returned object is constructed by calling
+ * either the (Class) constructor or the (Class, String, String)
+ * constructor of Class.EnclosingMethodInfo.
  */
-JNIEXPORT jobjectArray JNICALL
+JNIEXPORT jobject JNICALL
 JVM_GetEnclosingMethodInfo(JNIEnv* env, jclass ofClass);
 
 /*

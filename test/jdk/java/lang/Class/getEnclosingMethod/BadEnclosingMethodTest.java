@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.attribute.EnclosingMethodAttribute;
+import java.lang.reflect.GenericSignatureFormatError;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -94,6 +95,9 @@ class BadEnclosingMethodTest {
     @Test
     void testMalformedTypes() throws Exception {
         assertThrows(ClassFormatError.class, () -> loadTestClass("methodName", "(L[;)V"));
+        var fieldTypedClass = loadTestClass("methodName", "Ljava/lang/Object;");
+        //assertThrows(GenericSignatureFormatError.class, fieldTypedClass::getEnclosingMethod);
+        assertThrows(ClassFormatError.class, () -> loadTestClass("methodName", "(Ljava/util/Map.Entry;)V"));
         assertThrows(ClassFormatError.class, () -> loadTestClass(INIT_NAME, "(L[;)V"));
     }
 

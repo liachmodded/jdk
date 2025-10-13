@@ -1438,7 +1438,7 @@ public final class Class<T> implements java.io.Serializable,
      * @since 1.5
      */
     public Method getEnclosingMethod() {
-        EnclosingMethodInfo enclosingInfo = getEnclosingMethodInfo();
+        EnclosingMethodInfo enclosingInfo = getEnclosingMethodInfo0();
 
         if (enclosingInfo == null)
             return null;
@@ -1447,11 +1447,11 @@ public final class Class<T> implements java.io.Serializable,
                 return null;
 
             // Descriptor already validated by VM
-            List<Class<?>> types = BytecodeDescriptor.parseMethod(enclosingInfo.getDescriptor(), getClassLoader());
+            List<Class<?>> types = BytecodeDescriptor.parseMethod(enclosingInfo.descriptor(), getClassLoader());
             Class<?>   returnType       = types.removeLast();
             Class<?>[] parameterClasses = types.toArray(EMPTY_CLASS_ARRAY);
 
-            final Class<?> enclosingCandidate = enclosingInfo.getEnclosingClass();
+            final Class<?> enclosingCandidate = enclosingInfo.enclosingClass;
             Method[] candidates = enclosingCandidate.privateGetDeclaredMethods(false);
 
             /*
@@ -1462,7 +1462,7 @@ public final class Class<T> implements java.io.Serializable,
              */
             ReflectionFactory fact = getReflectionFactory();
             for (Method m : candidates) {
-                if (m.getName().equals(enclosingInfo.getName()) &&
+                if (m.getName().equals(enclosingInfo.name) &&
                     arrayContentsEq(parameterClasses,
                                     fact.getExecutableSharedParameterTypes(m))) {
                     // finally, check return type
@@ -1476,73 +1476,44 @@ public final class Class<T> implements java.io.Serializable,
         }
     }
 
-    private native Object[] getEnclosingMethod0();
+    private native EnclosingMethodInfo getEnclosingMethodInfo0();
 
-    private EnclosingMethodInfo getEnclosingMethodInfo() {
-        Object[] enclosingInfo = getEnclosingMethod0();
-        if (enclosingInfo == null)
-            return null;
-        else {
-            return new EnclosingMethodInfo(enclosingInfo);
-        }
-    }
+    /// The data from `EnclosingMethod` attribute, present on a local or
+    /// anonymous class. Identifies the method that declares this class.
+    /// The "immediately enclosing" class of this local/anonymous class.
+    /// Always present.
+    /// @see Class#getEnclosingClass
+    private record EnclosingMethodInfo(Class<?> enclosingClass,
+                                       String name,
+                                       String descriptor) {
 
-    private static final class EnclosingMethodInfo {
-        private final Class<?> enclosingClass;
-        private final String name;
-        private final String descriptor;
-
-        static void validate(Object[] enclosingInfo) {
-            if (enclosingInfo.length != 3)
-                throw new InternalError("Malformed enclosing method information");
-            try {
-                // The array is expected to have three elements:
-
-                // the immediately enclosing class
-                Class<?> enclosingClass = (Class<?>)enclosingInfo[0];
-                assert(enclosingClass != null);
-
-                // the immediately enclosing method or constructor's
-                // name (can be null).
-                String name = (String)enclosingInfo[1];
-
-                // the immediately enclosing method or constructor's
-                // descriptor (null iff name is).
-                String descriptor = (String)enclosingInfo[2];
-                assert((name != null && descriptor != null) || name == descriptor);
-            } catch (ClassCastException cce) {
-                throw new InternalError("Invalid type in enclosing method information", cce);
-            }
+        // Used by the JVM
+        EnclosingMethodInfo(Class<?> enclosingClass) {
+            this(enclosingClass, null, null);
         }
 
-        EnclosingMethodInfo(Object[] enclosingInfo) {
-            validate(enclosingInfo);
-            this.enclosingClass = (Class<?>)enclosingInfo[0];
-            this.name = (String)enclosingInfo[1];
-            this.descriptor = (String)enclosingInfo[2];
+        // Canonical constructor used by the JVM
+        EnclosingMethodInfo {
+            // Name and descriptor identifies the enclosing method or constructor
+            // of this local or anonymous class. Note that if this class is in a
+            // field initializer, an instance initializer (pasted to multiple
+            // constructors), or a static initializer (not represented) this
+            // information is absent.
+
+            // JVM validates the descriptor to be either a field or method descriptor
+            // as it is referred by a type in NameAndType; note this may still be a
+            // field descriptor, which is invalid.
+            assert (name == null) == (descriptor == null);
         }
 
         boolean isPartial() {
-            return enclosingClass == null || name == null || descriptor == null;
+            return name == null;
         }
 
         boolean isConstructor() { return !isPartial() && ConstantDescs.INIT_NAME.equals(name); }
 
-        boolean isMethod() { return !isPartial() && !isConstructor() && !ConstantDescs.CLASS_INIT_NAME.equals(name); }
-
-        Class<?> getEnclosingClass() { return enclosingClass; }
-
-        String getName() { return name; }
-
-        String getDescriptor() { return descriptor; }
-
+        boolean isMethod() { return !isPartial() && !isConstructor(); }
     }
-
-    private static Class<?> toClass(Type o) {
-        if (o instanceof GenericArrayType gat)
-            return toClass(gat.getGenericComponentType()).arrayType();
-        return (Class<?>)o;
-     }
 
     /**
      * If this {@code Class} object represents a local or anonymous
@@ -1560,7 +1531,7 @@ public final class Class<T> implements java.io.Serializable,
      * @since 1.5
      */
     public Constructor<?> getEnclosingConstructor() {
-        EnclosingMethodInfo enclosingInfo = getEnclosingMethodInfo();
+        EnclosingMethodInfo enclosingInfo = getEnclosingMethodInfo0();
 
         if (enclosingInfo == null)
             return null;
@@ -1569,11 +1540,11 @@ public final class Class<T> implements java.io.Serializable,
                 return null;
 
             // Descriptor already validated by VM
-            List<Class<?>> types = BytecodeDescriptor.parseMethod(enclosingInfo.getDescriptor(), getClassLoader());
+            List<Class<?>> types = BytecodeDescriptor.parseMethod(enclosingInfo.descriptor(), getClassLoader());
             types.removeLast();
             Class<?>[] parameterClasses = types.toArray(EMPTY_CLASS_ARRAY);
 
-            final Class<?> enclosingCandidate = enclosingInfo.getEnclosingClass();
+            final Class<?> enclosingCandidate = enclosingInfo.enclosingClass;
             Constructor<?>[] candidates = enclosingCandidate
                     .privateGetDeclaredConstructors(false);
             /*
@@ -1595,13 +1566,16 @@ public final class Class<T> implements java.io.Serializable,
 
     /**
      * If the class or interface represented by this {@code Class} object
-     * is a member of another class, returns the {@code Class} object
-     * representing the class in which it was declared.  This method returns
-     * null if this class or interface is not a member of any other class.  If
-     * this {@code Class} object represents an array class, a primitive
-     * type, or void, then this method returns null.
+     * is {@linkplain #isMemberClass() a member of another class}, returns the
+     * {@code Class} object representing the class in which it was declared.
+     * If this {@code Class} object represents a top-level class or interface,
+     * a local class or interface, an anonymous class, an array class, a
+     * primitive type, or void, then this method returns null.
      *
      * @return the declaring class for this class
+     * @see #getDeclaredClasses()
+     * @see #isMemberClass()
+     * @see #getEnclosingClass()
      * @since 1.1
      */
     public Class<?> getDeclaringClass() {
@@ -1619,26 +1593,26 @@ public final class Class<T> implements java.io.Serializable,
      * @since 1.5
      */
     public Class<?> getEnclosingClass() {
-        // There are five kinds of classes (or interfaces):
-        // a) Top level classes
-        // b) Nested classes (static member classes)
-        // c) Inner classes (non-static member classes)
-        // d) Local classes (named classes declared within a method)
-        // e) Anonymous classes
-
+        // There are 4 kinds of classes and interfaces by location:
+        // 1) Top level classes - declared in a package
+        // 2) Member classes (declared in other classes, supports external linkage)
+        // 3) Local classes (named classes declared within a block, no external linkage)
+        // 4) Anonymous classes (declared in an expression/enum constant, no simple name)
+        // 2, 3, 4 are collectively "nested classes".
+        // A nested class is "inner" if it captures the enclosing instance (JLS 15.9.2)
 
         // JVM Spec 4.7.7: A class must have an EnclosingMethod
         // attribute if and only if it is a local class or an
         // anonymous class.
-        EnclosingMethodInfo enclosingInfo = getEnclosingMethodInfo();
+        EnclosingMethodInfo enclosingInfo = getEnclosingMethodInfo0();
         Class<?> enclosingCandidate;
 
         if (enclosingInfo == null) {
-            // This is a top level or a nested class or an inner class (a, b, or c)
+            // This is a top level or member class
             enclosingCandidate = getDeclaringClass0();
         } else {
-            Class<?> enclosingClass = enclosingInfo.getEnclosingClass();
-            // This is a local class or an anonymous class (d or e)
+            Class<?> enclosingClass = enclosingInfo.enclosingClass;
+            // This is a local class or an anonymous class
             if (enclosingClass == this || enclosingClass == null)
                 throw new InternalError("Malformed enclosing method information");
             else
@@ -1843,12 +1817,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     private boolean hasEnclosingMethodInfo() {
-        Object[] enclosingInfo = getEnclosingMethod0();
-        if (enclosingInfo != null) {
-            EnclosingMethodInfo.validate(enclosingInfo);
-            return true;
-        }
-        return false;
+        return getEnclosingMethodInfo0() != null;
     }
 
     /**

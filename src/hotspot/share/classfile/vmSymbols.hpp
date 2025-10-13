@@ -58,6 +58,7 @@ class SerializeClosure;
   template(java_lang_System,                          "java/lang/System")                         \
   template(java_lang_Object,                          "java/lang/Object")                         \
   template(java_lang_Class,                           "java/lang/Class")                          \
+  template(java_lang_Class_EnclosingMethodInfo,       "java/lang/Class$EnclosingMethodInfo")      \
   template(java_lang_Module,                          "java/lang/Module")                         \
   template(java_lang_String,                          "java/lang/String")                         \
   template(java_lang_StringLatin1,                    "java/lang/StringLatin1")                   \
@@ -586,6 +587,7 @@ class SerializeClosure;
   template(object_object_object_signature,            "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;") \
   template(string_string_signature,                   "(Ljava/lang/String;)Ljava/lang/String;")                   \
   template(classloader_class_string_string_long_signature,         "(Ljava/lang/ClassLoader;Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;)J")             \
+  template(class_string_string_void_signature,        "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;)V") \
   template(byte_array_void_signature,                 "([B)V")                                                    \
   template(long_long_void_signature,                  "(JJ)V")                                                    \
   template(void_byte_array_signature,                 "()[B")                                                     \

@@ -44,6 +44,7 @@ extern jboolean VerifyFixClassname(char *utf_name);
 
 #define OBJ "Ljava/lang/Object;"
 #define CLS "Ljava/lang/Class;"
+#define ENC "Ljava/lang/Class$EnclosingMethodInfo;"
 #define CPL "Ljdk/internal/reflect/ConstantPool;"
 #define STR "Ljava/lang/String;"
 #define FLD "Ljava/lang/reflect/Field;"
@@ -67,7 +68,7 @@ static JNINativeMethod methods[] = {
     {"getRawAnnotations",      "()" BA,     (void *)&JVM_GetClassAnnotations},
     {"getConstantPool",     "()" CPL,       (void *)&JVM_GetClassConstantPool},
     {"desiredAssertionStatus0","("CLS")Z",  (void *)&JVM_DesiredAssertionStatus},
-    {"getEnclosingMethod0", "()[" OBJ,      (void *)&JVM_GetEnclosingMethodInfo},
+    {"getEnclosingMethodInfo0", "()" ENC,   (void *)&JVM_GetEnclosingMethodInfo},
     {"getRawTypeAnnotations", "()" BA,      (void *)&JVM_GetClassTypeAnnotations},
     {"getNestHost0",         "()" CLS,      (void *)&JVM_GetNestHost},
     {"getNestMembers0",      "()[" CLS,     (void *)&JVM_GetNestMembers},
