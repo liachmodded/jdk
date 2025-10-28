@@ -123,15 +123,6 @@ import static java.lang.module.ModuleDescriptor.Modifier.SYNTHETIC;
  * <p>
  * Details of the invocation dispatching are as follows:
  * <ul>
- * <li>The public non-final methods declared in {@code Object} include
- *     {@link Object#hashCode() hashCode}, {@link Object#equals(Object) equals},
- *     and {@link Object#toString() toString}. Other public methods of a proxy
- *     instance inherited from {@code Object} are final, so invocations of those
- *     methods are not dispatched to the invocation handler.
- * <li>Invocations to default methods in proxy interfaces are also dispatched
- *     to the invocation handler. An invocation handler can invoke a default
- *     method of a proxy interface by calling {@link
- *     InvocationHandler#invokeDefault InvocationHandler::invokeDefault}.
  * <li>One {@code Method} object is shared for all duplicate methods of each
  *     name and parameter types pair.  It represents the method from the first
  *     class or interface that contains one of these duplicate methods, in the
@@ -256,10 +247,21 @@ import static java.lang.module.ModuleDescriptor.Modifier.SYNTHETIC;
  * package of {@code T} to the dynamic module.
  *
  * @apiNote
+ * Invocations to default methods in proxy interfaces are also dispatched to the
+ * invocation handler. An invocation handler can invoke a default method of a
+ * proxy interface by calling {@link InvocationHandler#invokeDefault
+ * InvocationHandler::invokeDefault}.
+ * <p>
+ * The public non-final methods declared in {@code Object} include {@link
+ * Object#hashCode() hashCode}, {@link Object#equals(Object) equals}, and {@link
+ * Object#toString() toString}. Other public methods of a proxy instance
+ * inherited from {@code Object} are final, so invocations of those methods are
+ * not dispatched to the invocation handler.
+ * <p>
  * The protected methods declared in {@code java.lang.Object}, such as {@link
- * Object#clone() clone}, are not dispatched to the invocation handler, and are
- * not considered for duplicate methods if proxy interfaces contain public
- * non-static methods of the same name and parameter types.
+ * Object#clone() clone}, are ignored; they are not dispatched to the invocation
+ * handler, and are not considered for duplicate methods if proxy interfaces
+ * contain public non-static methods of the same name and parameter types.
  * {@snippet :
  * interface Baz { int clone(); }
  * Baz baz = (Baz) Proxy.newProxyInstance(Baz.class.getClassLoader(),
@@ -267,7 +269,6 @@ import static java.lang.module.ModuleDescriptor.Modifier.SYNTHETIC;
  *                                        (_, _, _) -> 42);
  * baz.clone();  // Returns 42, not a duplicate method with Object::clone
  * }
- * <p>
  * They can still be dispatched to the invocation handler if proxy interfaces
  * contain methods with the same name and method descriptor, causing method
  * overriding (JVMS {@jvms 5.4.5}).
