@@ -26,6 +26,7 @@
 package java.lang;
 
 import java.lang.annotation.Annotation;
+import java.lang.classfile.ClassFile;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.invoke.TypeDescriptor;
@@ -41,7 +42,6 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
-import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.GenericDeclaration;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
@@ -57,7 +57,7 @@ import java.security.Permissions;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -219,9 +219,6 @@ public final class Class<T> implements java.io.Serializable,
                               AnnotatedElement,
                               TypeDescriptor.OfField<Class<?>>,
                               Constable {
-    private static final int ANNOTATION= 0x00002000;
-    private static final int ENUM      = 0x00004000;
-    private static final int SYNTHETIC = 0x00001000;
 
     private static native void registerNatives();
     static {
@@ -395,7 +392,7 @@ public final class Class<T> implements java.io.Serializable,
         if (superclass != null && superclass.isSealed()) {
             return true;
         }
-        for (var superinterface : clazz.getInterfaces()) {
+        for (var superinterface : clazz.getInterfaces(false)) {
             if (superinterface.isSealed()) {
                 return true;
             }
@@ -706,9 +703,8 @@ public final class Class<T> implements java.io.Serializable,
                 );
             }
             try {
-                Class<?>[] empty = {};
                 final Constructor<T> c = getReflectionFactory().copyConstructor(
-                    getConstructor0(empty, Member.DECLARED));
+                    getConstructor0(EMPTY_CLASS_ARRAY, Member.DECLARED));
                 // Disable accessibility checks on the constructor
                 // access check is done with the true caller
                 c.setAccessible(true);
@@ -870,7 +866,7 @@ public final class Class<T> implements java.io.Serializable,
      * @since 1.5
      */
     public boolean isAnnotation() {
-        return (getModifiers() & ANNOTATION) != 0;
+        return (getModifiers() & ClassFile.ACC_ANNOTATION) != 0;
     }
 
     /**
@@ -885,7 +881,7 @@ public final class Class<T> implements java.io.Serializable,
      * @since 1.5
      */
     public boolean isSynthetic() {
-        return (getModifiers() & SYNTHETIC) != 0;
+        return (getModifiers() & ClassFile.ACC_SYNTHETIC) != 0;
     }
 
     /**
@@ -1157,7 +1153,7 @@ public final class Class<T> implements java.io.Serializable,
     public String getPackageName() {
         String pn = this.packageName;
         if (pn == null) {
-            Class<?> c = isArray() ? elementType() : this;
+            Class<?> c = unwrapArrays();
             if (c.isPrimitive()) {
                 pn = "java.lang";
             } else {
@@ -1308,13 +1304,13 @@ public final class Class<T> implements java.io.Serializable,
     private transient final Class<?> componentType;
 
     /*
-     * Returns the {@code Class} representing the element type of an array class.
-     * If this class does not represent an array class, then this method returns
-     * {@code null}.
+     * Returns the {@code Class} representing this class as a non-array class,
+     * or the element type (the recursive non-array component type of arrays)
+     * of an array class.
+     * This is useful to derive certain properties for array classes, such as
+     * accessibility and the package ownership.
      */
-    private Class<?> elementType() {
-        if (!isArray()) return null;
-
+    private Class<?> unwrapArrays() {
         Class<?> c = this;
         while (c.isArray()) {
             c = c.getComponentType();
@@ -1462,7 +1458,7 @@ public final class Class<T> implements java.io.Serializable,
             ReflectionFactory fact = getReflectionFactory();
             for (Method m : candidates) {
                 if (m.getName().equals(enclosingInfo.getName()) &&
-                    arrayContentsEq(parameterClasses,
+                    parametersMatch(parameterClasses,
                                     fact.getExecutableSharedParameterTypes(m))) {
                     // finally, check return type
                     if (m.getReturnType().equals(returnType)) {
@@ -1537,12 +1533,6 @@ public final class Class<T> implements java.io.Serializable,
 
     }
 
-    private static Class<?> toClass(Type o) {
-        if (o instanceof GenericArrayType gat)
-            return toClass(gat.getGenericComponentType()).arrayType();
-        return (Class<?>)o;
-     }
-
     /**
      * If this {@code Class} object represents a local or anonymous
      * class within a constructor, returns a {@link
@@ -1581,7 +1571,7 @@ public final class Class<T> implements java.io.Serializable,
              */
             ReflectionFactory fact = getReflectionFactory();
             for (Constructor<?> c : candidates) {
-                if (arrayContentsEq(parameterClasses,
+                if (parametersMatch(parameterClasses,
                                     fact.getExecutableSharedParameterTypes(c))) {
                     return fact.copyConstructor(c);
                 }
@@ -2933,30 +2923,23 @@ public final class Class<T> implements java.io.Serializable,
         LinkedHashSet<Field> fields = new LinkedHashSet<>();
 
         // Local fields
-        addAll(fields, privateGetDeclaredFields(true));
+        Collections.addAll(fields, privateGetDeclaredFields(true));
 
         // Direct superinterfaces, recursively
         for (Class<?> si : getInterfaces(/* cloneArray */ false)) {
-            addAll(fields, si.privateGetPublicFields());
+            Collections.addAll(fields, si.privateGetPublicFields());
         }
 
         // Direct superclass, recursively
         Class<?> sc = getSuperclass();
         if (sc != null) {
-            addAll(fields, sc.privateGetPublicFields());
+            Collections.addAll(fields, sc.privateGetPublicFields());
         }
 
         res = fields.toArray(new Field[0]);
         rd.publicFields = res;
         return res;
     }
-
-    private static void addAll(Collection<Field> c, Field[] o) {
-        for (Field f : o) {
-            c.add(f);
-        }
-    }
-
 
     //
     //
@@ -3108,7 +3091,7 @@ public final class Class<T> implements java.io.Serializable,
         Method res = null;
         for (Method m : methods) {
             if (m.getName().equals(name)
-                && arrayContentsEq(parameterTypes,
+                && parametersMatch(parameterTypes,
                                    fact.getExecutableSharedParameterTypes(m))
                 && (res == null
                     || (res.getReturnType() != m.getReturnType()
@@ -3175,7 +3158,7 @@ public final class Class<T> implements java.io.Serializable,
         ReflectionFactory fact = getReflectionFactory();
         Constructor<T>[] constructors = privateGetDeclaredConstructors((which == Member.PUBLIC));
         for (Constructor<T> constructor : constructors) {
-            if (arrayContentsEq(parameterTypes,
+            if (parametersMatch(parameterTypes,
                                 fact.getExecutableSharedParameterTypes(constructor))) {
                 return constructor;
             }
@@ -3187,7 +3170,9 @@ public final class Class<T> implements java.io.Serializable,
     // Other helpers and base implementation
     //
 
-    private static boolean arrayContentsEq(Object[] a1, Object[] a2) {
+    // Compared to Arrays.equals, this method equates null to empty class array
+    // (as seen in getMethod) and uses == for better performance.
+    private static boolean parametersMatch(Class<?>[] a1, Class<?>[] a2) {
         if (a1 == null) {
             return a2 == null || a2.length == 0;
         }
@@ -3252,7 +3237,8 @@ public final class Class<T> implements java.io.Serializable,
     private native boolean       isRecord0();
 
     /**
-     * Helper method to get the method name from arguments.
+     * Returns a debug string for the user-supplied method lookup name and
+     * parameter types.
      */
     private String methodToString(String name, Class<?>[] argTypes) {
         return getName() + '.' + name +
@@ -3355,8 +3341,8 @@ public final class Class<T> implements java.io.Serializable,
         // An enum must both directly extend java.lang.Enum and have
         // the ENUM bit set; classes for specialized enum constants
         // don't do the former.
-        return (this.getModifiers() & ENUM) != 0 &&
-        this.getSuperclass() == java.lang.Enum.class;
+        return (this.getModifiers() & ClassFile.ACC_ENUM) != 0
+                && this.getSuperclass() == Enum.class;
     }
 
     /**
@@ -3378,7 +3364,7 @@ public final class Class<T> implements java.io.Serializable,
     public boolean isRecord() {
         // this superclass and final modifier check is not strictly necessary
         // they are intrinsified and serve as a fast-path check
-        return getSuperclass() == java.lang.Record.class &&
+        return getSuperclass() == Record.class &&
                 (this.getModifiers() & Modifier.FINAL) != 0 &&
                 isRecord0();
     }
@@ -4012,9 +3998,8 @@ public final class Class<T> implements java.io.Serializable,
      */
     @Override
     public Optional<ClassDesc> describeConstable() {
-        Class<?> c = isArray() ? elementType() : this;
-        return c.isHidden() ? Optional.empty()
-                            : Optional.of(ConstantUtils.classDesc(this));
+        return unwrapArrays().isHidden() ? Optional.empty()
+                                         : Optional.of(ConstantUtils.classDesc(this));
    }
 
     /**
@@ -4120,8 +4105,7 @@ public final class Class<T> implements java.io.Serializable,
      * file major version is returned and zero is returned for the minor version.
      */
     int getClassFileVersion() {
-        Class<?> c = isArray() ? elementType() : this;
-        return c.getClassFileVersion0();
+        return unwrapArrays().getClassFileVersion0();
     }
 
     private native int getClassFileVersion0();
