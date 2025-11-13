@@ -34,22 +34,7 @@ import java.lang.ref.SoftReference;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectStreamField;
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.AnnotatedType;
-import java.lang.reflect.AccessFlag;
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Executable;
-import java.lang.reflect.Field;
-import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.GenericDeclaration;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Member;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.RecordComponent;
-import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
+import java.lang.reflect.*;
 import java.lang.constant.Constable;
 import java.net.URL;
 import java.security.AllPermission;
@@ -1445,8 +1430,7 @@ public final class Class<T> implements java.io.Serializable,
             if (!enclosingInfo.isMethod())
                 return null;
 
-            // Descriptor already validated by VM
-            List<Class<?>> types = BytecodeDescriptor.parseMethod(enclosingInfo.descriptor(), getClassLoader());
+            List<Class<?>> types = BytecodeDescriptor.parseMethod(enclosingInfo.descriptor, getClassLoader());
             Class<?>   returnType       = types.removeLast();
             Class<?>[] parameterClasses = types.toArray(EMPTY_CLASS_ARRAY);
 
@@ -1503,6 +1487,14 @@ public final class Class<T> implements java.io.Serializable,
             // as it is referred by a type in NameAndType; note this may still be a
             // field descriptor, which is invalid.
             assert (name == null) == (descriptor == null);
+            if (descriptor != null) {
+                assert !descriptor.isEmpty(); // Guarded by classFileParser Verification 2nd pass
+                if (descriptor.charAt(0) != '(') {
+                    // We received a valid field descriptor instead of a valid method descriptor
+                    throw new GenericSignatureFormatError("%s \"%s\" in class %s has illegal signature \"%s\""
+                            .formatted("Method", name, enclosingClass.getName(), descriptor));
+                }
+            }
         }
 
         boolean isPartial() {
@@ -1511,7 +1503,8 @@ public final class Class<T> implements java.io.Serializable,
 
         boolean isConstructor() { return !isPartial() && ConstantDescs.INIT_NAME.equals(name); }
 
-        boolean isMethod() { return !isPartial() && !isConstructor(); }
+        // Note: JVM does not block <clinit> in NameAndType so it may leak through for now
+        boolean isMethod() { return !isPartial() && !isConstructor() && !ConstantDescs.CLASS_INIT_NAME.equals(name); }
     }
 
     /**
@@ -1539,7 +1532,7 @@ public final class Class<T> implements java.io.Serializable,
                 return null;
 
             // Descriptor already validated by VM
-            List<Class<?>> types = BytecodeDescriptor.parseMethod(enclosingInfo.descriptor(), getClassLoader());
+            List<Class<?>> types = BytecodeDescriptor.parseMethod(enclosingInfo.descriptor, getClassLoader());
             types.removeLast();
             Class<?>[] parameterClasses = types.toArray(EMPTY_CLASS_ARRAY);
 

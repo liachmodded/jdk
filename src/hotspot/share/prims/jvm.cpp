@@ -1558,7 +1558,6 @@ JVM_ENTRY(jobjectArray, JVM_GetClassDeclaredFields(JNIEnv *env, jclass ofClass, 
     // Return empty array
     oop res = oopFactory::new_objArray(vmClasses::reflect_Field_klass(), 0, CHECK_NULL);
     return (jobjectArray) JNIHandles::make_local(THREAD, res);
-
   }
 
   InstanceKlass* k = java_lang_Class::as_InstanceKlass(ofMirror);
