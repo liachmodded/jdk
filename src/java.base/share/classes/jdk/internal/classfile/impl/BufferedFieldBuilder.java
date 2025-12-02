@@ -43,6 +43,7 @@ public final class BufferedFieldBuilder
         implements TerminalFieldBuilder {
     private final SplitConstantPool constantPool;
     private final ClassFileImpl context;
+    private final ClassFileVersionContext versionContext;
     private final Utf8Entry name;
     private final Utf8Entry desc;
     private final List<FieldElement> elements = new ArrayList<>();
@@ -50,13 +51,16 @@ public final class BufferedFieldBuilder
 
     public BufferedFieldBuilder(SplitConstantPool constantPool,
                                 ClassFileImpl context,
+                                ClassFileVersionContext versionContext,
                                 Utf8Entry name,
                                 Utf8Entry type) {
         this.constantPool = constantPool;
         this.context = context;
+        this.versionContext = versionContext;
         this.name = requireNonNull(name);
         this.desc = requireNonNull(type);
-        this.flags = new AccessFlagsImpl(AccessFlag.Location.FIELD);
+        super();
+        this.flags = new AccessFlagsImpl(this, AccessFlag.Location.FIELD);
     }
 
     @Override

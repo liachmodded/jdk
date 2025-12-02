@@ -38,7 +38,7 @@ import java.util.function.Consumer;
 
 public final class FieldImpl
         extends AbstractElement
-        implements FieldModel, Util.Writable {
+        implements FieldModel, Util.Writable, ClassFileVersionContext {
 
     private final ClassReader reader;
     private final int startPos, endPos, attributesPos;
@@ -53,7 +53,7 @@ public final class FieldImpl
 
     @Override
     public AccessFlags flags() {
-        return new AccessFlagsImpl(AccessFlag.Location.FIELD, reader.readU2(startPos));
+        return new AccessFlagsImpl(this, AccessFlag.Location.FIELD, reader.readU2(startPos));
     }
 
     @Override

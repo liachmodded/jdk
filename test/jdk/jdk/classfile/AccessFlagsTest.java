@@ -27,6 +27,7 @@
  * @run junit AccessFlagsTest
  */
 import java.lang.classfile.ClassFile;
+import java.lang.classfile.CodeBuilder;
 import java.lang.constant.ClassDesc;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -111,5 +112,24 @@ class AccessFlagsTest {
 
     void assertThrowsForInvalidFlagsUse(Consumer<AccessFlag[]> factory) {
         assertThrows(IllegalArgumentException.class, () -> factory.accept(AccessFlag.values()));
+    }
+
+    @Test
+    void testObsoleteStrictFlag() {
+        // strictfp on latest
+        var modernBytes = ClassFile.of().build(ClassDesc.of("Test"), clb -> {
+            clb.withMethod("test", MTD_void, 0, mb -> mb.withFlags(AccessFlag.STRICT).withCode(CodeBuilder::return_));
+        });
+        var modernClass = ClassFile.of().parse(modernBytes);
+        // No longer set on latest class files
+        assertEquals(0, modernClass.methods().getFirst().flags().flagsMask());
+        // strictfp on Java 11
+        var legacyBytes = ClassFile.of().build(ClassDesc.of("Test"), clb -> {
+            clb.withVersion(ClassFile.JAVA_11_VERSION, 0);
+            clb.withMethod("test", MTD_void, 0, mb -> mb.withFlags(AccessFlag.STRICT).withCode(CodeBuilder::return_));
+        });
+        var legacyClass = ClassFile.of().parse(legacyBytes);
+        // Still set on older class files
+        assertEquals(ClassFile.ACC_STRICT, legacyClass.methods().getFirst().flags().flagsMask());
     }
 }

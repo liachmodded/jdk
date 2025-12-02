@@ -41,7 +41,7 @@ import static java.lang.classfile.constantpool.PoolEntry.TAG_UTF8;
 import static jdk.internal.util.ModifiedUtf.putChar;
 import static jdk.internal.util.ModifiedUtf.utfLen;
 
-public final class BufWriterImpl implements BufWriter {
+public final class BufWriterImpl implements BufWriter, ClassFileVersionContext {
     private static final JavaLangAccess JLA = SharedSecrets.getJavaLangAccess();
 
     private final ConstantPoolBuilder constantPool;
@@ -49,7 +49,7 @@ public final class BufWriterImpl implements BufWriter {
     private LabelContext labelContext;
     private boolean labelsMatch;
     private final ClassEntry thisClass;
-    private final int majorVersion;
+    private final int classFileVersion;
     byte[] elems;
     int offset = 0;
 
@@ -61,12 +61,12 @@ public final class BufWriterImpl implements BufWriter {
         this(constantPool, context, initialSize, null, 0);
     }
 
-    public BufWriterImpl(ConstantPoolBuilder constantPool, ClassFileImpl context, int initialSize, ClassEntry thisClass, int majorVersion) {
+    public BufWriterImpl(ConstantPoolBuilder constantPool, ClassFileImpl context, int initialSize, ClassEntry thisClass, int classFileVersion) {
         this.constantPool = constantPool;
         this.context = context;
         elems = new byte[initialSize];
         this.thisClass = thisClass;
-        this.majorVersion = majorVersion;
+        this.classFileVersion = classFileVersion;
     }
 
     @Override
@@ -98,8 +98,9 @@ public final class BufWriterImpl implements BufWriter {
         return thisClass;
     }
 
-    public int getMajorVersion() {
-        return majorVersion;
+    @Override
+    public int classFileVersion() {
+        return classFileVersion;
     }
 
     public ClassFileImpl context() {

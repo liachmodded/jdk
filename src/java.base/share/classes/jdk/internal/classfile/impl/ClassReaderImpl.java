@@ -42,7 +42,7 @@ import java.util.function.Function;
 import static java.lang.classfile.constantpool.PoolEntry.*;
 
 public final class ClassReaderImpl
-        implements ClassReader {
+        implements ClassReader, ClassFileVersionContext {
     static final int CP_ITEM_START = 10;
 
     private final byte[] buffer;
@@ -468,5 +468,10 @@ public final class ClassReaderImpl
         } catch (IndexOutOfBoundsException e) {
             throw outOfBoundsError(e);
         }
+    }
+
+    @Override
+    public int classFileVersion() {
+        return readInt(4);
     }
 }

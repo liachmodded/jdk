@@ -91,16 +91,16 @@ import static java.lang.reflect.ClassFileFormatVersion.*;
  * added at the end of the existing list.
  *
  * @apiNote
- * The JVM class file format has a {@linkplain ClassFileFormatVersion new version} defined for each new
- * {@linkplain Runtime.Version#feature() feature release}. A new class
- * file version may define new access flags or retire old ones. {@code
- * AccessFlag} is intended to model the set of access flags across
- * class file format versions. The range of versions an access flag is
- * recognized is not explicitly indicated in this API. See the current
- * <cite>The Java Virtual Machine Specification</cite> for
- * details. Unless otherwise indicated, access flags can be assumed to
- * be recognized in the {@linkplain Runtime#version() current
- * version}.
+ * The JVM class file format has a {@linkplain ClassFileFormatVersion new
+ * version} defined for each new {@linkplain Runtime.Version#feature() feature
+ * release}.  A new class file version may introduce new {@linkplain Location
+ * locations} where access flags can appear and define new access flags or
+ * retire old flags.  {@code AccessFlag} is intended to model the set of all
+ * access flags across locations across class file format versions, so existing
+ * constants for retired flags will not be removed.  To provide backward
+ * compatibility, APIs that accept flags before their retirement should continue
+ * to accept them without failing, even though they are no longer reported as
+ * recognized in {@link #locations locations()}.
  *
  * @see java.lang.reflect.Modifier
  * @see java.lang.module.ModuleDescriptor.Modifier

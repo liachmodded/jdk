@@ -31,17 +31,26 @@ import java.util.Set;
 public final class AccessFlagsImpl extends AbstractElement
         implements AccessFlags {
 
+    private final ClassFileVersionContext versionContext;
     private final AccessFlag.Location location;
     private final int flagsMask;
     private Set<AccessFlag> flags;
 
-    public AccessFlagsImpl(AccessFlag.Location location, AccessFlag... flags) {
+    public AccessFlagsImpl(ClassFileVersionContext versionContext, AccessFlag.Location location, AccessFlag... flags) {
+        this.versionContext = versionContext;
         this.location = location;
-        this.flagsMask = Util.flagsToBits(location, flags);
+        var version = Util.findFormatVersion(versionContext.classFileVersion());
+        if (version != null) {
+            // Accept obsolete flags if we are targeting old versions
+            this.flagsMask = Util.flagsToBits(location, flags, version);
+        } else {
+            this.flagsMask = Util.flagsToBits(location, flags);
+        }
         this.flags = Set.of(flags);
     }
 
-    public AccessFlagsImpl(AccessFlag.Location location, int mask) {
+    public AccessFlagsImpl(ClassFileVersionContext versionContext, AccessFlag.Location location, int mask) {
+        this.versionContext = versionContext;
         this.location = location;
         this.flagsMask = Util.checkFlags(mask);
     }
@@ -53,8 +62,15 @@ public final class AccessFlagsImpl extends AbstractElement
 
     @Override
     public Set<AccessFlag> flags() {
-        if (flags == null)
-            flags = AccessFlag.maskToAccessFlags(flagsMask, location);
+        if (flags == null) {
+            var version = Util.findFormatVersion(versionContext.classFileVersion());
+            if (version != null) {
+                // Report obsolete flags for older versions
+                flags = AccessFlag.maskToAccessFlags(flagsMask, location, version);
+            } else {
+                flags = AccessFlag.maskToAccessFlags(flagsMask, location);
+            }
+        }
         return flags;
     }
 

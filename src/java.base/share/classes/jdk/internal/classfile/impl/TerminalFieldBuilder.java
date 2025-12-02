@@ -27,6 +27,6 @@ package jdk.internal.classfile.impl;
 import java.lang.classfile.FieldBuilder;
 
 public sealed interface TerminalFieldBuilder
-        extends FieldBuilder
+        extends FieldBuilder, ClassFileVersionContext
         permits DirectFieldBuilder, BufferedFieldBuilder {
 }

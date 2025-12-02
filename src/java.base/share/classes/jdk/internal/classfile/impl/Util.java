@@ -35,6 +35,7 @@ import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.constant.ModuleDesc;
 import java.lang.reflect.AccessFlag;
+import java.lang.reflect.ClassFileFormatVersion;
 import java.util.AbstractList;
 import java.util.Collection;
 import java.util.List;
@@ -238,10 +239,64 @@ public final class Util {
         return checkU2(mask, "access flags");
     }
 
+    /// Returns the discrete class file format for a raw minor-major value.
+    /// Returns `null` if a discrete, supported class file format is not found.
+    public static ClassFileFormatVersion findFormatVersion(int classfileVersion) {
+        int major = extractMajorVersion(classfileVersion);
+        int minor = extractMinorVersion(classfileVersion);
+        if (major < ClassFile.JAVA_1_VERSION || major > ClassFile.latestMajorVersion())
+            return null;
+        if (major == ClassFile.JAVA_1_VERSION) {
+            return minor <= 3 ? ClassFileFormatVersion.RELEASE_0 : ClassFileFormatVersion.RELEASE_1;
+        }
+        // for major version is between 45 and 55 inclusive, the minor version may be any value
+        if (major < ClassFile.JAVA_12_VERSION || minor == 0)
+            return ClassFileFormatVersion.fromMajor(major);
+
+        // TODO: We don't distinguish latest from preview for now - we must do so for Valhalla
+        return (major == ClassFile.latestMajorVersion() && minor == ClassFile.PREVIEW_MINOR_VERSION) ?
+                ClassFileFormatVersion.latest() : null;
+    }
+
+    public static ClassFileFormatVersion requireFormatVersion(int classFileVersion) {
+        var ret = findFormatVersion(classFileVersion);
+        if (ret == null)
+            throw new IllegalArgumentException("Unsupported class file version: " + classFileVersionString(classFileVersion));
+        return ret;
+    }
+
+    public static String classFileVersionString(int classFileVersion) {
+        return extractMajorVersion(classFileVersion) + "." + extractMinorVersion(classFileVersion);
+    }
+
+    public static int toClassFileVersion(int majorVersion, int minorVersion) {
+        return majorVersion | minorVersion << Character.SIZE;
+    }
+
+    public static int extractMajorVersion(int classfileVersion) {
+        return (char) classfileVersion;
+    }
+
+    public static int extractMinorVersion(int classfileVersion) {
+        return classfileVersion >>> Character.SIZE;
+    }
+
+    public static boolean isRetiredAccessFlag(AccessFlag.Location location, AccessFlag flag) {
+        return switch (flag) {
+            case STRICT -> location == AccessFlag.Location.METHOD;
+            // Add future retired flags here
+            default -> false;
+        };
+    }
+
     public static int flagsToBits(AccessFlag.Location location, Collection<AccessFlag> flags) {
         int i = 0;
         for (AccessFlag f : flags) {
             if (!f.locations().contains(location)) {
+                if (isRetiredAccessFlag(location, f)) {
+                    // All retired flags are just unset, for now
+                    continue;
+                }
                 throw new IllegalArgumentException("unexpected flag: " + f + " use in target location: " + location);
             }
             i |= f.mask();
@@ -250,10 +305,22 @@ public final class Util {
     }
 
     public static int flagsToBits(AccessFlag.Location location, AccessFlag... flags) {
+        return flagsToBits(location, flags, ClassFileFormatVersion.latest());
+    }
+
+    public static int flagsToBits(AccessFlag.Location location, AccessFlag[] flags, ClassFileFormatVersion version) {
+        if (version == null) {
+            version = ClassFileFormatVersion.latest();
+        }
         int i = 0;
         for (AccessFlag f : flags) {
-            if (!f.locations().contains(location)) {
-                throw new IllegalArgumentException("unexpected flag: " + f + " use in target location: " + location);
+            if (!f.locations(version).contains(location)) {
+                if (isRetiredAccessFlag(location, f)) {
+                    // All retired flags are just unset, for now
+                    continue;
+                }
+                throw new IllegalArgumentException("unexpected flag: " + f + " use in target location: " + location
+                        + " for class file format: " + version);
             }
             i |= f.mask();
         }
