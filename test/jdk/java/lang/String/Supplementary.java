@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -389,7 +389,7 @@ public class Supplementary {
      * Test codePointCount(int, int) &
      *      codePointCount()
      *
-     * This test case assumes that Character.codePointCount() &
+     * This test case assumes that
      * Character.codePointCount(CharSequence, int, int) works
      * correctly.
      */
@@ -421,7 +421,7 @@ public class Supplementary {
             }
 
             int result = str.codePointCount();
-            int expected = Character.codePointCount(str);
+            int expected = Character.codePointCount(str, 0, str.length());
             check(result != expected, "substring:codePointCount()", result, expected);
 
             // test exceptions

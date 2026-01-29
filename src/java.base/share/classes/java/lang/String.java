@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1994, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1896,7 +1896,7 @@ public final class String
     /**
      * Returns the index within this {@code String} that is
      * offset from the given {@code index} by
-     * {@code codePointOffset} code points. Isolated surrogate code units
+     * {@code codePointOffset} code points. Unpaired surrogates
      * within the text range given by {@code index} and
      * {@code codePointOffset} count as one code point each.
      *

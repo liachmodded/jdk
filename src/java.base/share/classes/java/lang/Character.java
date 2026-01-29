@@ -10096,7 +10096,6 @@ class Character implements java.io.Serializable, Comparable<Character>, Constabl
         return n;
     }
 
-
     /**
      * Returns the number of Unicode code points in a subarray of the
      * {@code char} array argument. The {@code offset}
@@ -10119,18 +10118,6 @@ class Character implements java.io.Serializable, Comparable<Character>, Constabl
     public static int codePointCount(char[] a, int offset, int count) {
         Objects.checkFromIndexSize(offset, count, a.length);
         return codePointCountImpl(a, offset, count);
-    }
-
-    /**
-     * {@return the number of Unicode code points in the {@code char} array}
-     * Isolated surrogate code units count as one code point each.
-     *
-     * @param seq the {@code char} array
-     * @throws NullPointerException if {@code seq} is null
-     * @since 27
-     */
-    public static int codePointCount(char[] seq) {
-        return codePointCountImpl(seq, 0, seq.length);
     }
 
     static int codePointCountImpl(char[] a, int offset, int count) {
