@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -259,6 +259,34 @@ public interface SequencedMap<K, V> extends Map<K, V> {
     }
 
     /**
+     * Returns a {@link Set} view of the mappings contained in this map. The encounter
+     * order of the view matches the encounter order of entries of this map.
+     * The set is backed by the map, so changes to the map are
+     * reflected in the set, and vice-versa.  If the map is modified
+     * while an iteration over the set is in progress (except through
+     * the iterator's own {@code remove} operation, or through the
+     * {@code setValue} operation on a map entry returned by the
+     * iterator) the results of the iteration are undefined.  The set
+     * supports element removal, which removes the corresponding
+     * mapping from the map, via the {@code Iterator.remove},
+     * {@code Set.remove}, {@code removeAll}, {@code retainAll} and
+     * {@code clear} operations.  It does not support the
+     * {@code add} or {@code addAll} operations.
+     *
+     * @apiNote
+     * {@code keySet} is abstract and returns {@code Set<K>} instead of
+     * {@code SequencedSet<K>} to allow retrofitting existing subclasses and
+     * subinterfaces of {@code Map} to be those of {@code SequencedMap}.
+     * New implementations of {@code SequencedMap} should consider overriding
+     * {@link #sequencedKeySet() sequencedKeySet} when implementing {@code keySet}.
+     *
+     * @see #sequencedKeySet()
+     * @return a set view of the keys contained in this map
+     */
+    @Override
+    Set<K> keySet();
+
+    /**
      * Returns a {@code SequencedSet} view of this map's {@link #keySet keySet}.
      *
      * @implSpec
@@ -276,6 +304,10 @@ public interface SequencedMap<K, V> extends Map<K, V> {
      * #sequencedKeySet sequencedKeySet} view of the {@link #reversed reversed} view of
      * this map. Each of its other methods calls the corresponding method of the {@link
      * #keySet keySet} view of this map.
+     *
+     * @apiNote
+     * This method provides a default implementation to allow retrofitting existing
+     * subclasses and subinterfaces of {@code Map} to be those of {@code SequencedMap}.
      *
      * @return a {@code SequencedSet} view of this map's {@code keySet}
      */
@@ -308,6 +340,34 @@ public interface SequencedMap<K, V> extends Map<K, V> {
     }
 
     /**
+     * Returns a {@link Collection} view of the values contained in this map. The
+     * encounter order of values in the view matches the encounter order of entries in
+     * this map. The collection is backed by the map, so changes to the map are
+     * reflected in the collection, and vice-versa.  If the map is
+     * modified while an iteration over the collection is in progress
+     * (except through the iterator's own {@code remove} operation),
+     * the results of the iteration are undefined.  The collection
+     * supports element removal, which removes the corresponding
+     * mapping from the map, via the {@code Iterator.remove},
+     * {@code Collection.remove}, {@code removeAll},
+     * {@code retainAll} and {@code clear} operations.  It does not
+     * support the {@code add} or {@code addAll} operations.
+     *
+     * @apiNote
+     * {@code values} is abstract and returns {@code Collection<V>} instead of
+     * {@code SequencedCollection<V>} to allow retrofitting existing subclasses and
+     * subinterfaces of {@code Map} to be those of {@code SequencedMap}.
+     * New implementations of {@code SequencedMap} should consider overriding
+     * {@link #sequencedValues() sequencedValues} when implementing {@code
+     * values}.
+     *
+     * @see #sequencedValues()
+     * @return a collection view of the values contained in this map
+     */
+    @Override
+    Collection<V> values();
+
+    /**
      * Returns a {@code SequencedCollection} view of this map's {@link #values values} collection.
      *
      * @implSpec
@@ -326,6 +386,10 @@ public interface SequencedMap<K, V> extends Map<K, V> {
      * this map. Its {@link Object#equals equals} and {@link Object#hashCode hashCode} methods
      * are inherited from {@link Object}. Each of its other methods calls the corresponding
      * method of the {@link #values values} view of this map.
+     *
+     * @apiNote
+     * This method provides a default implementation to allow retrofitting existing
+     * subclasses and subinterfaces of {@code Map} to be those of {@code SequencedMap}.
      *
      * @return a {@code SequencedCollection} view of this map's {@code values} collection
      */
@@ -352,6 +416,35 @@ public interface SequencedMap<K, V> extends Map<K, V> {
     }
 
     /**
+     * Returns a {@link Set} view of the mappings contained in this map. The encounter
+     * order of the view matches the encounter order of entries of this map.
+     * The set is backed by the map, so changes to the map are
+     * reflected in the set, and vice-versa.  If the map is modified
+     * while an iteration over the set is in progress (except through
+     * the iterator's own {@code remove} operation, or through the
+     * {@code setValue} operation on a map entry returned by the
+     * iterator) the results of the iteration are undefined.  The set
+     * supports element removal, which removes the corresponding
+     * mapping from the map, via the {@code Iterator.remove},
+     * {@code Set.remove}, {@code removeAll}, {@code retainAll} and
+     * {@code clear} operations.  It does not support the
+     * {@code add} or {@code addAll} operations.
+     *
+     * @apiNote
+     * {@code entrySet} is abstract and returns {@code Set<Entry<K,V>>} instead of
+     * {@code SequencedSet<Entry<K,V>>} to allow retrofitting existing subclasses
+     * and subinterfaces of {@code Map} to be those of {@code SequencedMap}.
+     * New implementations of {@code SequencedMap} should consider overriding
+     * {@link #sequencedEntrySet() sequencedEntrySet} when implementing {@code
+     * entrySet}.
+     *
+     * @see #sequencedEntrySet()
+     * @return a set view of the mappings contained in this map
+     */
+    @Override
+    Set<Entry<K, V>> entrySet();
+
+    /**
      * Returns a {@code SequencedSet} view of this map's {@link #entrySet entrySet}.
      *
      * @implSpec
@@ -369,6 +462,10 @@ public interface SequencedMap<K, V> extends Map<K, V> {
      * #sequencedEntrySet sequencedEntrySet} view of the {@link #reversed reversed} view of
      * this map. Each of its other methods calls the corresponding method of the {@link
      * #entrySet entrySet} view of this map.
+     *
+     * @apiNote
+     * This method provides a default implementation to allow retrofitting existing
+     * subclasses and subinterfaces of {@code Map} to be those of {@code SequencedMap}.
      *
      * @return a {@code SequencedSet} view of this map's {@code entrySet}
      */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -607,23 +607,12 @@ public class LinkedHashMap<K,V>
     }
 
     /**
-     * Returns a {@link Set} view of the keys contained in this map. The encounter
-     * order of the keys in the view matches the encounter order of mappings of
-     * this map. The set is backed by the map, so changes to the map are
-     * reflected in the set, and vice-versa.  If the map is modified
-     * while an iteration over the set is in progress (except through
-     * the iterator's own {@code remove} operation), the results of
-     * the iteration are undefined.  The set supports element removal,
-     * which removes the corresponding mapping from the map, via the
-     * {@code Iterator.remove}, {@code Set.remove},
-     * {@code removeAll}, {@code retainAll}, and {@code clear}
-     * operations.  It does not support the {@code add} or {@code addAll}
-     * operations.
+     * {@inheritDoc}
      * Its {@link Spliterator} typically provides faster sequential
      * performance but much poorer parallel performance than that of
      * {@code HashMap}.
      *
-     * @return a set view of the keys contained in this map
+     * @return {@inheritDoc}
      */
     public Set<K> keySet() {
         return sequencedKeySet();
@@ -756,23 +745,12 @@ public class LinkedHashMap<K,V>
     }
 
     /**
-     * Returns a {@link Collection} view of the values contained in this map. The
-     * encounter order of values in the view matches the encounter order of entries in
-     * this map. The collection is backed by the map, so changes to the map are
-     * reflected in the collection, and vice-versa.  If the map is
-     * modified while an iteration over the collection is in progress
-     * (except through the iterator's own {@code remove} operation),
-     * the results of the iteration are undefined.  The collection
-     * supports element removal, which removes the corresponding
-     * mapping from the map, via the {@code Iterator.remove},
-     * {@code Collection.remove}, {@code removeAll},
-     * {@code retainAll} and {@code clear} operations.  It does not
-     * support the {@code add} or {@code addAll} operations.
+     * {@inheritDoc}
      * Its {@link Spliterator} typically provides faster sequential
      * performance but much poorer parallel performance than that of
      * {@code HashMap}.
      *
-     * @return a view of the values contained in this map
+     * @return {@inheritDoc}
      */
     public Collection<V> values() {
         return sequencedValues();
@@ -860,24 +838,12 @@ public class LinkedHashMap<K,V>
     }
 
     /**
-     * Returns a {@link Set} view of the mappings contained in this map. The encounter
-     * order of the view matches the encounter order of entries of this map.
-     * The set is backed by the map, so changes to the map are
-     * reflected in the set, and vice-versa.  If the map is modified
-     * while an iteration over the set is in progress (except through
-     * the iterator's own {@code remove} operation, or through the
-     * {@code setValue} operation on a map entry returned by the
-     * iterator) the results of the iteration are undefined.  The set
-     * supports element removal, which removes the corresponding
-     * mapping from the map, via the {@code Iterator.remove},
-     * {@code Set.remove}, {@code removeAll}, {@code retainAll} and
-     * {@code clear} operations.  It does not support the
-     * {@code add} or {@code addAll} operations.
+     * {@inheritDoc}
      * Its {@link Spliterator} typically provides faster sequential
      * performance but much poorer parallel performance than that of
      * {@code HashMap}.
      *
-     * @return a set view of the mappings contained in this map
+     * @return {@inheritDoc}
      */
     public Set<Map.Entry<K,V>> entrySet() {
         return sequencedEntrySet();
