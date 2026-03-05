@@ -3518,7 +3518,8 @@ void TemplateTable::invokevfinal_helper(Register Rcache,
 
   __ ld(Rmethod, in_bytes(ResolvedMethodEntry::method_offset()), Rcache);
 
-  __ profile_final_call(Rrecv, Rscratch1);
+  __ load_klass(Rscratch1, Rrecv);
+  __ profile_virtual_call(Rscratch1, Rscratch2, Rflags, false);
   // Argument and return type profiling.
   __ profile_arguments_type(Rmethod, Rscratch1, Rscratch2, true);
 
@@ -3742,7 +3743,8 @@ void TemplateTable::invokehandle(int byte_no) {
   __ verify_method_ptr(Rmethod);
   __ null_check_throw(Rrecv, -1, Rscratch2);
 
-  __ profile_final_call(Rrecv, Rscratch1);
+  __ load_klass(Rscratch1, Rrecv);
+  __ profile_virtual_call(Rscratch1, Rscratch2, Rflags, false);
 
   // Still no call from handle => We call the method handle interpreter here.
   // Argument and return type profiling.

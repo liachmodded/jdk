@@ -3496,7 +3496,8 @@ void TemplateTable::invokehandle(int byte_no) {
   // Note:  rax_mtype is already pushed (if necessary)
 
   // FIXME: profile the LambdaForm also
-  __ profile_final_call(rax);
+  __ load_klass(rax, rcx_recv, rscratch1);
+  __ profile_virtual_call(rax, rdx);
   __ profile_arguments_type(rdx, rbx_method, rbcp, true);
 
   __ jump_from_interpreted(rbx_method, rdx);

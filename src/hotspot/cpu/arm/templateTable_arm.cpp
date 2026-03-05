@@ -3905,7 +3905,8 @@ void TemplateTable::invokehandle(int byte_no) {
   // Note:  Rmtype is already pushed (if necessary) by prepare_invoke
 
   // do the call
-  __ profile_final_call(R3_tmp);  // FIXME: profile the LambdaForm also
+  __ load_klass(Rmtype, Rrecv);
+  __ profile_virtual_call(R3_tmp, Rmtype);  // FIXME: profile the LambdaForm also
   __ jump_from_interpreted(Rmethod);
 }
 

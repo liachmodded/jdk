@@ -3871,7 +3871,8 @@ void TemplateTable::invokehandle(int byte_no) {
   // Note: Mtype is already pushed (if necessary) by prepare_invoke.
 
   // FIXME: profile the LambdaForm also.
-  __ profile_final_call(Z_ARG2);
+  __ load_klass(Z_ARG2, recv);
+  __ profile_virtual_call(Z_ARG2, Z_ARG3, Z_ARG5);
   __ profile_arguments_type(Z_ARG3, method, Z_ARG5, true);
 
   __ jump_from_interpreted(method, Z_ARG3);

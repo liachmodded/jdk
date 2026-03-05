@@ -751,6 +751,7 @@ int MethodData::bytecode_cell_count(Bytecodes::Code code) {
     return JumpData::static_cell_count();
   case Bytecodes::_invokevirtual:
   case Bytecodes::_invokeinterface:
+  case Bytecodes::_invokehandle:
     if (MethodData::profile_arguments() || MethodData::profile_return()) {
       return variable_cell_count;
     } else {

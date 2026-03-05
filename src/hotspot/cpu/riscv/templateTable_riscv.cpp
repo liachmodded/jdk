@@ -3479,9 +3479,10 @@ void TemplateTable::invokehandle(int byte_no) {
 
   // FIXME: profile the LambdaForm also
 
+  __ load_klass(x10, x12);
   // x30 is safe to use here as a temp reg because it is about to
   // be clobbered by jump_from_interpreted().
-  __ profile_final_call(x30);
+  __ profile_virtual_call(x10, x30);
   __ profile_arguments_type(x30, xmethod, x14, true);
 
   __ jump_from_interpreted(xmethod);

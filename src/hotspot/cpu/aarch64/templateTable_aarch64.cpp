@@ -3570,9 +3570,10 @@ void TemplateTable::invokehandle(int byte_no) {
 
   // FIXME: profile the LambdaForm also
 
+  __ load_klass(r0, r2);
   // r13 is safe to use here as a scratch reg because it is about to
   // be clobbered by jump_from_interpreted().
-  __ profile_final_call(r13);
+  __ profile_virtual_call(r0, r13);
   __ profile_arguments_type(r13, rmethod, r4, true);
 
   __ jump_from_interpreted(rmethod, r0);
