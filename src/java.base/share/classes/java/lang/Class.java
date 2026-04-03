@@ -708,9 +708,8 @@ public final class Class<T> implements java.io.Serializable,
                 );
             }
             try {
-                Class<?>[] empty = {};
                 final Constructor<T> c = getReflectionFactory().copyConstructor(
-                    getConstructor0(empty, Member.DECLARED));
+                    getConstructor0(EMPTY_CLASS_ARRAY, false));
                 // Disable accessibility checks on the constructor
                 // access check is done with the true caller
                 c.setAccessible(true);
@@ -2198,7 +2197,7 @@ public final class Class<T> implements java.io.Serializable,
     public Constructor<T> getConstructor(Class<?>... parameterTypes)
             throws NoSuchMethodException {
         return getReflectionFactory().copyConstructor(
-            getConstructor0(parameterTypes, Member.PUBLIC));
+            getConstructor0(parameterTypes, true));
     }
 
 
@@ -2492,7 +2491,7 @@ public final class Class<T> implements java.io.Serializable,
     public Constructor<T> getDeclaredConstructor(Class<?>... parameterTypes)
             throws NoSuchMethodException {
         return getReflectionFactory().copyConstructor(
-            getConstructor0(parameterTypes, Member.DECLARED));
+            getConstructor0(parameterTypes, false));
     }
 
     /**
@@ -3176,10 +3175,10 @@ public final class Class<T> implements java.io.Serializable,
     // be propagated to the outside world, but must instead be copied
     // via ReflectionFactory.copyConstructor.
     private Constructor<T> getConstructor0(Class<?>[] parameterTypes,
-                                        int which) throws NoSuchMethodException
+                                           boolean publicOnly) throws NoSuchMethodException
     {
         ReflectionFactory fact = getReflectionFactory();
-        Constructor<T>[] constructors = privateGetDeclaredConstructors((which == Member.PUBLIC));
+        Constructor<T>[] constructors = privateGetDeclaredConstructors(publicOnly);
         for (Constructor<T> constructor : constructors) {
             if (arrayContentsEq(parameterTypes,
                                 fact.getExecutableSharedParameterTypes(constructor))) {

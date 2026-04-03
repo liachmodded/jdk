@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,13 +44,27 @@ public interface Member {
     /**
      * Identifies the set of all public members of a class or interface,
      * including inherited members.
+     *
+     * @deprecated
+     * {@code SecurityManager} originally specified a "{@code checkMemberAccess}"
+     * method that takes this constant.  That method was deprecated in Java SE 8
+     * and removed in Java SE 11.  With no other use, this constant is
+     * deprecated, for removal.
      */
+    @Deprecated(forRemoval = true, since = "27")
     public static final int PUBLIC = 0;
 
     /**
      * Identifies the set of declared members of a class or interface.
      * Inherited members are not included.
+     *
+     * @deprecated
+     * {@code SecurityManager} originally specified a "{@code checkMemberAccess}"
+     * method that takes this constant.  That method was deprecated in Java SE 8
+     * and removed in Java SE 11.  With no other use, this constant is
+     * deprecated, for removal.
      */
+    @Deprecated(forRemoval = true, since = "27")
     public static final int DECLARED = 1;
 
     /**
