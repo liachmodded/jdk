@@ -76,6 +76,16 @@ public interface TypeDescriptor {
         boolean isPrimitive();
 
         /**
+         * {@return whether this field descriptor describes a class or interface
+         * type}
+         *
+         * @since 28
+         */
+        default boolean isClassOrInterface() {
+            return !isPrimitive() && !isArray();
+        }
+
+        /**
          * If this field descriptor describes an array type, return
          * a descriptor for its component type, otherwise return {@code null}.
          * @return the component type, or {@code null} if this field descriptor does

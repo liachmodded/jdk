@@ -26,6 +26,7 @@
 package java.lang;
 
 import java.lang.annotation.Annotation;
+import java.lang.classfile.ClassFile;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.invoke.TypeDescriptor;
@@ -859,6 +860,21 @@ public final class Class<T> implements java.io.Serializable,
      */
     public boolean isPrimitive() {
         return primitive;
+    }
+
+    /**
+     * {@return {@code true} if this {@code Class} object represents a class or
+     * interface type}  Classes and interfaces are derived from {@code class}
+     * files.
+     *
+     * @see #isInterface()
+     * @since 28
+     */
+    public boolean isClassOrInterface() {
+        // arrays and primitives have both ABSTRACT and FINAL set, which
+        // is impossible for class files
+        int mask = ClassFile.ACC_ABSTRACT | ClassFile.ACC_FINAL;
+        return (getModifiers() & mask) != mask;
     }
 
     /**
