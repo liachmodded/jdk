@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,17 +24,19 @@
  */
 package java.lang.constant;
 
+import java.lang.module.ModuleDescriptor;
+
 import jdk.internal.constant.ConstantUtils;
 import jdk.internal.constant.ModuleDescImpl;
 
 import static java.util.Objects.requireNonNull;
 
 /**
- * A nominal descriptor for a {@code Module} constant.
- *
+ * A nominal descriptor for a {@code Module} constant.  It can also represent
+ * an unnamed module with an empty string as the module name.
  * <p>
  * To create a {@link ModuleDesc} for a module, use the {@link #of(String)}
- * method.
+ * or {@link #ofDecodedName(String)} method.
  *
  * @jvms 4.4.11 The CONSTANT_Module_info Structure
  * @since 21
@@ -59,11 +61,38 @@ public sealed interface ModuleDesc
     }
 
     /**
+     * Returns a {@link ModuleDesc} for a module, given the decoded name of the
+     * module.  This method encodes special characters {@code \}, {@code :}, and
+     * {@code @} for the binary form of a module declaration.
+     *
+     * @param decodedName the decoded module name
+     * @return a {@link ModuleDesc} describing the desired module
+     * @throws NullPointerException if the argument is {@code null}
+     * @throws IllegalArgumentException if the decoded name string contains any
+     *         code point from '\u0000' to '\u001F' inclusive
+     * @jvms 4.2.3 Module and Package Names
+     */
+    static ModuleDesc ofDecodedName(String decodedName) {
+        String name = ConstantUtils.encodeModuleName(requireNonNull(decodedName));
+        return new ModuleDescImpl(name);
+    }
+
+    /**
      * Returns the module name of this {@link ModuleDesc}.
      *
      * @return the module name
      */
     String name();
+
+    /**
+     * {@return the decoded name of this module}  This is the name
+     * printed by {@link ModuleDescriptor#name()}.
+     *
+     * @see ModuleDescriptor#name()
+     */
+    default String decodedName() {
+        return ConstantUtils.decodeModuleName(name());
+    }
 
     /**
      * Compare the specified object with this descriptor for equality.

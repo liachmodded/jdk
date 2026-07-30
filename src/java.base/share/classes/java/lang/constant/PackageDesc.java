@@ -30,7 +30,8 @@ import jdk.internal.constant.PackageDescImpl;
 import static java.util.Objects.requireNonNull;
 
 /**
- * A nominal descriptor for a {@code Package} constant.
+ * A nominal descriptor for a {@code Package} constant.  It can also represent
+ * an unnamed package with an empty string as the package name.
  *
  * <p>
  * To create a {@link PackageDesc} for a package,

@@ -483,4 +483,51 @@ public final class ConstantUtils {
     public static String concat(String prefix, Object value, String suffix) {
         return JLA.concat(prefix, value, suffix);
     }
+
+    // Decodes a trusted module name string
+    public static String decodeModuleName(String name) {
+        int slash = name.indexOf('\\');
+        if (slash == -1) {
+            return name;
+        }
+
+        var sb = new StringBuilder(name.length());
+        int last = 0;
+        while (slash != 0) {
+            sb.append(name, last, slash);
+            last = slash + 1; // the escaped character is copied as-is
+            slash = name.indexOf('\\', last + 1);
+        }
+        sb.append(name, last, name.length());
+        return sb.toString();
+    }
+
+    // Encodes an untrusted string for module name
+    public static String encodeModuleName(String name) {
+        for (int i = 0; i < name.length(); i++) {
+            char ch = name.charAt(i);
+            if (ch < 16) {
+                throw new IllegalArgumentException("Invalid module name: " + name);
+            } else if (ch == '\\' || ch == ':' || ch == '@') {
+                return slowEncodeModuleName(name, i);
+            }
+        }
+        return name;
+    }
+
+    private static String slowEncodeModuleName(String name, int pos) {
+        StringBuilder sb = new StringBuilder(name.length() + 1);
+        sb.append(name, 0, pos).append('\\').append(name.charAt(pos));
+        for (int i = pos + 1; i < name.length(); i++) {
+            char ch = name.charAt(i);
+            if (ch < 16) {
+                throw new IllegalArgumentException("Invalid module name: " + name);
+            } else if (ch == '\\' || ch == ':' || ch == '@') {
+                sb.append('\\').append(ch);
+            } else {
+                sb.append(ch);
+            }
+        }
+        return sb.toString();
+    }
 }
