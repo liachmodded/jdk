@@ -54,6 +54,8 @@ void PhaseVector::optimize_vector_boxes() {
 
   C->inline_vector_reboxing_calls();
 
+  do_cleanup(); // Remove dead ValueType wrappers
+
   expand_vbox_nodes();
   eliminate_vbox_alloc_nodes();
 

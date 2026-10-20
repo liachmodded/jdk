@@ -108,6 +108,8 @@ public class TestVectorLoadStoreOptimization {
         TestFramework testFramework = new TestFramework();
         testFramework.setDefaultWarmup(10000)
                      .addFlags("--add-modules=jdk.incubator.vector")
+                     .addScenarios(new Scenario(0),
+                                   new Scenario(1, "--enable-preview"))
                      .start();
     }
 }
