@@ -2016,6 +2016,7 @@ Node* GraphKit::load_array_element(Node* ary, Node* idx, const TypeAryPtr* aryty
 //-------------------------set_arguments_for_java_call-------------------------
 // Arguments (pre-popped from the stack) are taken from the JVMS.
 void GraphKit::set_arguments_for_java_call(CallJavaNode* call) {
+  uint arg_start = jvms()->sp();
   PreserveReexecuteState preexecs(this);
   if (Arguments::is_valhalla_enabled()) {
     // Make sure the call is "re-executed", if buffering of value type arguments triggers deoptimization.
@@ -2030,7 +2031,7 @@ void GraphKit::set_arguments_for_java_call(CallJavaNode* call) {
   int arg_num = 0;
   for (uint i = TypeFunc::Parms, idx = TypeFunc::Parms; i < nargs; i++) {
     uint arg_idx = i - TypeFunc::Parms;
-    Node* arg = argument(arg_idx);
+    Node* arg = stack(arg_start + arg_idx);
     const Type* t = domain->field_at(i);
     if (t->is_valueklassptr() && !call->method()->mismatch() && call->method()->is_scalarized_arg(arg_num)) {
       // We don't pass value type arguments by reference but instead pass each field of the value type

@@ -2924,7 +2924,6 @@ private:
         _nodes_from_phi.remove(i);
       }
     }
-    DEBUG_ONLY(_init_nodes = _nodes_from_phi.size());
     // Find the ValueType nodes reachable from the current set of value type nodes.
     for (uint i = 0; i < _nodes_from_phi.size(); ++i) {
       Node* n = _nodes_from_phi.at(i);
@@ -3046,7 +3045,7 @@ private:
 
 #ifdef ASSERT
   void verify_clone() {
-    uint vts_to_skip = 0;
+    Unique_Node_List after;
     uint before_phis = 0;
     uint before_casts = 0;
     uint before_encode_decode = 0;
@@ -3059,37 +3058,10 @@ private:
       } else if (n->is_DecodeN() || n->is_EncodeP()) {
         before_encode_decode++;
       } else if (n->is_ValueType()) {
-        Node* buf = n->as_ValueType()->get_oop();
-        if (i >= _init_nodes) {
-          vts_to_skip++;
-        }
+        after.push(n);
       }
     }
 
-    Unique_Node_List after;
-    after.push(_root_phi);
-    for (uint i = 0; i < after.size(); ++i) {
-      Node* n = after.at(i);
-      if (n->is_Phi()) {
-        for (uint j = 1; j < n->req(); ++j) {
-          Node* in = n->in(j);
-          if (in != nullptr) {
-            after.push(in);
-          }
-        }
-      } else if (should_skip_over(n)) {
-        Node* in = n->in(1);
-        if (in != nullptr) {
-          after.push(in);
-        }
-      }
-    }
-    for (int i = after.size() - 1; i >= 0; i--) {
-      Node* n = after.at(i);
-      if (!n->is_ValueType()) {
-        after.remove(i);
-      }
-    }
     uint after_phis = 0;
     uint after_casts = 0;
     uint after_encode_decode = 0;
@@ -3130,7 +3102,7 @@ private:
         }
       }
     }
-    assert(after.size() + vts_to_skip == _nodes_from_phi.size(), "");
+    assert(after.size() == _nodes_from_phi.size(), "");
     assert(before_casts == after_casts, "no cast should have been dropped");
     assert(before_phis == after_phis, "no phi should have been dropped");
     assert(before_encode_decode == after_encode_decode, "no DecodeN/EncodeP should have been dropped");
@@ -3207,7 +3179,6 @@ private:
   Unique_Node_List _nodes_from_phi;
   Unique_Node_List _subgraph_to_clone;
   Node_List _clones;
-  DEBUG_ONLY(uint _init_nodes);
 
 public:
 
@@ -3789,4 +3760,3 @@ void BlackholeNode::format(PhaseRegAlloc* ra, outputStream* st) const {
   st->cr();
 }
 #endif
-
