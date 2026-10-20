@@ -2443,14 +2443,14 @@ void PhaseIterGVN::add_users_of_use_to_worklist(Node* n, Node* use, Unique_Node_
   // ConstraintCast+ -> Phi
   // ConstraintCast+ -> Xor
   // ConstraintCast+ -> VectorUnbox
-  if (use->is_ConstraintCast()) {
+  if (use->is_ConstraintCast() || use->is_ValueType()) {
     auto push_the_uses_to_worklist = [&](Node* n){
       if (n->is_Phi() || n->is_Sub() || n->Opcode() == Op_XorI ||
           n->Opcode() == Op_XorL || n->Opcode() == Op_VectorUnbox) {
         worklist.push(n);
       }
     };
-    auto is_boundary = [](Node* n){ return !n->is_ConstraintCast(); };
+    auto is_boundary = [](Node* n){ return !n->is_ConstraintCast() && !n->is_ValueType(); };
     use->visit_uses(push_the_uses_to_worklist, is_boundary);
   }
   // If changed LShift inputs, check RShift/URShift users for

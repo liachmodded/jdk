@@ -255,10 +255,10 @@ void PhaseVector::scalarize_vbox_node(VectorBoxNode* vec_box) {
   // Process debug uses at safepoints
   Unique_Node_List safepoints;
 
-  Unique_Node_List worklist;
-  worklist.push(vec_box);
-  while (worklist.size() > 0) {
-    Node* n = worklist.pop();
+  Unique_Node_List scalarize_through;
+  scalarize_through.push(vec_box);
+  for (uint index = 0; index < scalarize_through.size(); index++) {
+    Node* n = scalarize_through.at(index);
     for (DUIterator_Fast imax, i = n->fast_outs(imax); i < imax; i++) {
       Node* use = n->fast_out(i);
       if (use->is_SafePoint()) {
@@ -266,8 +266,8 @@ void PhaseVector::scalarize_vbox_node(VectorBoxNode* vec_box) {
         if (!sfpt->is_Call() || !sfpt->as_Call()->has_non_debug_use(n)) {
           safepoints.push(sfpt);
         }
-      } else if (use->is_ConstraintCast()) {
-        worklist.push(use); // reversed version of Node::uncast()
+      } else if (use->is_ConstraintCast() || (use->is_ValueType() && use->as_ValueType()->get_oop() == n)) {
+        scalarize_through.push(use);
       }
     }
   }
@@ -293,6 +293,9 @@ void PhaseVector::scalarize_vbox_node(VectorBoxNode* vec_box) {
     uint first_ind = (sfpt->req() - sfpt->jvms()->scloff());
     Node* sobj = new SafePointScalarObjectNode(vec_box->box_type(), vec_box, first_ind, sfpt->jvms()->depth(), n_fields);
     sobj->init_req(0, C->root());
+    if (iklass->is_value_klass()) {
+      sfpt->add_req(gvn.intcon(1));
+    }
     sfpt->add_req(vec_value);
 
     sobj = gvn.transform(sobj);
@@ -304,7 +307,7 @@ void PhaseVector::scalarize_vbox_node(VectorBoxNode* vec_box) {
     // to the allocated object with vector value.
     for (uint i = jvms->debug_start(); i < jvms->debug_end(); i++) {
       Node* debug = sfpt->in(i);
-      if (debug != nullptr && debug->uncast(/*keep_deps*/false) == vec_box) {
+      if (debug != nullptr && scalarize_through.member(debug)) {
         sfpt->set_req(i, sobj);
       }
     }
